@@ -168,6 +168,30 @@ fn execute(
             };
             update = Some(replica.set_alignment(table, column, alignment)?);
         }
+        31 => {
+            if input.len() < 30 || input[24] > 1 {
+                return Err(CollabError::InvalidEncoding);
+            }
+            let table = read_id(&input[..24])?;
+            let count = u32::from_le_bytes(input[25..29].try_into().unwrap()) as usize;
+            if count == 0 || count > MAX_PENDING {
+                return Err(CollabError::InvalidEncoding);
+            }
+            let tail = 29 + count * 24;
+            if input.len() <= tail {
+                return Err(CollabError::InvalidEncoding);
+            }
+            let mut targets = Vec::new();
+            for index in 0..count {
+                targets.push(read_id(&input[29 + index * 24..53 + index * 24])?);
+            }
+            let before = match input[tail] {
+                0 if input.len() == tail + 1 => None,
+                1 if input.len() == tail + 25 => Some(read_id(&input[tail + 1..])?),
+                _ => return Err(CollabError::InvalidEncoding),
+            };
+            update = Some(replica.reorder(table, input[24] == 1, targets, before)?);
+        }
         30 => {
             let text = std::str::from_utf8(input).map_err(|_| CollabError::InvalidEncoding)?;
             update = Some(replica.replace_projected_text(start, end, text)?);
@@ -197,6 +221,10 @@ fn execute(
                 values[1],
                 [values[2], values[3], values[4], values[5]],
             )?);
+        }
+        32 => {
+            replica.coalesce_history();
+            return Ok(());
         }
         20 => {
             let text = std::str::from_utf8(input).map_err(|_| CollabError::InvalidEncoding)?;

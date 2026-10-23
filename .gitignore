@@ -2,3 +2,6 @@
 /web/sohjae_core.wasm
 /dist/
 /artifacts/
+/web/sohjae_renderer.wasm
+
+__pycache__/

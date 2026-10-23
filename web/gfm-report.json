@@ -3,73 +3,73 @@
   "source": "https://github.com/github/cmark-gfm/blob/master/test/spec.txt",
   "sha256": "7d8e5814befec287ac116786d81ff14e0adc9b13295b4494649e995408fd871c",
   "examples": 672,
-  "passed": 262,
-  "failed": 410,
+  "passed": 585,
+  "failed": 87,
   "comparison": "Semantic HTML tree; editor wrappers/classes/empty caret placeholders removed; optional thead/tbody and default left alignment normalized; safe URL/HTML policy remains active. Not a GFM conformance certificate.",
   "sections": {
     "Tabs": {
       "total": 11,
-      "passed": 3
+      "passed": 11
     },
     "Precedence": {
       "total": 1,
-      "passed": 0
+      "passed": 1
     },
     "Thematic breaks": {
       "total": 19,
-      "passed": 13
+      "passed": 19
     },
     "ATX headings": {
       "total": 18,
-      "passed": 17
+      "passed": 18
     },
     "Setext headings": {
       "total": 27,
-      "passed": 12
+      "passed": 25
     },
     "Indented code blocks": {
       "total": 12,
-      "passed": 5
+      "passed": 12
     },
     "Fenced code blocks": {
       "total": 29,
-      "passed": 21
+      "passed": 29
     },
     "HTML blocks": {
       "total": 43,
-      "passed": 2
+      "passed": 3
     },
     "Link reference definitions": {
       "total": 28,
-      "passed": 7
+      "passed": 26
     },
     "Paragraphs": {
       "total": 8,
-      "passed": 4
+      "passed": 8
     },
     "Blank lines": {
       "total": 1,
-      "passed": 0
+      "passed": 1
     },
     "Tables (extension)": {
       "total": 8,
-      "passed": 7
+      "passed": 8
     },
     "Block quotes": {
       "total": 25,
-      "passed": 2
+      "passed": 25
     },
     "List items": {
       "total": 48,
-      "passed": 5
+      "passed": 48
     },
     "Task list items (extension)": {
       "total": 2,
-      "passed": 0
+      "passed": 2
     },
     "Lists": {
       "total": 26,
-      "passed": 0
+      "passed": 26
     },
     "Inlines": {
       "total": 1,
@@ -77,19 +77,19 @@
     },
     "Backslash escapes": {
       "total": 13,
-      "passed": 8
+      "passed": 11
     },
     "Entity and numeric character references": {
       "total": 17,
-      "passed": 12
+      "passed": 16
     },
     "Code spans": {
       "total": 22,
-      "passed": 19
+      "passed": 21
     },
     "Emphasis and strong emphasis": {
       "total": 131,
-      "passed": 76
+      "passed": 129
     },
     "Strikethrough (extension)": {
       "total": 2,
@@ -97,23 +97,23 @@
     },
     "Links": {
       "total": 87,
-      "passed": 20
+      "passed": 81
     },
     "Images": {
       "total": 22,
-      "passed": 7
+      "passed": 22
     },
     "Autolinks": {
       "total": 19,
-      "passed": 7
+      "passed": 10
     },
     "Autolinks (extension)": {
       "total": 11,
-      "passed": 2
+      "passed": 3
     },
     "Raw HTML": {
       "total": 20,
-      "passed": 1
+      "passed": 9
     },
     "Disallowed Raw HTML (extension)": {
       "total": 1,
@@ -121,15 +121,63 @@
     },
     "Hard line breaks": {
       "total": 15,
-      "passed": 5
+      "passed": 13
     },
     "Soft line breaks": {
       "total": 2,
-      "passed": 1
+      "passed": 2
     },
     "Textual content": {
       "total": 3,
       "passed": 3
+    }
+  },
+  "classification": {
+    "starting_passed": 265,
+    "starting_failed": 407,
+    "current_passed": 585,
+    "current_failed": 87,
+    "categories": {
+      "container_parsing": {
+        "label": "목록·인용문 컨테이너",
+        "remaining": 0
+      },
+      "delimiter_matching": {
+        "label": "강조 구분자 매칭",
+        "remaining": 2
+      },
+      "bracket_reference_links": {
+        "label": "괄호·링크·참조 정의",
+        "remaining": 3
+      },
+      "autolinks": {
+        "label": "자동 링크",
+        "remaining": 8
+      },
+      "block_boundaries": {
+        "label": "블록 경계·들여쓰기",
+        "remaining": 2
+      },
+      "inline_text": {
+        "label": "인라인 코드·이스케이프·개행",
+        "remaining": 5
+      },
+      "html_policy_and_parsing": {
+        "label": "원본 HTML 정책 또는 파싱",
+        "remaining": 62
+      },
+      "url_policy": {
+        "label": "URL 허용 정책",
+        "remaining": 5
+      },
+      "serialization_whitespace": {
+        "label": "구조 주변 출력 공백",
+        "remaining": 0
+      },
+      "other": {
+        "label": "기타 구조 차이",
+        "remaining": 0
+      }
     }
   }
 }

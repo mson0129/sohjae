@@ -11,6 +11,7 @@ struct Session {
     editor: Editor,
     saved: String,
     dirty: bool,
+    renderer: markdown::RenderCache,
 }
 struct Runtime {
     sessions: HashMap<u32, Session>,
@@ -60,7 +61,7 @@ pub extern "C" fn output_length() -> u32 {
 
 /// op: 0 create, 1 destroy, 2 load, 3 replace, 4 selection, 5 undo,
 /// 6 redo, 7 snapshot, 8 export normalized source, 9 mark saved,
-/// 10 automatic-format undo, 11 finalize a command selection.
+/// 10 automatic-format undo, 11 finalize a command selection, 12 coalesce history.
 /// start/end are UTF-8 offsets; selection op preserves anchor/focus direction.
 /// Status: 0 success, 1 invalid input, 2 missing handle, 3 edit rejected,
 /// 4 unsupported op. Errors have a single length-prefixed message as output.
@@ -111,6 +112,7 @@ fn execute(
                 editor: Editor::from_source(input),
                 saved: input.into(),
                 dirty: false,
+                renderer: Default::default(),
             },
         );
         return snapshot(runtime, id, true);
@@ -173,6 +175,12 @@ fn execute(
         6 => {
             session.editor.redo(revision).map_err(edit_error)?;
         }
+        12 => {
+            session
+                .editor
+                .coalesce_history(revision)
+                .map_err(edit_error)?;
+        }
         7 => {}
         8 => {
             put_string(
@@ -192,7 +200,7 @@ fn execute(
         }
         _ => return Err((4, "Unsupported operation".into())),
     }
-    snapshot(runtime, handle, op != 4 && op != 11)
+    snapshot(runtime, handle, !matches!(op, 4 | 11 | 12))
 }
 
 fn edit_error(error: crate::editor::EditError) -> (u32, String) {
@@ -246,10 +254,14 @@ fn snapshot(
         return Ok(());
     }
     put_string(output, &source);
-    put_string(output, &markdown::render(&source, false));
+    put_string(output, &session.renderer.render(&source));
     put_string(
         output,
-        &markdown::front_matter_layout(&source).unwrap_or_default(),
+        &if source.starts_with("---") {
+            markdown::front_matter_layout(&source).unwrap_or_default()
+        } else {
+            String::new()
+        },
     );
     Ok(())
 }

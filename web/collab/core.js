@@ -52,7 +52,7 @@ export class CollaborativeReplica extends EventTarget {
     const output = new Uint8Array(this.exports.memory.buffer, this.exports.collab_output_pointer(), this.exports.collab_output_length()).slice();
     if (status) throw new Error(`Collaboration core: ${decoder.decode(output)}`);
     if (op === 1) { this.handle = 0; return; }
-    if ([4, 16, 17, 18, 22, 23, 24].includes(op)) return output;
+    if ([4, 16, 17, 18, 22, 23, 24, 32].includes(op)) return output;
     const view = new DataView(output.buffer), json_length = view.getUint32(0, true);
     const state = JSON.parse(decoder.decode(output.subarray(4, 4 + json_length)));
     const length = view.getUint32(4 + json_length, true), update = output.slice(8 + json_length);
@@ -63,6 +63,11 @@ export class CollaborativeReplica extends EventTarget {
     this.dispatchEvent(new CustomEvent('change', { detail: { snapshot: state, origin } }));
     if (update.length && new DataView(update.buffer).getUint32(22, true)) this.dispatchEvent(new CustomEvent('update', { detail: update }));
     return state;
+  }
+  coalesce_history() { this.request(32); return this.snapshot; }
+  reorder(table, axis, targets, before = null) {
+    if (!['row','column'].includes(axis)) throw new TypeError('Invalid table axis');
+    return this.request(31, concat(id_bytes(table), Uint8Array.of(axis === 'column' ? 1 : 0), u32(targets.length), ...targets.map(id_bytes), Uint8Array.of(before ? 1 : 0), ...(before ? [id_bytes(before)] : [])));
   }
   table_action(table, action, row, column, range = [row,row,column,column]) {
     const actions = ['row_before','row_after','column_before','column_after','delete_rows','delete_columns','clear','align_left','align_center','align_right','delete_table'];

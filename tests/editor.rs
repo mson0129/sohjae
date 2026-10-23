@@ -343,3 +343,24 @@ fn all_unicode_ranges_replace_and_undo_without_losing_text() {
         }
     }
 }
+
+#[test]
+fn coalesced_history_restores_all_steps_selection_and_rejects_stale_requests() {
+    let mut editor = Editor::from_source("앞");
+    editor
+        .set_selection(Selection::collapsed(at(&editor, 3)))
+        .unwrap();
+    for text in ["한", "😀", "끝"] {
+        editor.replace_selection(text).unwrap();
+        editor.coalesce_history(editor.revision()).unwrap();
+    }
+    let revision = editor.revision();
+    assert!(editor.coalesce_history(revision - 1).is_err());
+    editor.undo(revision).unwrap();
+    assert_eq!(editor.document().plain_text(), "앞");
+    assert_eq!(editor.selection(), Selection::collapsed(at(&editor, 3)));
+    assert!(!editor.can_undo());
+    editor.redo(editor.revision()).unwrap();
+    assert_eq!(editor.document().plain_text(), "앞한😀끝");
+    assert_eq!(editor.selection(), Selection::collapsed(at(&editor, 13)));
+}

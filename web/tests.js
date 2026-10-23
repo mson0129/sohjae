@@ -259,6 +259,66 @@ await test('Normalized code-span spaces and newlines retain exact visible UTF-8 
  for(const span of spans){const start=Number(span.dataset.start),end=Number(span.dataset.end);for(let offset=start;offset<=end;offset++){try{byte_slice(editor.state.source,0,offset);}catch{continue;}const[node,index]=editor.source_to_dom(offset);equal(editor.dom_to_source(node,index),offset);}}
  editor.destroy();
 });
+
+await test('Hierarchical list/quote spans round-trip Korean and emoji to original UTF-8 positions', async()=>{
+ const source='> - 한😀\n>   - **세계**\n>     continued\n\n- parent\n  - child';const editor=await fixture(source);
+ try{assert(editor.surface.querySelector('blockquote ul ul'),'nested structure missing');
+ for(const span of editor.surface.querySelectorAll('[data-text]')){const start=+span.dataset.start,end=+span.dataset.end;equal(byte_slice(source,start,end),span.textContent);
+ let position=start;for(const scalar of span.textContent){const [node,offset]=editor.source_to_dom(position);equal(editor.dom_to_source(node,offset),position);position+=byte_length(scalar);}}
+ const start=byte_length(source.slice(0,source.indexOf('세계')));editor.set_selection(start,start+byte_length('세계'));await editor.execute_command('italic');assert(editor.state.source.includes('세계'));await editor.execute_command('undo');equal(editor.state.source,source);
+ for(const mode of ['markdown','hybrid','rich']){editor.set_options({mode});equal(editor.state.source,source);}
+ }finally{editor.destroy();}
+});
+await test('Bracket links do not create nested anchors and container definitions resolve in reading view',async()=>{
+ const editor=await fixture('[https://example.test](/outer)\n\n[ref]\n\n> [ref]: /target');try{
+ equal(editor.surface.querySelectorAll('a').length,2);assert(!editor.surface.querySelector('a a'),'nested anchor');assert(editor.surface.querySelector('a[href="/target"]'));
+ const source=editor.state.source;editor.set_view('reading');assert(editor.surface.querySelector('a[href="/target"]'));equal(editor.state.source,source);editor.set_view('reading');
+ }finally{editor.destroy();}
+});
+await test('GFM tab-expanded code and multiline headings preserve glyph carets and undo', async()=>{
+ const source='>\t\t한😀\n\n첫째\n둘째\n---';const editor=await fixture(source);
+ try{equal(editor.surface.querySelector('blockquote code').textContent,'  한😀\n');equal(editor.surface.querySelector('h2').textContent,'첫째\n둘째');
+ const at=byte_length(source.slice(0,source.indexOf('한')));const [node,offset]=editor.source_to_dom(at);equal(editor.dom_to_source(node,offset),at);
+ editor.set_selection(at,at+byte_length('한😀'));editor.replace('변경😀');equal(editor.surface.querySelector('blockquote code').textContent,'  변경😀\n');
+ await editor.execute_command('undo');equal(editor.state.source,source);
+ for(const mode of ['markdown','hybrid','rich']){editor.set_options({mode});equal(editor.state.source,source);}
+ }finally{editor.destroy();}
+});
+await test('Typing and deletion group by time and caret while paste, commands and IME remain separate',async()=>{
+ const editor=await fixture('',{mode:'rich',auto_close:{enabled:false}});
+ const type=text=>editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:text,bubbles:true,cancelable:true}));
+ try{editor.focus();for(const c of 'hello😀')type(c);equal(editor.state.source,'hello😀');await editor.execute_command('undo');equal(editor.state.source,'');await editor.execute_command('redo');equal(editor.state.source,'hello😀');
+ type('a');await new Promise(resolve=>setTimeout(resolve,800));type('b');await editor.execute_command('undo');equal(editor.state.source,'hello😀a');await editor.execute_command('undo');equal(editor.state.source,'hello😀');
+ editor.set_selection(0);type('X');editor.set_selection(byte_length(editor.state.source));type('Y');await editor.execute_command('undo');equal(editor.state.source,'Xhello😀');
+ for(let i=0;i<2;i++)editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));
+ await editor.execute_command('undo');equal(editor.state.source,'Xhello😀');
+ editor.set_view('source');editor.source_input.focus();editor.set_selection(byte_length(editor.state.source));
+ for(const c of ['한','😀']){const input=editor.source_input;input.value+=c;input.setSelectionRange(input.value.length,input.value.length);input.dispatchEvent(new InputEvent('input',{inputType:'insertText',data:c,bubbles:true}));}
+ await editor.execute_command('undo');equal(editor.state.source,'Xhello😀');
+ }finally{editor.destroy();}
+});
+await test('Inserting before unchanged blocks retains DOM text nodes and patches UTF-8 coordinates',async()=>{
+ const source='첫째\n\n둘째😀\n\n셋째';const editor=await fixture(source,{mode:'rich'});
+ try{const old=[...editor.surface.children],text=old[2].querySelector('[data-text]').firstChild;
+ editor.set_selection(0);editor.replace('앞😀\n\n');equal(editor.surface.children[4],old[2]);equal(old[2].querySelector('[data-text]').firstChild,text);
+ const offset=byte_length('앞😀\n\n첫째\n\n');equal(+old[2].dataset.start,offset);
+ const [node,index]=editor.source_to_dom(offset);equal(editor.dom_to_source(node,index),offset);
+ await editor.execute_command('undo');equal(editor.state.source,source);
+ }finally{editor.destroy();}
+});
+await test('Accessibility toolbar has one Tab stop, arrow navigation, named dialogs and read-only semantics',async()=>{
+ const editor=await fixture('**한글**\n\n| A | B |\n| --- | --- |\n| x | y |',{mode:'rich'});
+ try{const enabled=()=>[...editor.toolbar.querySelectorAll('button:not(:disabled)')];equal(enabled().filter(button=>button.tabIndex===0).length,1);
+ let buttons=enabled();buttons[0].focus();buttons[0].dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true,cancelable:true}));equal(editor.root.activeElement,buttons.at(-1));
+ buttons.at(-1).dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}));equal(editor.root.activeElement,buttons[0]);
+ editor.set_selection(2);equal(editor.toolbar.querySelector('[data-command="bold"]').getAttribute('aria-pressed'),'true');
+ editor.link_dialog();equal(editor.dialog.getAttribute('aria-labelledby'),'command_title');equal(editor.root.querySelector('#command_title').textContent,'링크');editor.dialog.close('cancel');
+ editor.set_options({read_only:true});equal(editor.surface.getAttribute('aria-readonly'),'true');equal(editor.surface.querySelector('th').getAttribute('scope'),'col');
+ equal(enabled().filter(button=>button.tabIndex===0).length,1);
+ editor.set_view('reading');equal(editor.surface.getAttribute('role'),'document');assert(!editor.surface.hasAttribute('aria-multiline'));
+ editor.report(new Error('검사 오류'));equal(editor.root.querySelector('[role="alert"]').textContent,'검사 오류');
+ }finally{editor.destroy();}
+});
 document.querySelector('#summary').textContent = `${results.filter(Boolean).length}/${results.length} passed`;
 document.body.dataset.passed = results.every(Boolean) ? 'true' : 'false';
 const environment = document.createElement('p'); environment.textContent = navigator.userAgent; environment.id = 'environment'; document.querySelector('#summary').after(environment);

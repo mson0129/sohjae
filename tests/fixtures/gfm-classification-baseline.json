@@ -1,0 +1,4489 @@
+{
+  "note": "Snapshot before container/delimiter/link improvements, after the setext/list correction. Diagnostic labels do not change pass flags.",
+  "passed_examples": [
+    3,
+    10,
+    11,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    28,
+    29,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    53,
+    56,
+    58,
+    60,
+    61,
+    67,
+    70,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    82,
+    84,
+    85,
+    86,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    99,
+    100,
+    104,
+    105,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    116,
+    117,
+    148,
+    152,
+    161,
+    168,
+    176,
+    179,
+    180,
+    181,
+    188,
+    189,
+    190,
+    191,
+    195,
+    198,
+    199,
+    200,
+    202,
+    203,
+    204,
+    205,
+    209,
+    217,
+    239,
+    244,
+    247,
+    250,
+    263,
+    307,
+    308,
+    309,
+    310,
+    311,
+    313,
+    314,
+    315,
+    320,
+    321,
+    322,
+    323,
+    324,
+    325,
+    326,
+    330,
+    331,
+    332,
+    333,
+    335,
+    336,
+    338,
+    339,
+    340,
+    341,
+    342,
+    343,
+    344,
+    345,
+    346,
+    347,
+    348,
+    349,
+    350,
+    351,
+    352,
+    353,
+    355,
+    358,
+    359,
+    360,
+    361,
+    363,
+    364,
+    365,
+    366,
+    367,
+    368,
+    369,
+    370,
+    371,
+    372,
+    373,
+    374,
+    375,
+    376,
+    379,
+    380,
+    386,
+    387,
+    388,
+    390,
+    391,
+    392,
+    393,
+    394,
+    395,
+    396,
+    397,
+    399,
+    400,
+    402,
+    403,
+    404,
+    405,
+    406,
+    408,
+    412,
+    414,
+    415,
+    419,
+    420,
+    421,
+    423,
+    424,
+    429,
+    432,
+    433,
+    437,
+    438,
+    439,
+    440,
+    443,
+    445,
+    446,
+    447,
+    449,
+    450,
+    451,
+    455,
+    457,
+    458,
+    459,
+    461,
+    462,
+    463,
+    467,
+    469,
+    470,
+    471,
+    472,
+    478,
+    480,
+    481,
+    487,
+    488,
+    491,
+    492,
+    493,
+    499,
+    502,
+    519,
+    531,
+    533,
+    535,
+    545,
+    547,
+    550,
+    551,
+    553,
+    561,
+    562,
+    563,
+    565,
+    566,
+    567,
+    569,
+    571,
+    580,
+    592,
+    594,
+    596,
+    599,
+    600,
+    601,
+    602,
+    603,
+    608,
+    614,
+    615,
+    617,
+    618,
+    629,
+    630,
+    644,
+    660,
+    661,
+    664,
+    666,
+    667,
+    668,
+    670,
+    671,
+    672
+  ],
+  "failed_examples": [
+    {
+      "example": 1,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 2,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 4,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 5,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 6,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 7,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 8,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 9,
+      "section": "Tabs",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 12,
+      "section": "Precedence",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 19,
+      "section": "Thematic breaks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 26,
+      "section": "Thematic breaks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 27,
+      "section": "Thematic breaks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 30,
+      "section": "Thematic breaks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 31,
+      "section": "Thematic breaks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 40,
+      "section": "ATX headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 51,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 52,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 54,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 55,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 57,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 59,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 62,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 63,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 64,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 65,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 66,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 68,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 69,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 71,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 78,
+      "section": "Indented code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 79,
+      "section": "Indented code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 80,
+      "section": "Indented code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 81,
+      "section": "Indented code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 83,
+      "section": "Indented code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 87,
+      "section": "Indented code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 98,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 101,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 102,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 103,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 106,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 107,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 108,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 115,
+      "section": "Fenced code blocks",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 118,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 119,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 120,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 121,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 122,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 123,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 124,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 125,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 126,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 127,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 128,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 129,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 130,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 131,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 132,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 133,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 134,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 135,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 136,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 137,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 138,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 139,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 140,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 141,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 142,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 143,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 144,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 145,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 146,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 147,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 149,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 150,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 151,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 153,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 154,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 155,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 156,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 157,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 158,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 159,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 160,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 162,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 163,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 164,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 165,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 166,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 167,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 169,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 170,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 171,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 172,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 173,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 174,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 175,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 177,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 178,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 182,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 183,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 184,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 185,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 186,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 187,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 192,
+      "section": "Paragraphs",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 193,
+      "section": "Paragraphs",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 194,
+      "section": "Paragraphs",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 196,
+      "section": "Paragraphs",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 197,
+      "section": "Blank lines",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 201,
+      "section": "Tables (extension)",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 206,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 207,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 208,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 210,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 211,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 212,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 213,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 214,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 215,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 216,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 218,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 219,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 220,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 221,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 222,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 223,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 224,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 225,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 226,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 227,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 228,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 229,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 230,
+      "section": "Block quotes",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 231,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 232,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 233,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 234,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 235,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 236,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 237,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 238,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 240,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 241,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 242,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 243,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 245,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 246,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 248,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 249,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 251,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 252,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 253,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 254,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 255,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 256,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 257,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 258,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 259,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 260,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 261,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 262,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 264,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 265,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 266,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 267,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 268,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 269,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 270,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 271,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 272,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 273,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 274,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 275,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 276,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 277,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 278,
+      "section": "List items",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 279,
+      "section": "Task list items (extension)",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 280,
+      "section": "Task list items (extension)",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 281,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 282,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 283,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 284,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 285,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 286,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 287,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 288,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 289,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 290,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 291,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 292,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 293,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 294,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 295,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 296,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 297,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 298,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 299,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 300,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 301,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 302,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 303,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 304,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 305,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 306,
+      "section": "Lists",
+      "classification": {
+        "category": "container_parsing",
+        "label": "목록·인용문 컨테이너",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 312,
+      "section": "Backslash escapes",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 316,
+      "section": "Backslash escapes",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 317,
+      "section": "Backslash escapes",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 318,
+      "section": "Backslash escapes",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 319,
+      "section": "Backslash escapes",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 327,
+      "section": "Entity and numeric character references",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 328,
+      "section": "Entity and numeric character references",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 329,
+      "section": "Entity and numeric character references",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 334,
+      "section": "Entity and numeric character references",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 337,
+      "section": "Entity and numeric character references",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 354,
+      "section": "Code spans",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 356,
+      "section": "Code spans",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 357,
+      "section": "Code spans",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 362,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 377,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 378,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 381,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 382,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 383,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 384,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 385,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 389,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 398,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 401,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 407,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 409,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 410,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 411,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 413,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 416,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 417,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 418,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 422,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 425,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 426,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 427,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 428,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 430,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 431,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 434,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 435,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 436,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 441,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 442,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 444,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 448,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 452,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 453,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 454,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 456,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 460,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 464,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 465,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 466,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 468,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 473,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 474,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 475,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 476,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 477,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 479,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 482,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 483,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 484,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 485,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 486,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 489,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 490,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 494,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 495,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 496,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 497,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 498,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 500,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 501,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 503,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 504,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 505,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 506,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 507,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 508,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 509,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 510,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 511,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 512,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 513,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 514,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 515,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 516,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 517,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 518,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 520,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 521,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 522,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 523,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 524,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 525,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 526,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 527,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 528,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 529,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 530,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 532,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 534,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 536,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 537,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 538,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 539,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 540,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 541,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 542,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 543,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 544,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 546,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 548,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 549,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 552,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 554,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 555,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 556,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 557,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 558,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 559,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 560,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 564,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 568,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 570,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 572,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 573,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 574,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 575,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 576,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 577,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 578,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 579,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 581,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 582,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 583,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 584,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 585,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 586,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 587,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 588,
+      "section": "Images",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 589,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 590,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 591,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 593,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 595,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 597,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 598,
+      "section": "Images",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 604,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy",
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 605,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy",
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 606,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 607,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy",
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 609,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy",
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 610,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 611,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 612,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 613,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 616,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 619,
+      "section": "Autolinks",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 620,
+      "section": "Autolinks",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 621,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 622,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 623,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 624,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 625,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 626,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 627,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 628,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 631,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 632,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 633,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 634,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 635,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 636,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 637,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 638,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 639,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 640,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 641,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 642,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 643,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 645,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 646,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 647,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 648,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 649,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 650,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 651,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 652,
+      "section": "Disallowed Raw HTML (extension)",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 653,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 654,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 655,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 656,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 657,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 658,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 659,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 662,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 663,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 665,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    },
+    {
+      "example": 669,
+      "section": "Soft line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      }
+    }
+  ],
+  "spec_sha256": "7d8e5814befec287ac116786d81ff14e0adc9b13295b4494649e995408fd871c"
+}

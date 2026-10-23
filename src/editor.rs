@@ -441,6 +441,19 @@ impl Editor {
         Ok(result)
     }
 
+    /// Explicitly joins two adjacent local history entries without changing source/revision.
+    /// The input adapter decides time, caret and input-kind boundaries.
+    pub fn coalesce_history(&mut self, expected_revision: u64) -> Result<(), EditError> {
+        self.check_revision(expected_revision)?;
+        if self.redo.is_empty() && self.undo.len() >= 2 {
+            let newest = self.undo.pop().unwrap();
+            let previous = self.undo.last_mut().unwrap();
+            previous.after = newest.after;
+            previous.changes.extend(newest.changes);
+        }
+        Ok(())
+    }
+
     pub fn undo(&mut self, expected_revision: u64) -> Result<EditResult, EditError> {
         self.restore_history(expected_revision, false)
     }

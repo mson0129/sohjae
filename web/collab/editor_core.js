@@ -85,6 +85,13 @@ class SharedEditorCore extends EventTarget {
   request(op,text = '',start = 0,end = start) {
     if (op === 0 || op === 7) return this.snapshot;
     if (op === 1) { this.replica.removeEventListener('change',this.listener); this.renderer.request(1); return; }
+    if (op === 12) {
+      if(!this.draft && this.undo_selections.length >= 2){
+        this.mutate(()=>this.replica.coalesce_history());
+        const newest=this.undo_selections.pop();this.undo_selections.at(-1).after=newest.after;
+      }
+      return this.snapshot;
+    }
     if (op === 8) return this.renderer.request(8);
     if (op === 4 || op === 11) { this.selection = {anchor:start,focus:end}; this.refresh_selection(); this.remember(); if(op===11&&this.undo_selections.length)this.undo_selections.at(-1).after=this.bookmark_pair(); return this.snapshot; }
     if (op === 9) { if (!this.draft) this.saved = this.snapshot.source; return this.refresh(); }
@@ -134,6 +141,12 @@ class SharedEditorCore extends EventTarget {
       try { const offset = this.replica.resolve_projected_anchor(composition.caret); this.selection = {anchor:offset,focus:offset}; } catch { /* remotely hidden cells keep data but lose their visual caret */ }
     }
     this.refresh(); this.remember(); if(composition&&text)this.record_selection(composition.before); return this.snapshot;
+  }
+  reorder_table(table_id,axis,targets,before) {
+    if(this.draft) throw new Error('원본 초안을 완료하거나 보관한 뒤 표를 이동해 주세요.');
+    const selection=this.bookmark_pair();
+    this.mutate(()=>this.replica.reorder(table_id,axis,targets,before));
+    this.refresh(true);this.remember();this.record_selection(selection);return this.snapshot;
   }
   table_action(start,action,row,column,range) {
     if (this.draft) throw new Error('원본 문법 편집을 완료하거나 초안을 되돌린 후 표를 조작해 주세요.');

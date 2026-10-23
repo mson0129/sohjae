@@ -75,6 +75,21 @@ pub fn encode_update(update: &Update) -> Result<Vec<u8>, CollabError> {
                     Alignment::Right => 2,
                 });
             }
+            OperationKind::Reorder {
+                table,
+                columns,
+                targets,
+                before,
+            } => {
+                output.push(9);
+                put_id(&mut output, *table);
+                output.push(u8::from(*columns));
+                put_len(&mut output, targets.len());
+                for target in targets {
+                    put_id(&mut output, *target);
+                }
+                put_optional_id(&mut output, *before);
+            }
             OperationKind::SetActive { target, active } => {
                 output.push(8);
                 put_id(&mut output, *target);
@@ -279,6 +294,22 @@ pub fn decode_update(bytes: &[u8]) -> Result<Update, CollabError> {
                 target: reader.id()?,
                 active: reader.boolean()?,
             },
+            9 => {
+                let table = reader.id()?;
+                let columns = reader.boolean()?;
+                let count = reader.length(MAX_PENDING)?;
+                let mut targets = Vec::new();
+                for _ in 0..count {
+                    targets.push(reader.id()?);
+                }
+                let before = reader.optional_id()?;
+                OperationKind::Reorder {
+                    table,
+                    columns,
+                    targets,
+                    before,
+                }
+            }
             _ => return Err(CollabError::InvalidEncoding),
         };
         let operation = Operation {

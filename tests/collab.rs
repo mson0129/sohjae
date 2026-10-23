@@ -379,3 +379,137 @@ fn captured_ime_replacement_preserves_unseen_remote_insertions() {
     let anchor = a.anchor_at(TextScope::Document, 1, Bias::After).unwrap();
     assert_eq!(decode_anchor(&encode_anchor(&anchor)).unwrap(), anchor);
 }
+
+#[test]
+fn reorder_preserves_ids_remote_cell_edits_alignment_and_own_undo() {
+    let mut a = replica(1);
+    let (table, _) = a.create_table(0, 4, 3).unwrap();
+    let view = a.table(table).unwrap();
+    let scope = TextScope::Cell {
+        table,
+        row: view.rows[1],
+        column: view.columns[0],
+    };
+    a.insert_text(scope, 0, "original").unwrap();
+    a.set_alignment(table, view.columns[0], Alignment::Right)
+        .unwrap();
+    let mut b = replica(2);
+    b.merge(&a.export_all()).unwrap();
+    let moved = a.reorder(table, false, vec![view.rows[1]], None).unwrap();
+    let edit = b.replace_text(scope, 0, 8, "원격😀").unwrap();
+    a.merge(&edit).unwrap();
+    b.merge(&moved).unwrap();
+    assert_eq!(a.table(table).unwrap(), b.table(table).unwrap());
+    assert_eq!(
+        a.table(table).unwrap().rows,
+        vec![view.rows[0], view.rows[2], view.rows[3], view.rows[1]]
+    );
+    assert_eq!(a.text(scope).unwrap(), "원격😀");
+    a.undo().unwrap();
+    assert_eq!(a.table(table).unwrap().rows, view.rows);
+    assert_eq!(a.text(scope).unwrap(), "원격😀");
+    a.redo().unwrap();
+    a.reorder(table, true, vec![view.columns[0]], None).unwrap();
+    let now = a.table(table).unwrap();
+    assert_eq!(
+        now.columns,
+        vec![view.columns[1], view.columns[2], view.columns[0]]
+    );
+    assert_eq!(now.alignments[2], Alignment::Right);
+    let (new_row, _) = a.insert_row(table, Some(view.rows[1])).unwrap();
+    let rows = a.table(table).unwrap().rows;
+    assert_eq!(
+        rows.iter().position(|id| *id == new_row).unwrap(),
+        rows.iter().position(|id| *id == view.rows[1]).unwrap() + 1
+    );
+    let encoded = encode_update(&a.export_all()).unwrap();
+    let mut restored = replica(3);
+    restored.merge(&decode_update(&encoded).unwrap()).unwrap();
+    assert_eq!(restored.table(table).unwrap(), a.table(table).unwrap());
+}
+
+#[test]
+fn concurrent_moves_deletes_and_inserts_converge_in_any_delivery_order() {
+    let mut seed = replica(1);
+    let (table, _) = seed.create_table(0, 5, 3).unwrap();
+    let view = seed.table(table).unwrap();
+    let mut a = replica(2);
+    let mut b = replica(3);
+    a.merge(&seed.export_all()).unwrap();
+    b.merge(&seed.export_all()).unwrap();
+    let x = a
+        .reorder(table, false, vec![view.rows[1], view.rows[2]], None)
+        .unwrap();
+    let y = b
+        .reorder(table, false, vec![view.rows[2]], Some(view.rows[0]))
+        .unwrap();
+    let z = b.delete_row(table, view.rows[1]).unwrap();
+    let (_, insert) = a.insert_column(table, Some(view.columns[0])).unwrap();
+    for reverse in [false, true] {
+        let mut c = replica(4);
+        let mut updates = [
+            seed.export_all(),
+            x.clone(),
+            y.clone(),
+            z.clone(),
+            insert.clone(),
+        ];
+        if reverse {
+            updates.reverse();
+        }
+        for update in updates.iter().chain(updates.iter()) {
+            assert!(c.merge(update).unwrap().rejected.is_empty());
+        }
+        a.merge(&y).unwrap();
+        a.merge(&z).unwrap();
+        assert_eq!(c.table(table).unwrap(), a.table(table).unwrap());
+        assert_eq!(c.pending_count(), 0);
+    }
+    a.undo().unwrap(); // undo the inserted column, then own move
+    a.undo().unwrap();
+    assert!(!a.table(table).unwrap().rows.contains(&view.rows[1]));
+}
+
+#[test]
+fn invalid_reorder_is_atomic_and_causally_checked() {
+    let mut a = replica(1);
+    let (table, _) = a.create_table(0, 3, 2).unwrap();
+    let view = a.table(table).unwrap();
+    let before = a.export_all();
+    for (targets, destination) in [
+        (vec![], None),
+        (vec![view.rows[1], view.rows[1]], None),
+        (vec![view.rows[1]], Some(view.rows[1])),
+        (vec![view.columns[0]], None),
+    ] {
+        assert!(a.reorder(table, false, targets, destination).is_err());
+        assert_eq!(a.export_all(), before);
+    }
+    let moved = a.reorder(table, false, vec![view.rows[1]], None).unwrap();
+    let mut bad = moved.clone();
+    bad.operations[0].dependencies.clear();
+    let mut b = replica(2);
+    b.merge(&before).unwrap();
+    assert!(!b.merge(&bad).unwrap().rejected.is_empty());
+    assert_eq!(b.table(table).unwrap().rows, view.rows);
+}
+
+#[test]
+fn grouped_local_undo_preserves_remote_edits_and_converges() {
+    let mut a = replica(1);
+    let mut b = replica(2);
+    a.insert_text(TextScope::Document, 0, "한").unwrap();
+    a.insert_text(TextScope::Document, 3, "😀").unwrap();
+    a.coalesce_history();
+    exchange(&mut a, &mut b);
+    b.insert_text(TextScope::Document, 0, "원격").unwrap();
+    exchange(&mut a, &mut b);
+    a.undo().unwrap();
+    exchange(&mut a, &mut b);
+    assert_eq!(source(&a), "원격");
+    assert_eq!(source(&a), source(&b));
+    a.redo().unwrap();
+    exchange(&mut a, &mut b);
+    assert_eq!(source(&a), "원격한😀");
+    assert_eq!(source(&a), source(&b));
+}

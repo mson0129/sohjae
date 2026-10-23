@@ -1,0 +1,1882 @@
+{
+  "starting_passed": 265,
+  "starting_failed": 407,
+  "current_passed": 585,
+  "current_failed": 87,
+  "resolved_examples": [
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    12,
+    19,
+    26,
+    27,
+    30,
+    31,
+    40,
+    51,
+    52,
+    54,
+    55,
+    57,
+    59,
+    62,
+    63,
+    64,
+    65,
+    69,
+    71,
+    78,
+    79,
+    80,
+    81,
+    83,
+    87,
+    98,
+    101,
+    102,
+    103,
+    106,
+    107,
+    108,
+    115,
+    135,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    169,
+    172,
+    173,
+    174,
+    175,
+    177,
+    178,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    192,
+    193,
+    194,
+    196,
+    197,
+    201,
+    206,
+    207,
+    208,
+    210,
+    211,
+    212,
+    213,
+    214,
+    215,
+    216,
+    218,
+    219,
+    220,
+    221,
+    222,
+    223,
+    224,
+    225,
+    226,
+    227,
+    228,
+    229,
+    230,
+    231,
+    232,
+    233,
+    234,
+    235,
+    236,
+    237,
+    238,
+    240,
+    241,
+    242,
+    243,
+    245,
+    246,
+    248,
+    249,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285,
+    286,
+    287,
+    288,
+    289,
+    290,
+    291,
+    292,
+    293,
+    294,
+    295,
+    296,
+    297,
+    298,
+    299,
+    300,
+    301,
+    302,
+    303,
+    304,
+    305,
+    306,
+    312,
+    318,
+    319,
+    328,
+    329,
+    334,
+    337,
+    356,
+    357,
+    362,
+    377,
+    378,
+    381,
+    382,
+    383,
+    384,
+    385,
+    389,
+    398,
+    401,
+    407,
+    409,
+    410,
+    411,
+    413,
+    416,
+    417,
+    418,
+    422,
+    425,
+    426,
+    427,
+    428,
+    430,
+    431,
+    434,
+    435,
+    436,
+    441,
+    442,
+    444,
+    448,
+    452,
+    453,
+    454,
+    456,
+    460,
+    464,
+    465,
+    466,
+    468,
+    473,
+    474,
+    475,
+    476,
+    477,
+    479,
+    482,
+    483,
+    484,
+    489,
+    490,
+    494,
+    495,
+    496,
+    497,
+    498,
+    501,
+    504,
+    505,
+    506,
+    507,
+    509,
+    511,
+    512,
+    513,
+    514,
+    515,
+    516,
+    517,
+    518,
+    520,
+    521,
+    522,
+    523,
+    524,
+    525,
+    526,
+    527,
+    528,
+    529,
+    530,
+    534,
+    536,
+    537,
+    538,
+    539,
+    540,
+    541,
+    542,
+    543,
+    546,
+    548,
+    549,
+    552,
+    554,
+    555,
+    556,
+    557,
+    558,
+    559,
+    560,
+    564,
+    568,
+    570,
+    572,
+    573,
+    574,
+    575,
+    576,
+    577,
+    578,
+    579,
+    581,
+    582,
+    583,
+    584,
+    585,
+    586,
+    587,
+    588,
+    589,
+    590,
+    591,
+    593,
+    595,
+    597,
+    598,
+    605,
+    612,
+    613,
+    631,
+    635,
+    637,
+    638,
+    639,
+    640,
+    641,
+    643,
+    651,
+    653,
+    654,
+    655,
+    656,
+    657,
+    658,
+    659,
+    665,
+    669
+  ],
+  "remaining_starting_examples": [
+    66,
+    68,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    149,
+    150,
+    151,
+    153,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159,
+    160,
+    170,
+    171,
+    316,
+    317,
+    327,
+    354,
+    485,
+    486,
+    500,
+    503,
+    508,
+    510,
+    532,
+    544,
+    604,
+    606,
+    607,
+    609,
+    610,
+    611,
+    616,
+    619,
+    620,
+    621,
+    622,
+    623,
+    624,
+    625,
+    626,
+    627,
+    628,
+    632,
+    633,
+    634,
+    636,
+    642,
+    645,
+    646,
+    647,
+    648,
+    649,
+    650,
+    652,
+    662,
+    663
+  ],
+  "regressed_examples": [],
+  "categories": {
+    "container_parsing": {
+      "label": "목록·인용문 컨테이너",
+      "remaining": 0
+    },
+    "delimiter_matching": {
+      "label": "강조 구분자 매칭",
+      "remaining": 2
+    },
+    "bracket_reference_links": {
+      "label": "괄호·링크·참조 정의",
+      "remaining": 3
+    },
+    "autolinks": {
+      "label": "자동 링크",
+      "remaining": 8
+    },
+    "block_boundaries": {
+      "label": "블록 경계·들여쓰기",
+      "remaining": 2
+    },
+    "inline_text": {
+      "label": "인라인 코드·이스케이프·개행",
+      "remaining": 5
+    },
+    "html_policy_and_parsing": {
+      "label": "원본 HTML 정책 또는 파싱",
+      "remaining": 62
+    },
+    "url_policy": {
+      "label": "URL 허용 정책",
+      "remaining": 5
+    },
+    "serialization_whitespace": {
+      "label": "구조 주변 출력 공백",
+      "remaining": 0
+    },
+    "other": {
+      "label": "기타 구조 차이",
+      "remaining": 0
+    }
+  },
+  "examples": [
+    {
+      "example": 66,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "hr",
+        "actual": "h2"
+      }
+    },
+    {
+      "example": 68,
+      "section": "Setext headings",
+      "classification": {
+        "category": "block_boundaries",
+        "label": "블록 경계·들여쓰기",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2",
+        "expected_length": 2,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 118,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "table",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 119,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "table",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 120,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 121,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0",
+        "expected": "\n*foo*\n",
+        "actual": "['pre', [], ['</div>']]"
+      }
+    },
+    {
+      "example": 122,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 123,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 124,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 125,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 126,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2",
+        "expected_length": 0,
+        "actual_length": 1
+      }
+    },
+    {
+      "example": 127,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2",
+        "expected_length": 0,
+        "actual_length": 1
+      }
+    },
+    {
+      "example": 128,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2",
+        "expected_length": 0,
+        "actual_length": 1
+      }
+    },
+    {
+      "example": 129,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 130,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "table",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 131,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 132,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 133,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "warning",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 134,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "i",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 136,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "del",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 137,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "del",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 138,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "p",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 139,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['code', [], ['\\nimport Text.HTML.TagSoup\\n\\nmain :: IO ()\\nmain = print $ parseTags tags\\n']]",
+        "actual": "<pre language=\"haskell\"><code>\nimport Text.HTML.TagSoup\n\nmain :: IO ()\nmain = print $ parseTags tags\n</code></pre>"
+      }
+    },
+    {
+      "example": 140,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "script",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 141,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "style",
+        "actual": "p"
+      }
+    },
+    {
+      "example": 142,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "style",
+        "actual": "p"
+      }
+    },
+    {
+      "example": 143,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 144,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/2/1/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 145,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "style",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 146,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0",
+        "expected": "*bar*\n",
+        "actual": "['p', [], [['em', [], ['bar']], '\\n', ['em', [], ['baz']]]]"
+      }
+    },
+    {
+      "example": 147,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "script",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 149,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0",
+        "expected": "';\n\n?>\n",
+        "actual": "['p', [], ['<?php']]"
+      }
+    },
+    {
+      "example": 150,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2",
+        "expected_length": 0,
+        "actual_length": 1
+      }
+    },
+    {
+      "example": 151,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "okay",
+        "actual": "<![CDATA[\nfunction matchwo(a,b)\n{\nif (a < b && a < 0) then {\nreturn 1;"
+      }
+    },
+    {
+      "example": 153,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 154,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/1/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 155,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 156,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/1/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 157,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 158,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "div",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 159,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "table",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 160,
+      "section": "HTML blocks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "table",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 170,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "[foo]: ",
+        "actual": "[foo]: <bar>(baz)"
+      }
+    },
+    {
+      "example": 171,
+      "section": "Link reference definitions",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', '/url%5Cbar*baz'), ('title', 'foo\"bar\\\\baz')], ['foo']]",
+        "actual": "[foo]"
+      }
+    },
+    {
+      "example": 316,
+      "section": "Backslash escapes",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'http://example.com?find=%5C*')], ['http://example.com?find=\\\\*']]",
+        "actual": "<http://example.com?find=*>"
+      }
+    },
+    {
+      "example": 317,
+      "section": "Backslash escapes",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 327,
+      "section": "Entity and numeric character references",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 354,
+      "section": "Code spans",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 485,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/1/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 486,
+      "section": "Emphasis and strong emphasis",
+      "classification": {
+        "category": "delimiter_matching",
+        "label": "강조 구분자 매칭",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/1/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 500,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "[link](",
+        "actual": "[link](<foo\nbar>)"
+      }
+    },
+    {
+      "example": 503,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "[a](<b)c\n[a](<b)c>\n[a](",
+        "actual": "[a](<b)c\n[a](<b)c>\n[a](<b>c)"
+      }
+    },
+    {
+      "example": 508,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'foo):')], ['link']]",
+        "actual": "[link](foo):)"
+      }
+    },
+    {
+      "example": 510,
+      "section": "Links",
+      "classification": {
+        "category": "bracket_reference_links",
+        "label": "괄호·링크·참조 정의",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'foo%5Cbar')], ['link']]",
+        "actual": "[link](foo\\bar)"
+      }
+    },
+    {
+      "example": 532,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "[foo ",
+        "actual": "[foo <bar attr=\"](baz)\">"
+      }
+    },
+    {
+      "example": 544,
+      "section": "Links",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "[foo ",
+        "actual": "[foo <bar attr=\"][ref]\">"
+      }
+    },
+    {
+      "example": 604,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy",
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'irc://foo.bar:2233/baz')], ['irc://foo.bar:2233/baz']]",
+        "actual": "<irc://foo.bar:2233/baz>"
+      }
+    },
+    {
+      "example": 606,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'a+b+c:d')], ['a+b+c:d']]",
+        "actual": "<a+b+c:d>"
+      }
+    },
+    {
+      "example": 607,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy",
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'made-up-scheme://foo,bar')], ['made-up-scheme://foo,bar']]",
+        "actual": "<made-up-scheme://foo,bar>"
+      }
+    },
+    {
+      "example": 609,
+      "section": "Autolinks",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy",
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'localhost:5001/foo')], ['localhost:5001/foo']]",
+        "actual": "<localhost:5001/foo>"
+      }
+    },
+    {
+      "example": 610,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "<http://foo.bar/baz bim>",
+        "actual": "<"
+      }
+    },
+    {
+      "example": 611,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "['a', [('href', 'http://example.com/%5C%5B%5C')], ['http://example.com/\\\\[\\\\']]",
+        "actual": "<http://example.com/[>"
+      }
+    },
+    {
+      "example": 616,
+      "section": "Autolinks",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "< http://foo.bar >",
+        "actual": "< "
+      }
+    },
+    {
+      "example": 619,
+      "section": "Autolinks",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "http://example.com",
+        "actual": "['a', [('href', 'http://example.com')], ['http://example.com']]"
+      }
+    },
+    {
+      "example": 620,
+      "section": "Autolinks",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "foo@bar.example.com",
+        "actual": "['a', [('href', 'mailto:foo@bar.example.com')], ['foo@bar.example.com']]"
+      }
+    },
+    {
+      "example": 621,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1/0",
+        "expected": "('href', 'http://www.commonmark.org')",
+        "actual": "('href', 'https://www.commonmark.org')"
+      }
+    },
+    {
+      "example": 622,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/1/1/0",
+        "expected": "('href', 'http://www.commonmark.org/help')",
+        "actual": "('href', 'https://www.commonmark.org/help')"
+      }
+    },
+    {
+      "example": 623,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/1/1/0",
+        "expected": "('href', 'http://www.commonmark.org')",
+        "actual": "('href', 'https://www.commonmark.org')"
+      }
+    },
+    {
+      "example": 624,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1/0",
+        "expected": "('href', 'http://www.google.com/search?q=Markup+(business)')",
+        "actual": "('href', 'https://www.google.com/search?q=Markup+(business)')"
+      }
+    },
+    {
+      "example": 625,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1/0",
+        "expected": "('href', 'http://www.google.com/search?q=(business))+ok')",
+        "actual": "('href', 'https://www.google.com/search?q=(business))+ok')"
+      }
+    },
+    {
+      "example": 626,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "autolinks",
+        "label": "자동 링크",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1/0",
+        "expected": "('href', 'http://www.google.com/search?q=commonmark&hl=en')",
+        "actual": "('href', 'https://www.google.com/search?q=commonmark&hl=en')"
+      }
+    },
+    {
+      "example": 627,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1/0",
+        "expected": "('href', 'http://www.commonmark.org/he')",
+        "actual": "('href', 'https://www.commonmark.org/he')"
+      }
+    },
+    {
+      "example": 628,
+      "section": "Autolinks (extension)",
+      "classification": {
+        "category": "url_policy",
+        "label": "URL 허용 정책",
+        "policy_signals": [
+          "expected URL is outside the current http/https/mailto policy"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/2/2/0",
+        "expected": "Anonymous FTP is available at ",
+        "actual": "Anonymous FTP is available at ftp://foo.bar.baz."
+      }
+    },
+    {
+      "example": 632,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/2/0",
+        "expected": "['bab', [], [['c2c', [], []]]]",
+        "actual": "<bab><c2c>"
+      }
+    },
+    {
+      "example": 633,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/2/0",
+        "expected": "['b2', [], []]",
+        "actual": "<b2/>"
+      }
+    },
+    {
+      "example": 634,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/2/0",
+        "expected": "['b2', [], []]",
+        "actual": "<b2\ndata=\"foo\" >"
+      }
+    },
+    {
+      "example": 636,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "Foo ",
+        "actual": "Foo <responsive-image src=\"foo.jpg\" />"
+      }
+    },
+    {
+      "example": 642,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2",
+        "expected_length": 0,
+        "actual_length": 1
+      }
+    },
+    {
+      "example": 645,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2",
+        "expected_length": 1,
+        "actual_length": 2
+      }
+    },
+    {
+      "example": 646,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "foo ",
+        "actual": "foo <?php echo $a; ?>"
+      }
+    },
+    {
+      "example": 647,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "foo ",
+        "actual": "foo <!ELEMENT br EMPTY>"
+      }
+    },
+    {
+      "example": 648,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0",
+        "expected": "foo ",
+        "actual": "foo <![CDATA[>&<]]>"
+      }
+    },
+    {
+      "example": 649,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/1/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 650,
+      "section": "Raw HTML",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/1/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 652,
+      "section": "Disallowed Raw HTML (extension)",
+      "classification": {
+        "category": "html_policy_and_parsing",
+        "label": "원본 HTML 정책 또는 파싱",
+        "policy_signals": [
+          "source contains raw HTML outside the element allowlist"
+        ],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/0",
+        "expected": "p",
+        "actual": "pre"
+      }
+    },
+    {
+      "example": 662,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    },
+    {
+      "example": 663,
+      "section": "Hard line breaks",
+      "classification": {
+        "category": "inline_text",
+        "label": "인라인 코드·이스케이프·개행",
+        "policy_signals": [],
+        "basis": "Diagnostic classification; a policy signal does not establish that every mismatch is intentional."
+      },
+      "difference": {
+        "path": "root/2/0/2/0/1",
+        "expected_length": 1,
+        "actual_length": 0
+      }
+    }
+  ]
+}

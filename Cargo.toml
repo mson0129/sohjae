@@ -5,6 +5,11 @@ edition = "2021"
 license = "MIT"
 description = "Dependency-free foundations for an embeddable Markdown editor"
 
+[features]
+default = ["editor"]
+editor = []
+renderer = []
+
 [lib]
 crate-type = ["rlib", "cdylib"]
 

@@ -83,6 +83,12 @@ pub enum OperationKind {
         column: OpId,
         alignment: Alignment,
     },
+    Reorder {
+        table: OpId,
+        columns: bool,
+        targets: Vec<OpId>,
+        before: Option<OpId>,
+    },
     SetActive {
         target: OpId,
         active: bool,
@@ -174,6 +180,8 @@ struct Table {
     deleted_rows: BTreeMap<OpId, BTreeSet<OpId>>,
     deleted_columns: BTreeMap<OpId, BTreeSet<OpId>>,
     alignments: BTreeMap<OpId, BTreeMap<OpId, Alignment>>,
+    row_moves: BTreeMap<OpId, (Vec<OpId>, Option<OpId>)>,
+    column_moves: BTreeMap<OpId, (Vec<OpId>, Option<OpId>)>,
 }
 #[derive(Clone)]
 struct Action {
@@ -554,6 +562,39 @@ impl Replica {
                     .or_default()
                     .insert(id, *alignment);
             }
+            OperationKind::Reorder {
+                table,
+                columns,
+                targets,
+                before,
+            } => {
+                require(*table)?;
+                for target in targets.iter().chain(before.iter()) {
+                    require(*target)?;
+                }
+                let table = self
+                    .tables
+                    .get_mut(table)
+                    .ok_or(CollabError::UnknownTable)?;
+                let sequence = if *columns {
+                    &table.columns
+                } else {
+                    &table.rows
+                };
+                if targets
+                    .iter()
+                    .chain(before.iter())
+                    .any(|target| !sequence.contains(*target))
+                {
+                    return Err(CollabError::MissingReference);
+                }
+                let moves = if *columns {
+                    &mut table.column_moves
+                } else {
+                    &mut table.row_moves
+                };
+                moves.insert(id, (targets.clone(), *before));
+            }
             OperationKind::SetActive { target, active } => {
                 require(*target)?;
                 if target.actor != id.actor {
@@ -847,17 +888,68 @@ impl Replica {
             })
             .collect()
     }
+    // Replay active moves in Lamport/actor order. Reordering never rewrites cell text
+    // or row/column identities; concurrent insertions/deletions remain independent.
+    fn reordered(
+        &self,
+        sequence: &Sequence<OpId, ()>,
+        moves: &BTreeMap<OpId, (Vec<OpId>, Option<OpId>)>,
+    ) -> Vec<OpId> {
+        if moves.is_empty() {
+            return sequence.ordered();
+        }
+        let placements = sequence.placements();
+        let events: BTreeSet<_> = placements.keys().chain(moves.keys()).copied().collect();
+        let mut order = Vec::new();
+        for id in events {
+            if let Some(after) = placements.get(&id) {
+                let index = after
+                    .and_then(|after| order.iter().position(|item| *item == after))
+                    .map_or(0, |index| index + 1);
+                order.insert(index, id);
+            } else if self.is_active(id) {
+                let (targets, before) = &moves[&id];
+                order.retain(|item| !targets.contains(item));
+                let index = before
+                    .and_then(|before| order.iter().position(|item| *item == before))
+                    .unwrap_or(order.len());
+                order.splice(index..index, targets.iter().copied());
+            }
+        }
+        order
+    }
+    pub fn reorder(
+        &mut self,
+        table: OpId,
+        columns: bool,
+        targets: Vec<OpId>,
+        before: Option<OpId>,
+    ) -> Result<Update, CollabError> {
+        let view = self.table(table)?;
+        let order = if columns { view.columns } else { view.rows };
+        if targets
+            .iter()
+            .chain(before.iter())
+            .any(|id| !order.contains(id))
+        {
+            return Err(CollabError::InvalidBoundary);
+        }
+        self.local_action(vec![OperationKind::Reorder {
+            table,
+            columns,
+            targets,
+            before,
+        }])
+    }
     pub fn table(&self, id: OpId) -> Result<TableView, CollabError> {
         let table = self.tables.get(&id).ok_or(CollabError::UnknownTable)?;
-        let rows: Vec<_> = table
-            .rows
-            .ordered()
+        let rows: Vec<_> = self
+            .reordered(&table.rows, &table.row_moves)
             .into_iter()
             .filter(|id| self.is_active(*id) && !self.has_active_delete(table.deleted_rows.get(id)))
             .collect();
-        let columns: Vec<_> = table
-            .columns
-            .ordered()
+        let columns: Vec<_> = self
+            .reordered(&table.columns, &table.column_moves)
             .into_iter()
             .filter(|id| {
                 self.is_active(*id) && !self.has_active_delete(table.deleted_columns.get(id))
@@ -897,6 +989,17 @@ impl Replica {
     }
     pub fn markdown(&self) -> String {
         self.projection().markdown
+    }
+    /// Joins local undo actions only; operations and remote history remain unchanged.
+    pub fn coalesce_history(&mut self) {
+        if self.redo.is_empty() && self.undo.len() >= 2 {
+            let newest = self.undo.pop().unwrap();
+            self.undo
+                .last_mut()
+                .unwrap()
+                .operations
+                .extend(newest.operations);
+        }
     }
     pub fn undo(&mut self) -> Result<Update, CollabError> {
         self.toggle_history(false)
@@ -971,6 +1074,15 @@ fn validate_envelope(operation: &Operation) -> Result<(), CollabError> {
         return Err(CollabError::InvalidOperation);
     }
     match &operation.kind {
+        OperationKind::Reorder {
+            targets, before, ..
+        } if targets.is_empty()
+            || targets.len() > MAX_PENDING
+            || targets.iter().collect::<BTreeSet<_>>().len() != targets.len()
+            || before.is_some_and(|id| targets.contains(&id)) =>
+        {
+            Err(CollabError::InvalidOperation)
+        }
         OperationKind::InsertText { text, .. }
             if text.is_empty() || text.len() > MAX_TEXT_BYTES =>
         {

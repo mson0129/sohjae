@@ -1,6 +1,11 @@
 //! Source-preserving Markdown tree and a renderer with UTF-8 source coordinates.
 //! Unknown constructs remain text. No source HTML is inserted verbatim into the DOM.
 use std::fmt::Write;
+mod cache;
+mod containers;
+pub use cache::{RenderCache, RenderStats};
+mod inlines;
+mod normalization;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Span {
@@ -92,9 +97,12 @@ pub fn parse(source: &str) -> Vec<Block> {
                 end = lines[index].end;
                 BlockKind::FrontMatter
             } else {
-                BlockKind::Paragraph
+                BlockKind::Rule
             }
-        } else if unknown_html_name(line.text.trim()).is_some() {
+        } else if indentation(line.text).0 <= 3
+            && unknown_html_name(line.text.trim()).is_some()
+            && inlines::html_end(source[start..].trim_start()).is_some()
+        {
             let name = unknown_html_name(line.text.trim()).unwrap();
             let close = format!("</{name}>");
             if !line.text.contains(&close) && source[line.end..].contains(&close) {
@@ -104,8 +112,9 @@ pub fn parse(source: &str) -> Vec<Block> {
                 end = lines[index].end;
             }
             BlockKind::Raw
-        } else if line.text.trim_start().starts_with("<details")
-            || line.text.trim_start().starts_with("<picture")
+        } else if indentation(line.text).0 <= 3
+            && (line.text.trim_start().starts_with("<details")
+                || line.text.trim_start().starts_with("<picture"))
         {
             let close = if line.text.trim_start().starts_with("<details") {
                 "</details>"
@@ -117,26 +126,38 @@ pub fn parse(source: &str) -> Vec<Block> {
             }
             end = lines[index].end;
             BlockKind::Html
-        } else if !line.text.trim().is_empty()
-            && index + 1 < lines.len()
-            && setext_level(lines[index + 1].text).is_some()
+        } else if indentation(line.text).0 <= 3
+            && html_tag(line.text.trim())
+                .is_some_and(|(length, _)| length == line.text.trim().len())
+            && !blocks.last().is_some_and(|b: &Block| {
+                matches!(b.kind, BlockKind::Paragraph)
+                    && !source[b.span.start..b.span.end].trim().is_empty()
+            })
         {
-            let level = setext_level(lines[index + 1].text).unwrap();
-            let content = Span { start, end };
-            index += 1;
+            while index + 1 < lines.len() && !lines[index + 1].text.trim().is_empty() {
+                index += 1;
+            }
             end = lines[index].end;
-            BlockKind::Heading { level, content }
-        } else if line.text.starts_with('[')
-            && !line.text.starts_with("[^")
-            && line.text.contains("]: ")
-        {
+            BlockKind::Html
+        } else if let Some((_, _, _, length)) = inlines::definition(&source[start..]).filter(|_| {
+            !blocks.last().is_some_and(|block: &Block| {
+                matches!(block.kind, BlockKind::Paragraph)
+                    && !source[block.span.start..block.span.end].trim().is_empty()
+            })
+        }) {
+            end = start + length;
+            while index + 1 < lines.len() && lines[index + 1].start < end {
+                index += 1;
+            }
             BlockKind::ReferenceDefinition
         } else if let Some((marker, length, language)) = fence(line.text) {
             let content_start = (line.end + 1).min(source.len());
             let mut next = index + 1;
             while next < lines.len() {
-                let text = lines[next].text.trim();
-                if text.bytes().take_while(|byte| *byte == marker).count() >= length
+                let raw = lines[next].text;
+                let text = raw.trim();
+                if indentation(raw).0 <= 3
+                    && text.bytes().take_while(|byte| *byte == marker).count() >= length
                     && text.bytes().all(|byte| byte == marker)
                 {
                     break;
@@ -144,7 +165,7 @@ pub fn parse(source: &str) -> Vec<Block> {
                 next += 1;
             }
             let content_end = if next < lines.len() {
-                lines[next].start.saturating_sub(1).max(content_start)
+                lines[next].start.max(content_start)
             } else {
                 source.len()
             };
@@ -156,17 +177,25 @@ pub fn parse(source: &str) -> Vec<Block> {
                     end: content_end,
                 },
                 language,
-                indent: 0,
+                indent: indentation(line.text).0,
             }
-        } else if line.text.starts_with("    ")
-            && list_prefix(line.text).is_none()
-            && !blocks
-                .last()
-                .is_some_and(|block: &Block| matches!(block.kind, BlockKind::ListItem { .. }))
+        } else if !line.text.trim().is_empty()
+            && indentation(line.text).0 >= 4
+            && !blocks.last().is_some_and(|block: &Block| {
+                matches!(block.kind, BlockKind::ListItem { .. })
+                    || matches!(block.kind, BlockKind::Paragraph)
+                        && !source[block.span.start..block.span.end].trim().is_empty()
+            })
         {
             let content_start = start;
-            while index + 1 < lines.len() && lines[index + 1].text.starts_with("    ") {
-                index += 1;
+            let mut next = index + 1;
+            while next < lines.len() {
+                if indentation(lines[next].text).0 >= 4 && !lines[next].text.trim().is_empty() {
+                    index = next;
+                } else if !lines[next].text.trim().is_empty() {
+                    break;
+                }
+                next += 1;
             }
             end = lines[index].end;
             BlockKind::Code {
@@ -246,7 +275,16 @@ pub fn parse(source: &str) -> Vec<Block> {
                     },
                     alert,
                 }
-            } else if let Some((prefix, ordered, checked)) = list_prefix(line.text) {
+            } else if let Some((prefix, ordered, checked)) =
+                list_prefix(line.text).filter(|(prefix, ordered, _)| {
+                    !blocks.last().is_some_and(|block| {
+                        matches!(block.kind, BlockKind::Paragraph)
+                            && !source[block.span.start..block.span.end].trim().is_empty()
+                    }) || (!line.text[*prefix..].trim().is_empty()
+                        && line.text.bytes().take_while(|b| *b == b' ').count() <= 3
+                        && ordered.is_none_or(|n| n == 1))
+                })
+            {
                 let spaces = line.text.bytes().take_while(|byte| *byte == b' ').count();
                 BlockKind::ListItem {
                     content: Span {
@@ -257,10 +295,7 @@ pub fn parse(source: &str) -> Vec<Block> {
                     depth: spaces / 4,
                     checked,
                 }
-            } else if !line.text.trim().is_empty()
-                && index + 1 < lines.len()
-                && lines[index + 1].text.starts_with(": ")
-            {
+            } else if !line.text.trim().is_empty() && definition_follows(&lines, index).is_some() {
                 let entries = parse_definition_list(&lines, &mut index);
                 end = lines[index].end;
                 BlockKind::DefinitionList { entries }
@@ -287,6 +322,20 @@ pub fn parse(source: &str) -> Vec<Block> {
                 } else {
                     BlockKind::Paragraph
                 }
+            } else if !line.text.trim().is_empty()
+                && index + 1 < lines.len()
+                && setext_level(lines[index + 1].text).is_some()
+            {
+                // Only paragraph content can become a setext heading. In particular,
+                // a following empty list marker must not promote a list/ATX block.
+                let level = setext_level(lines[index + 1].text).unwrap();
+                let content = Span {
+                    start: start + line.text.len() - line.text.trim_start().len(),
+                    end: start + line.text.trim_end().len(),
+                };
+                index += 1;
+                end = lines[index].end;
+                BlockKind::Heading { level, content }
             } else {
                 BlockKind::Paragraph
             }
@@ -299,11 +348,38 @@ pub fn parse(source: &str) -> Vec<Block> {
     }
     let mut merged: Vec<Block> = Vec::new();
     for block in blocks {
-        if matches!(block.kind, BlockKind::Paragraph) && block.span.start != block.span.end {
+        if matches!(block.kind, BlockKind::Paragraph)
+            && !source[block.span.start..block.span.end].trim().is_empty()
+        {
             if let Some(previous) = merged.last_mut() {
                 if matches!(previous.kind, BlockKind::Paragraph)
-                    && previous.span.start != previous.span.end
+                    && !source[previous.span.start..previous.span.end]
+                        .trim()
+                        .is_empty()
                 {
+                    previous.span.end = block.span.end;
+                    continue;
+                }
+            }
+        }
+        if let BlockKind::Heading { level, content } = &block.kind {
+            if source[block.span.start..content.start].trim().is_empty() {
+                if let Some(previous) = merged.last_mut().filter(|b| {
+                    matches!(b.kind, BlockKind::Paragraph)
+                        && !source[b.span.start..b.span.end].trim().is_empty()
+                }) {
+                    let begin = previous.span.start
+                        + source[previous.span.start..previous.span.end].len()
+                        - source[previous.span.start..previous.span.end]
+                            .trim_start()
+                            .len();
+                    previous.kind = BlockKind::Heading {
+                        level: *level,
+                        content: Span {
+                            start: begin,
+                            end: content.end,
+                        },
+                    };
                     previous.span.end = block.span.end;
                     continue;
                 }
@@ -314,6 +390,16 @@ pub fn parse(source: &str) -> Vec<Block> {
     merged
 }
 
+fn definition_follows(lines: &[Line<'_>], index: usize) -> Option<usize> {
+    let mut next = index + 1;
+    while next < lines.len() && lines[next].text.trim().is_empty() {
+        next += 1;
+    }
+    lines
+        .get(next)
+        .filter(|line| line.text.starts_with(": "))
+        .map(|_| next)
+}
 fn parse_definition_list(lines: &[Line<'_>], index: &mut usize) -> Vec<(Span, Vec<Span>)> {
     let mut entries = Vec::new();
     loop {
@@ -322,11 +408,29 @@ fn parse_definition_list(lines: &[Line<'_>], index: &mut usize) -> Vec<(Span, Ve
             end: lines[*index].end,
         };
         let mut definitions = Vec::new();
-        while *index + 1 < lines.len() && lines[*index + 1].text.starts_with(": ") {
-            *index += 1;
+        while let Some(next) = definition_follows(lines, *index) {
+            *index = next;
             let start = lines[*index].start + 2;
-            while *index + 1 < lines.len() && lines[*index + 1].text.starts_with("    ") {
-                *index += 1;
+            loop {
+                let next = *index + 1;
+                if next >= lines.len() {
+                    break;
+                }
+                if indentation(lines[next].text).0 >= 4 && !lines[next].text.trim().is_empty() {
+                    *index = next;
+                    continue;
+                }
+                if lines[next].text.trim().is_empty() {
+                    let mut after = next;
+                    while after < lines.len() && lines[after].text.trim().is_empty() {
+                        after += 1;
+                    }
+                    if after < lines.len() && indentation(lines[after].text).0 >= 4 {
+                        *index = after;
+                        continue;
+                    }
+                }
+                break;
             }
             definitions.push(Span {
                 start,
@@ -335,13 +439,10 @@ fn parse_definition_list(lines: &[Line<'_>], index: &mut usize) -> Vec<(Span, Ve
         }
         entries.push((term, definitions));
         let mut next = *index + 1;
-        while next < lines.len() && lines[next].text.is_empty() {
+        while next < lines.len() && lines[next].text.trim().is_empty() {
             next += 1;
         }
-        if next + 1 >= lines.len()
-            || lines[next].text.trim().is_empty()
-            || !lines[next + 1].text.starts_with(": ")
-        {
+        if next >= lines.len() || definition_follows(lines, next).is_none() {
             break;
         }
         *index = next;
@@ -370,6 +471,35 @@ fn heading_suffix(body: &str) -> (&str, Option<&str>) {
     (body, None)
 }
 
+fn indentation(text: &str) -> (usize, usize) {
+    let mut width = 0;
+    let mut bytes = 0;
+    for c in text.chars() {
+        match c {
+            ' ' => width += 1,
+            '\t' => width += 4 - width % 4,
+            _ => break,
+        }
+        bytes += c.len_utf8();
+    }
+    (width, bytes)
+}
+fn deindent(text: &str, columns: usize) -> (usize, usize) {
+    let mut width = 0;
+    let mut bytes = 0;
+    for c in text.chars() {
+        if width >= columns {
+            break;
+        }
+        match c {
+            ' ' => width += 1,
+            '\t' => width += 4 - width % 4,
+            _ => break,
+        }
+        bytes += c.len_utf8();
+    }
+    (bytes, width.saturating_sub(columns))
+}
 fn setext_level(text: &str) -> Option<usize> {
     if text.bytes().take_while(|b| *b == b' ').count() > 3 {
         return None;
@@ -422,15 +552,24 @@ fn code_close(text: &str, count: usize) -> Option<usize> {
     None
 }
 fn fence(text: &str) -> Option<(u8, usize, String)> {
+    let (columns, bytes) = indentation(text);
+    if columns > 3 {
+        return None;
+    }
+    let text = &text[bytes..];
     let marker = *text.as_bytes().first()?;
     if marker != b'`' && marker != b'~' {
         return None;
     }
     let length = text.bytes().take_while(|byte| *byte == marker).count();
-    (length >= 3).then(|| (marker, length, text[length..].trim().to_string()))
+    (length >= 3 && (marker != b'`' || !text[length..].contains('`')))
+        .then(|| (marker, length, text[length..].trim().to_string()))
 }
 
 fn is_rule(text: &str) -> bool {
+    if indentation(text).0 > 3 {
+        return false;
+    }
     let compact: String = text.chars().filter(|c| !c.is_whitespace()).collect();
     compact.len() >= 3
         && b"-*_"
@@ -440,6 +579,9 @@ fn is_rule(text: &str) -> bool {
 
 fn unknown_html_name(text: &str) -> Option<&str> {
     let text = text.strip_prefix('<')?.trim_start_matches('/');
+    if !text.as_bytes().first()?.is_ascii_alphabetic() {
+        return None;
+    }
     let length = text.bytes().take_while(u8::is_ascii_alphanumeric).count();
     if length == 0
         || !matches!(
@@ -464,20 +606,21 @@ fn unknown_html_name(text: &str) -> Option<&str> {
 pub fn list_prefix(text: &str) -> Option<(usize, Option<usize>, Option<bool>)> {
     let spaces = text.bytes().take_while(|byte| *byte == b' ').count();
     let body = &text[spaces..];
-    let (marker, ordered) =
-        if body.starts_with("- ") || body.starts_with("* ") || body.starts_with("+ ") {
-            (2, None)
-        } else {
-            let digits = body.bytes().take_while(u8::is_ascii_digit).count();
-            if digits == 0
-                || digits > 9
-                || !matches!(body.as_bytes().get(digits), Some(b'.' | b')'))
-                || body.as_bytes().get(digits + 1) != Some(&b' ')
-            {
-                return None;
-            }
-            (digits + 2, body[..digits].parse().ok())
-        };
+    let (marker, ordered) = if matches!(body, "-" | "*" | "+") {
+        (1, None)
+    } else if body.starts_with("- ") || body.starts_with("* ") || body.starts_with("+ ") {
+        (2, None)
+    } else {
+        let digits = body.bytes().take_while(u8::is_ascii_digit).count();
+        if digits == 0
+            || digits > 9
+            || !matches!(body.as_bytes().get(digits), Some(b'.' | b')'))
+            || body.as_bytes().get(digits + 1) != Some(&b' ')
+        {
+            return None;
+        }
+        (digits + 2, body[..digits].parse().ok())
+    };
     let rest = &body[marker..];
     let checked = if rest.starts_with("[ ] ") {
         Some(false)
@@ -589,6 +732,9 @@ fn element(out: &mut String, tag: &str, kind: &str, span: &Span) {
 }
 
 pub fn render(source: &str, reading: bool) -> String {
+    containers::render(source, reading)
+}
+fn render_flat(source: &str, reading: bool) -> String {
     let blocks = parse(source);
     let mut out = String::new();
     let mut heading_ids = std::collections::HashSet::<String>::new();
@@ -596,6 +742,15 @@ pub fn render(source: &str, reading: bool) -> String {
     for block in &blocks {
         let start = block.span.start;
         let end = block.span.end;
+        if reading
+            && (matches!(
+                block.kind,
+                BlockKind::ReferenceDefinition | BlockKind::FrontMatter | BlockKind::Comment
+            ) || matches!(block.kind, BlockKind::Paragraph)
+                && source[start..end].trim().is_empty())
+        {
+            continue;
+        }
         let _ = write!(
             out,
             "<section data-block=\"1\" data-start=\"{start}\" data-end=\"{end}\">"
@@ -607,9 +762,36 @@ pub fn render(source: &str, reading: bool) -> String {
                 out.push_str("</pre>");
             }
             BlockKind::Html => {
-                element(&mut out, "div", "html", &block.span);
-                inline(&mut out, source, start, end, 0, reading);
-                out.push_str("</div>");
+                let extension = source[start..end].trim_start().starts_with("<details")
+                    || source[start..end].trim_start().starts_with("<picture");
+                if !reading || extension {
+                    element(&mut out, "div", "html", &block.span);
+                }
+                if extension {
+                    inline(&mut out, source, start, end, 0, reading);
+                } else {
+                    let stop = if source.as_bytes().get(end) == Some(&b'\n') {
+                        end + 1
+                    } else {
+                        end
+                    };
+                    let mut cursor = start;
+                    while cursor < stop {
+                        if let Some((length, tag)) = html_tag(&source[cursor..stop]) {
+                            out.push_str(&tag);
+                            cursor += length;
+                        } else {
+                            let first =
+                                cursor + source[cursor..stop].chars().next().unwrap().len_utf8();
+                            let next = source[first..stop].find('<').map_or(stop, |at| first + at);
+                            text_span(&mut out, source, cursor, next, None);
+                            cursor = next;
+                        }
+                    }
+                }
+                if !reading || extension {
+                    out.push_str("</div>");
+                }
             }
             BlockKind::ReferenceDefinition => {
                 if !reading {
@@ -641,8 +823,17 @@ pub fn render(source: &str, reading: bool) -> String {
                 for line in source[content.start..content.end].split_inclusive('\n') {
                     let newline = line.ends_with('\n');
                     let line_end = line_start + line.len() - usize::from(newline);
-                    let trim = (*indent).min(line_end - line_start);
+                    let (trim, remainder) = deindent(&source[line_start..line_end], *indent);
                     out.push_str("<span class=\"code_line\">");
+                    if remainder > 0 {
+                        text_span(
+                            &mut out,
+                            source,
+                            line_start + trim - 1,
+                            line_start + trim,
+                            Some(&" ".repeat(remainder)),
+                        );
+                    }
                     let token_start = line_start + trim;
                     let mut cursor = token_start;
                     for (from, to, kind) in lexer.tokens(&source[token_start..line_end], language) {
@@ -679,8 +870,10 @@ pub fn render(source: &str, reading: bool) -> String {
                     out.push_str("<tr>");
                     for (column, cell) in row.iter().enumerate() {
                         let tag = if row_index == 0 { "th" } else { "td" };
-                        let _ = write!(out, "<{tag} data-cell=\"1\" data-row=\"{row_index}\" data-column=\"{column}\" data-start=\"{}\" data-end=\"{}\" class=\"align_{}\" aria-label=\"{}행 {}열{}\">", cell.start, cell.end, align.get(column).map(String::as_str).unwrap_or("left"), row_index + 1, column + 1, if row_index == 0 { " 머리글" } else { "" });
-                        inline_context(&mut out, source, cell.start, cell.end, 0, reading, true);
+                        let _ = write!(out, "<{tag}{} data-cell=\"1\" data-row=\"{row_index}\" data-column=\"{column}\" data-start=\"{}\" data-end=\"{}\" class=\"align_{}\" aria-label=\"{}행 {}열{}\">", if row_index == 0 { " scope=\"col\"" } else { "" }, cell.start, cell.end, align.get(column).map(String::as_str).unwrap_or("left"), row_index + 1, column + 1, if row_index == 0 { " 머리글" } else { "" });
+                        inline_context(
+                            &mut out, source, cell.start, cell.end, 0, reading, true, true,
+                        );
                         if cell.start == cell.end && !reading {
                             out.push_str("<br>");
                         }
@@ -724,14 +917,7 @@ pub fn render(source: &str, reading: bool) -> String {
                     out.push_str("</dt>");
                     for definition in definitions {
                         element(&mut out, "dd", "definition", definition);
-                        inline(
-                            &mut out,
-                            source,
-                            definition.start,
-                            definition.end,
-                            0,
-                            reading,
-                        );
+                        out.push_str(&containers::definition_html(source, definition, reading));
                         out.push_str("</dd>");
                     }
                 }
@@ -793,7 +979,10 @@ pub fn render(source: &str, reading: bool) -> String {
             }
             BlockKind::Paragraph => {
                 out.push_str("<p>");
-                inline(&mut out, source, start, end, 0, reading);
+                let value = &source[start..end];
+                let from = start + value.len() - value.trim_start_matches([' ', '\t']).len();
+                let to = (start + value.trim_end_matches([' ', '\t']).len()).max(from);
+                inline(&mut out, source, from, to, 0, reading);
                 if start == end {
                     out.push_str("<br>");
                 }
@@ -846,8 +1035,33 @@ pub fn safe_url(url: &str, image: bool, attachment: bool) -> bool {
     true
 }
 
+fn extended_url_body(text: &str) -> &str {
+    let mut body = text;
+    loop {
+        let previous = body.len();
+        if body.ends_with(';') {
+            if let Some(amp) = body.rfind('&') {
+                let name = &body[amp + 1..body.len() - 1];
+                if !name.is_empty() && name.bytes().all(|b| b.is_ascii_alphanumeric()) {
+                    body = &body[..amp];
+                }
+            }
+        }
+        body = body.trim_end_matches(['.', ',', ';', ':', '!', '?', '*', '_', '~']);
+        if body.ends_with(')')
+            && body.bytes().filter(|b| *b == b')').count()
+                > body.bytes().filter(|b| *b == b'(').count()
+        {
+            body = &body[..body.len() - 1];
+        }
+        if body.len() == previous {
+            return body;
+        }
+    }
+}
+
 fn inline(out: &mut String, source: &str, start: usize, end: usize, depth: usize, reading: bool) {
-    inline_context(out, source, start, end, depth, reading, false)
+    inline_context(out, source, start, end, depth, reading, false, true)
 }
 fn code_spans(out: &mut String, source: &str, mut start: usize, mut end: usize, table_cell: bool) {
     let value = source[start..end].replace(['\r', '\n'], " ");
@@ -883,6 +1097,8 @@ fn code_spans(out: &mut String, source: &str, mut start: usize, mut end: usize, 
         text_span(out, source, plain, end, None);
     }
 }
+// Link context prevents nested anchors in labels.
+#[allow(clippy::too_many_arguments)]
 fn inline_context(
     out: &mut String,
     source: &str,
@@ -891,11 +1107,13 @@ fn inline_context(
     depth: usize,
     reading: bool,
     table_cell: bool,
+    links: bool,
 ) {
     if depth > 24 {
         text_span(out, source, start, end, None);
         return;
     }
+    let pairs = inlines::delimiters(source, start, end);
     let mut index = start;
     while index < end {
         let tail = &source[index..end];
@@ -906,6 +1124,9 @@ fn inline_context(
                 "<br data-break=\"1\" data-start=\"{index}\" data-end=\"{}\">",
                 index + count + 1
             );
+            if reading {
+                out.push('\n');
+            }
             index += count + 1;
             continue;
         }
@@ -915,7 +1136,18 @@ fn inline_context(
                 "<br data-break=\"1\" data-start=\"{index}\" data-end=\"{}\">",
                 index + 2
             );
+            if reading {
+                out.push('\n');
+            }
             index += 2;
+            continue;
+        }
+        if index > start && source[..index].ends_with('\n') && tail.starts_with([' ', '\t']) {
+            index += tail.len() - tail.trim_start_matches([' ', '\t']).len();
+            continue;
+        }
+        if tail.starts_with(" \n") {
+            index += 1;
             continue;
         }
         if tail.chars().next().unwrap().is_whitespace() {
@@ -966,7 +1198,7 @@ fn inline_context(
                 continue;
             }
         }
-        if let Some(name) = unknown_html_name(tail) {
+        if let Some(name) = unknown_html_name(tail).filter(|_| inlines::html_end(tail).is_some()) {
             let stop = tail
                 .find(&format!("</{name}>"))
                 .map(|close| close + name.len() + 3)
@@ -1007,18 +1239,46 @@ fn inline_context(
                 index = stop;
                 continue;
             }
+            text_span(out, source, index, index + count, None);
+            index += count;
+            continue;
+        }
+        if let Some(pair) = pairs.get(&index) {
+            let (tag, kind) = if pair.strong {
+                ("strong", "bold")
+            } else {
+                ("em", "italic")
+            };
+            element(
+                out,
+                tag,
+                kind,
+                &Span {
+                    start: index,
+                    end: pair.end,
+                },
+            );
+            let mut nested = String::new();
+            inline_context(
+                &mut nested,
+                source,
+                pair.open_end,
+                pair.close,
+                depth + 1,
+                reading,
+                table_cell,
+                links,
+            );
+            if pair.strong {
+                nested = inlines::flatten_strong(&nested);
+            }
+            out.push_str(&nested);
+            let _ = write!(out, "</{tag}>");
+            index = pair.end;
+            continue;
         }
         let mut matched = false;
-        for (marker, tag, kind) in [
-            ("***", "strong", "bold_italic"),
-            ("___", "strong", "bold_italic"),
-            ("**", "strong", "bold"),
-            ("__", "strong", "bold"),
-            ("~~", "del", "strikethrough"),
-            ("==", "mark", "highlight"),
-            ("*", "em", "italic"),
-            ("_", "em", "italic"),
-        ] {
+        for (marker, tag, kind) in [("~~", "del", "strikethrough"), ("==", "mark", "highlight")] {
             if marker == "==" && (tail.starts_with("===") || source[..index].ends_with('=')) {
                 continue;
             }
@@ -1066,6 +1326,7 @@ fn inline_context(
                         depth + 1,
                         reading,
                         table_cell,
+                        links,
                     );
                     if marker.len() == 3 {
                         out.push_str("</em>");
@@ -1085,13 +1346,14 @@ fn inline_context(
                 let name = &rest[..close];
                 if !name.is_empty() && !name.contains(char::is_whitespace) {
                     let stop = index + close + 3;
-                    let defined = parse(source).iter().any(|block| matches!(&block.kind, BlockKind::Footnote { name: defined, .. } if defined == name));
+                    let defined = containers::document(source,parse).iter().any(|block| matches!(&block.kind, BlockKind::Footnote { name: defined, .. } if defined == name));
                     if !defined {
                         text_span(out, source, index, stop, None);
                         index = stop;
                         continue;
                     }
-                    let number = footnote_number(source, name).unwrap_or(1);
+                    let number =
+                        containers::document(source, |doc| footnote_number(doc, name)).unwrap_or(1);
                     let occurrence = source[..index].matches(&format!("[^{name}]")).count();
                     let id = if occurrence == 0 {
                         format!("ref-{name}")
@@ -1110,9 +1372,13 @@ fn inline_context(
             .find(|c: char| c.is_whitespace() || ['<', '>'].contains(&c))
             .unwrap_or(tail.len());
         let word = tail[..word_end].trim_end_matches(['.', ',', ';', '!', '?']);
-        if let Some((user, domain)) = word.split_once('@') {
+        if let Some((user, domain)) = word.split_once('@').filter(|_| links) {
             if !user.is_empty()
                 && domain.contains('.')
+                && domain
+                    .as_bytes()
+                    .last()
+                    .is_some_and(u8::is_ascii_alphanumeric)
                 && user
                     .bytes()
                     .all(|b| b.is_ascii_alphanumeric() || b"._+-".contains(&b))
@@ -1128,11 +1394,15 @@ fn inline_context(
                 continue;
             }
         }
-        if tail.starts_with("http://") || tail.starts_with("https://") || tail.starts_with("www.") {
+        if links
+            && (tail.starts_with("http://")
+                || tail.starts_with("https://")
+                || tail.starts_with("www."))
+        {
             let length = tail
                 .find(|c: char| c.is_whitespace() || ['<', '>'].contains(&c))
                 .unwrap_or(tail.len());
-            let body = tail[..length].trim_end_matches(['.', ',', ';', ':', '!', '?']);
+            let body = extended_url_body(&tail[..length]);
             let url = if body.starts_with("www.") {
                 format!("https://{body}")
             } else {
@@ -1147,97 +1417,52 @@ fn inline_context(
                 continue;
             }
         }
-        let image = tail.starts_with("![");
-        if image || tail.starts_with('[') {
-            let label_start = if image { 2 } else { 1 };
-            if let Some(label_end) = find_outside_code(&tail[label_start..], "]") {
-                let label = &tail[label_start..label_start + label_end];
-                let after = label_start + label_end + 1;
-                let (reference, length) = if tail[after..].starts_with('[') {
-                    if let Some(close) = tail[after + 1..].find(']') {
-                        let value = &tail[after + 1..after + 1 + close];
-                        (
-                            if value.is_empty() { label } else { value },
-                            after + close + 2,
-                        )
-                    } else {
-                        (label, after)
-                    }
-                } else {
-                    (label, after)
-                };
-                if !tail[after..].starts_with('(') {
-                    if let Some((url, title)) = reference_definition(source, reference) {
-                        let stop = index + length;
-                        if safe_url(&url, image, false) {
-                            if image {
-                                let _ = write!(out, "<span data-kind=\"image\" data-start=\"{index}\" data-end=\"{stop}\"><img src=\"{}\" alt=\"{}\" title=\"{}\"></span>", escape(&url), escape(label), escape(&title));
-                            } else {
-                                let _ = write!(out, "<a data-kind=\"link\" data-start=\"{index}\" data-end=\"{stop}\" href=\"{}\" title=\"{}\" rel=\"noopener noreferrer\">", escape(&url), escape(&title));
-                                inline_context(
-                                    out,
-                                    source,
-                                    index + label_start,
-                                    index + label_start + label_end,
-                                    depth + 1,
-                                    reading,
-                                    table_cell,
-                                );
-                                out.push_str("</a>");
-                            }
-                            index = stop;
-                            continue;
-                        }
-                    }
-                }
+        if let Some(link) =
+            inlines::link_at(source, index, end, 0).filter(|link| links || link.image)
+        {
+            let title = link.title.as_ref().map_or(String::new(), |title| {
+                format!(" title=\"{}\"", escape(title))
+            });
+            if link.image {
+                let alt = inlines::plain_label(source, link.label_start, link.label_end);
+                let _=write!(out,"<span data-kind=\"image\" data-start=\"{index}\" data-end=\"{}\"><img src=\"{}\" alt=\"{}\"{title} loading=\"lazy\"></span>",link.end,escape(&link.url),escape(&alt));
+            } else {
+                let download = link
+                    .title
+                    .as_ref()
+                    .filter(|title| {
+                        link.url.starts_with("data:")
+                            && (title.starts_with("attachment:")
+                                || title.starts_with("attachment-uri:"))
+                    })
+                    .map_or(String::new(), |title| {
+                        format!(" download=\"{}\"", escape(&attachment_name(title)))
+                    });
+                let _=write!(out,"<a data-kind=\"link\" data-start=\"{index}\" data-end=\"{}\" href=\"{}\"{title}{download} rel=\"noopener noreferrer\">",link.end,escape(&link.url));
+                inline_context(
+                    out,
+                    source,
+                    link.label_start,
+                    link.label_end,
+                    depth + 1,
+                    reading,
+                    table_cell,
+                    false,
+                );
+                out.push_str("</a>");
             }
-            if let Some(close) = find_outside_code(&tail[label_start..], "](") {
-                let url_start = label_start + close + 2;
-                if let Some(url_end) = closing_paren(&tail[url_start..]) {
-                    let destination = &tail[url_start..url_start + url_end];
-                    let (url, title) = split_title(destination);
-                    let stop = index + url_start + url_end + 1;
-                    let attachment = !image
-                        && url.to_ascii_lowercase().starts_with("data:")
-                        && title.is_some_and(|s| {
-                            s.starts_with("attachment:") || s.starts_with("attachment-uri:")
-                        });
-                    if safe_url(url, image, attachment) {
-                        if image {
-                            let _ = write!(out, "<span data-kind=\"image\" data-start=\"{index}\" data-end=\"{stop}\"><img src=\"{}\" alt=\"{}\" title=\"{}\" loading=\"lazy\"></span>", escape(url), escape(&tail[label_start..label_start + close]), escape(title.unwrap_or("")));
-                        } else {
-                            let _ = write!(out, "<a data-kind=\"link\" data-start=\"{index}\" data-end=\"{stop}\" href=\"{}\" rel=\"noopener noreferrer\"{} title=\"{}\">", escape(url), if attachment { format!(" download=\"{}\"", escape(&attachment_name(title.unwrap()))) } else { String::new() }, escape(title.unwrap_or("")));
-                            inline_context(
-                                out,
-                                source,
-                                index + label_start,
-                                index + label_start + close,
-                                depth + 1,
-                                reading,
-                                table_cell,
-                            );
-                            out.push_str("</a>");
-                        }
-                        index = stop;
-                        continue;
-                    }
-                }
-            }
+            index = link.end;
+            continue;
         }
-        if tail.starts_with('<') {
+        if links && tail.starts_with('<') {
             if let Some(close) = tail.find('>') {
-                let url = &tail[1..close];
-                if (url.starts_with("https://")
-                    || url.starts_with("http://")
-                    || url.starts_with("mailto:"))
-                    && safe_url(url, false, false)
-                {
+                if let Some((url, label)) = inlines::autolink(&tail[1..close]) {
                     let _ = write!(
                         out,
                         "<a href=\"{}\" rel=\"noopener noreferrer\">",
-                        escape(url)
+                        escape(&url)
                     );
-                    text_span(out, source, index + 1, index + close, None);
+                    text_span(out, source, index + 1, index + close, Some(&label));
                     out.push_str("</a>");
                     index += close + 1;
                     continue;
@@ -1326,35 +1551,6 @@ fn find_unescaped(source: &str, marker: &str) -> Option<usize> {
                 == 0
         })
         .map(|(index, _)| index)
-}
-
-fn reference_definition(source: &str, name: &str) -> Option<(String, String)> {
-    let key = name
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .to_lowercase();
-    for block in parse(source) {
-        if !matches!(block.kind, BlockKind::ReferenceDefinition) {
-            continue;
-        }
-        let line = &source[block.span.start..block.span.end];
-        if let Some(rest) = line.strip_prefix('[') {
-            if let Some(close) = rest.find("]: ") {
-                if rest[..close]
-                    .split_whitespace()
-                    .collect::<Vec<_>>()
-                    .join(" ")
-                    .to_lowercase()
-                    == key
-                {
-                    let (url, title) = split_title(&rest[close + 3..]);
-                    return Some((url.into(), title.unwrap_or("").into()));
-                }
-            }
-        }
-    }
-    None
 }
 
 fn footnote_number(source: &str, name: &str) -> Option<usize> {
@@ -1482,16 +1678,6 @@ fn closing_paren(text: &str) -> Option<usize> {
     None
 }
 
-fn split_title(text: &str) -> (&str, Option<&str>) {
-    let text = text.trim();
-    if let Some(index) = text.find(" \"") {
-        if text.ends_with('"') {
-            return (&text[..index], Some(&text[index + 2..text.len() - 1]));
-        }
-    }
-    (text.trim_matches(['<', '>']), None)
-}
-
 fn attachment_name(title: &str) -> String {
     let Some(encoded) = title.strip_prefix("attachment-uri:") else {
         return title.strip_prefix("attachment:").unwrap_or(title).into();
@@ -1518,7 +1704,7 @@ fn attachment_name(title: &str) -> String {
 /// Parses only quoted/unquoted attribute values and emits a fixed allowlist.
 fn html_tag(text: &str) -> Option<(usize, String)> {
     let tail = text.strip_prefix('<')?;
-    let end = tail.find('>')?;
+    let end = inlines::html_end(text)? - 2;
     let raw = &tail[..end];
     let closing = raw.starts_with('/');
     let raw = raw.trim_start_matches('/');
@@ -1621,6 +1807,14 @@ pub fn front_matter_layout(source: &str) -> Option<String> {
 
 /// Normalize recognized constructs without touching code, front matter, comments or raw HTML.
 pub fn normalize(source: &str) -> String {
+    let candidate = normalize_candidate(source);
+    if candidate == source || normalization::equivalent(source, &candidate) {
+        candidate
+    } else {
+        source.into()
+    }
+}
+fn normalize_candidate(source: &str) -> String {
     let blocks = parse(source);
     let mut out = String::new();
     let mut list_stack: Vec<(usize, usize, usize)> = Vec::new();
@@ -1631,18 +1825,27 @@ pub fn normalize(source: &str) -> String {
         let raw = &source[block.span.start..block.span.end];
         match &block.kind {
             BlockKind::FrontMatter
+            | BlockKind::Html
             | BlockKind::Raw
             | BlockKind::Comment
             | BlockKind::ReferenceDefinition
             | BlockKind::Code { .. } => out.push_str(raw),
-            BlockKind::Heading { content, .. } => {
+            BlockKind::Heading { level, content } => {
                 list_stack.clear();
                 let body = &source[content.start..content.end];
-                let (visible, _) = heading_suffix(body);
-                out.push_str(&source[block.span.start..content.start]);
-                out.push_str(&normalize_inline(visible));
-                // The explicit ID is metadata, not emphasis/emoji source.
-                out.push_str(&source[content.start + visible.len()..block.span.end]);
+                let (visible, id) = heading_suffix(body);
+                if !body.contains('\n') {
+                    out.push_str(&"#".repeat(*level));
+                    out.push(' ');
+                    out.push_str(&normalize_inline(visible));
+                    if let Some(id) = id {
+                        out.push_str(" {#");
+                        out.push_str(id);
+                        out.push('}');
+                    }
+                } else {
+                    out.push_str(raw);
+                }
             }
             BlockKind::ListItem {
                 content,
@@ -1696,6 +1899,7 @@ fn normalize_inline_depth(raw: &str, depth: usize) -> String {
     }
     let mut out = String::new();
     let mut index = 0;
+    let pairs = inlines::delimiters(raw, 0, raw.len());
     while index < raw.len() {
         let tail = &raw[index..];
         if let Some(stripped) = tail.strip_prefix('\\') {
@@ -1765,19 +1969,16 @@ fn normalize_inline_depth(raw: &str, depth: usize) -> String {
             index += end;
             continue;
         }
-        if let Some(rest) = tail.strip_prefix("__") {
-            if let Some(end) = find_unescaped(rest, "__") {
-                if end > 0
-                    && !rest[..end].starts_with(char::is_whitespace)
-                    && !rest[..end].ends_with(char::is_whitespace)
-                {
-                    out.push_str("**");
-                    out.push_str(&normalize_inline_depth(&rest[..end], depth + 1));
-                    out.push_str("**");
-                    index += end + 4;
-                    continue;
-                }
-            }
+        if let Some(pair) = pairs.get(&index) {
+            let marker = if pair.strong { "**" } else { "*" };
+            out.push_str(marker);
+            out.push_str(&normalize_inline_depth(
+                &raw[pair.open_end..pair.close],
+                depth + 1,
+            ));
+            out.push_str(marker);
+            index = pair.end;
+            continue;
         }
         if let Some((alias, unicode)) = emoji_match(tail) {
             out.push_str(unicode);

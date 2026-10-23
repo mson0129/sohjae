@@ -23,6 +23,12 @@ impl<K: Ord + Copy, V> Sequence<K, V> {
         self.nodes.insert(id, value);
         self.children.entry(after).or_default().insert(id);
     }
+    pub fn placements(&self) -> BTreeMap<K, Option<K>> {
+        self.children
+            .iter()
+            .flat_map(|(parent, children)| children.iter().map(move |id| (*id, *parent)))
+            .collect()
+    }
     pub fn ordered(&self) -> Vec<K> {
         let mut stack: Vec<K> = self
             .children

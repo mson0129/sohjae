@@ -127,5 +127,93 @@ await test('Native cross-cell boundary selections replace the highlighted cell a
  assert(f.x.selection.focus===last.end);await f.x.execute_command('undo');assert(f.a.snapshot.tables[0].cells[3].text==='d');
  }finally{f.close();}
 });
+
+await test('Stable row/column moves sync through WebRTC and own undo preserves remote edits',async()=>{
+ const f=await fixture('| A | B | C |\n| ---: | :---: | --- |\n| a | b | c |\n| d | e | f |\n| g | h | i |');let connection;
+ try{connection=await connect_local_pair(f.a,f.b);f.y.set_view('source');const old=f.a.snapshot.tables[0];
+ let cell=f.x.surface.querySelector('table').rows[1].cells[0];f.x.move_table_axis(cell,'row',1,1,4);
+ await until(()=>f.y.state.source===f.x.state.source);assert(f.a.snapshot.tables[0].rows[3]===old.rows[1]);
+ const scope={table:old.id,row:old.rows[1],column:old.columns[0]};f.b.replace_text(0,1,'원격😀',scope);await until(()=>f.x.state.source===f.y.state.source);
+ await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.a.snapshot.tables[0].rows.join()===old.rows.join());assert(f.x.state.source.includes('원격😀'));
+ await f.x.execute_command('redo');cell=f.x.surface.querySelector('table').rows[0].cells[0];f.x.move_table_axis(cell,'column',0,0,3);
+ await until(()=>f.x.state.source===f.y.state.source);assert(f.a.snapshot.tables[0].columns[2]===old.columns[0]);assert(f.a.snapshot.tables[0].alignments[2]==='right');
+ assert(f.y.source_input.value===f.x.state.source);assert(!f.x.get_pending_draft());
+ }finally{connection?.close();f.close();}
+});
+await test('Handle pointer drag, shift range selection, cancel and keyboard reorder share one undo',async()=>{
+ const f=await fixture('| A | B |\n| --- | --- |\n| a | b |\n| c | d |\n| e | f |');try{
+ let table=f.x.surface.querySelector('table');table.scrollIntoView();const old=f.a.snapshot.tables[0];
+ const handle=table.querySelector('[data-row-handle="1"]'),target=table.rows[3].cells[0],rect=target.getBoundingClientRect();
+ handle.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,composed:true,button:0,clientX:1,clientY:1}));
+ target.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,composed:true,clientX:rect.left+rect.width/2,clientY:rect.bottom-2}));
+ target.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,composed:true,clientX:rect.left+rect.width/2,clientY:rect.bottom-2}));
+ assert(f.a.snapshot.tables[0].rows[3]===old.rows[1],'pointer reorder');await f.x.execute_command('undo');
+ table=f.x.surface.querySelector('table');const first=table.rows[1].cells[0],last=table.rows[2].cells[0];
+ first.querySelector('[data-row-handle]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,shiftKey:true}));
+ last.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,shiftKey:true}));document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true}));
+ assert(f.x.surface.querySelectorAll('[data-selected]').length===4,'shift range');assert(f.a.snapshot.tables[0].rows.join()===old.rows.join());
+ table=f.x.surface.querySelector('table');table.querySelector('[data-column-handle="0"]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',altKey:true,bubbles:true}));
+ assert(f.a.snapshot.tables[0].columns[1]===old.columns[0],'keyboard move');await f.x.execute_command('undo');
+ table=f.x.surface.querySelector('table');table.querySelector('[data-row-handle="1"]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0}));document.dispatchEvent(new PointerEvent('pointercancel'));
+ assert(!f.x.dragging&&!f.x.handle_drag);
+ table=f.x.surface.querySelector('table');table.scrollIntoView();const edge=table.rows[3].cells[0],bounds=edge.getBoundingClientRect();
+ table.querySelector('[data-row-handle="1"]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,clientX:1,clientY:1}));
+ edge.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,clientX:bounds.left+bounds.width/2,clientY:bounds.bottom-2}));
+ document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,clientX:-20,clientY:-20}));assert(f.a.snapshot.tables[0].rows.join()===old.rows.join(),'outside drop must cancel');
+ const source=f.x.state.source;f.x.set_options({read_only:true});f.x.move_table_axis(f.x.surface.querySelector('table').rows[1].cells[0],'row',1,1,4);assert(f.x.state.source===source);
+ }finally{f.close();}
+});
+await test('Multiple-table raw source edits, mode transitions and undo retain stable IDs and escapes',async()=>{
+ const f=await fixture('앞😀\n\n| A | B |\n| --- | --- |\n| a\\|b | c |\n\n사이\n\n| X | Y |\n| --- | --- |\n| d | e |\n\n뒤');try{
+ const old=f.a.snapshot.tables,source=f.x.state.source;f.x.set_view('source');
+ const start=byte_length(source.slice(0,source.indexOf('a\\|b'))),end=byte_length(source.slice(0,source.lastIndexOf(' e ')+2));
+ const chunk=new TextDecoder().decode(new TextEncoder().encode(source).slice(start,end)).replace('a\\|b','새\\|값').replace('사이','중간😀').replace(' e',' 바꿈');
+ f.x.set_selection(start,end);f.x.replace(chunk);assert(!f.x.get_pending_draft(),'valid raw edit became draft');f.b.merge(f.a.export_state());
+ assert(f.a.snapshot.tables.map(t=>t.id).join()===old.map(t=>t.id).join());assert(f.a.snapshot.tables[0].cells[2].text==='새\\|값');
+ for(const mode of ['hybrid','markdown','rich']){f.x.set_options({mode});f.x.set_view('source');f.x.set_view('source');assert(f.x.state.source.includes('중간😀'));}
+ await f.x.execute_command('undo');assert(f.x.state.source===source,'one raw edit undo');await f.x.execute_command('redo');assert(f.x.state.source.includes('새\\|값'));
+ }finally{f.close();}
+});
+await test('Standalone table range moves preserve alignment, header and undo/redo',async()=>{
+ const container=document.createElement('div');document.querySelector('#fixtures').append(container);const editor=await create_editor(container,{mode:'rich',markdown:'| A | B |\n| ---: | :---: |\n| a | b |\n| c | d |\n| e | f |'});try{
+ const source=editor.state.source;let table=editor.surface.querySelector('table');editor.move_table_axis(table.rows[1].cells[0],'row',1,2,4);assert(editor.state.source.indexOf('| e | f |')<editor.state.source.indexOf('| a | b |'));
+ await editor.execute_command('undo');assert(editor.state.source===source);await editor.execute_command('redo');
+ table=editor.surface.querySelector('table');editor.move_table_axis(table.rows[0].cells[0],'column',0,0,2);assert(editor.surface.querySelector('table').rows[0].cells[1].classList.contains('align_right'));
+ const before=editor.state.source;editor.move_table_axis(editor.surface.querySelector('table').rows[0].cells[0],'row',0,0,3);assert(editor.state.source===before);
+ }finally{editor.destroy();container.remove();}
+});
+await test('Remote table change cancels a pending handle drag without applying stale indices',async()=>{
+ const f=await fixture('| A | B |\n| --- | --- |\n| a | b |\n| c | d |');try{
+ const table=f.x.surface.querySelector('table'),view=f.b.snapshot.tables[0];table.querySelector('[data-row-handle="1"]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0}));
+ f.b.delete_row(view.id,view.rows[1]);f.a.merge(f.b.export_state());assert(!f.x.dragging&&!f.x.handle_drag);assert(f.a.snapshot.tables[0].rows.length===2);
+ document.dispatchEvent(new PointerEvent('pointerup'));assert(f.a.snapshot.tables[0].rows.length===2);
+ }finally{f.close();}
+});
+
+await test('Nested GFM containers keep shared caret anchors, formatting and source undo',async()=>{
+ const source='> - 한😀\n>   - **세계**\n\n- parent\n  - child';const f=await fixture(source);let connection;
+ try{connection=await connect_local_pair(f.a,f.b);f.y.set_view('source');const start=byte_length(source.slice(0,source.indexOf('세계')));f.x.set_selection(start,start+byte_length('세계'));
+ f.y.set_selection(0);f.y.replace('앞😀\n\n');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.selection.anchor===start+byte_length('앞😀\n\n'));
+ await f.x.execute_command('italic');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.surface.querySelector('blockquote ul ul'));
+ await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='앞😀\n\n'+source);assert(f.y.source_input.value===f.x.state.source);
+ }finally{connection?.close();f.close();}
+});
+await test('GFM tab code, multiline heading and fallback link survive shared source edits',async()=>{
+ const source='>\t\t한😀\n\n첫째\n둘째\n---\n\n[링크](not a link)\n\n[링크]: /target';const f=await fixture(source);let connection;
+ try{connection=await connect_local_pair(f.a,f.b);f.y.set_view('source');assert(f.x.surface.querySelector('blockquote code').textContent==='  한😀\n');
+ assert(f.x.surface.querySelector('h2').textContent==='첫째\n둘째');assert(f.x.surface.querySelector('a[href="/target"]'));
+ const at=byte_length(source.slice(0,source.indexOf('한')));f.x.set_selection(at,at+byte_length('한😀'));f.x.replace('수정😀');await until(()=>f.y.state.source===f.x.state.source);
+ assert(f.y.source_input.value.includes('수정😀'));await f.x.execute_command('undo');await until(()=>f.y.state.source===source);assert(f.x.state.source===source);
+ }finally{connection?.close();f.close();}
+});
+await test('Grouped shared typing undoes one burst and preserves remote text',async()=>{
+ const f=await fixture('');let connection;
+ try{connection=await connect_local_pair(f.a,f.b);f.x.set_options({auto_close:{enabled:false},mode:'rich'});f.x.focus();
+ for(const data of ['한','😀','끝'])f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data,bubbles:true,cancelable:true}));
+ await until(()=>f.y.state.source===f.x.state.source);f.y.set_selection(0);f.y.replace('원격');await until(()=>f.x.state.source===f.y.state.source);
+ await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='원격');
+ await f.x.execute_command('redo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='원격한😀끝');
+ }finally{connection?.close();f.close();}
+});
 document.querySelector('#summary').textContent=`${passed} passed / ${failed} failed`;
 document.body.dataset.passed=failed?'false':'true';

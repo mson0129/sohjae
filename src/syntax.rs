@@ -1,8 +1,20 @@
 //! Small, deterministic lexical coloring. Never executes code or emits source HTML.
 //! Unknown languages remain plain text; this is not a grammar validator.
-#[derive(Default)]
 pub(crate) struct Lexer {
-    block_comment: bool,
+    block_comment: usize,
+    string: Option<&'static str>,
+    template_depth: Vec<usize>,
+    expect_expression: bool,
+}
+impl Default for Lexer {
+    fn default() -> Self {
+        Self {
+            block_comment: 0,
+            string: None,
+            template_depth: Vec::new(),
+            expect_expression: true,
+        }
+    }
 }
 impl Lexer {
     pub(crate) fn tokens(
@@ -36,19 +48,76 @@ impl Lexer {
         let hash_comment = ["python", "py", "bash", "sh", "shell"].contains(&language);
         let slash_comment =
             ["rust", "rs", "javascript", "js", "typescript", "ts", "css"].contains(&language);
+        let javascript = ["js", "javascript", "ts", "typescript"].contains(&language);
+        let rust = ["rust", "rs"].contains(&language);
+        let python = ["python", "py"].contains(&language);
         let mut tokens = Vec::new();
         let mut index = 0;
         while index < text.len() {
             let tail = &text[index..];
             let c = tail.chars().next().unwrap();
-            let (length, kind) = if self.block_comment {
-                let length = tail.find("*/").map_or(tail.len(), |end| end + 2);
-                self.block_comment = !tail.contains("*/");
-                (length, "comment")
-            } else if slash_comment && tail.starts_with("/*") {
-                let length = tail[2..].find("*/").map_or(tail.len(), |end| end + 4);
-                self.block_comment = !tail[2..].contains("*/");
-                (length, "comment")
+            let (length, kind) = if let Some(delimiter) = self.string {
+                if delimiter == "`" && tail.starts_with("${") {
+                    self.string = None;
+                    self.template_depth.push(1);
+                    self.expect_expression = true;
+                    (2, "literal")
+                } else {
+                    let (length, closed) = string_segment(tail, delimiter, 0, delimiter == "`");
+                    if closed {
+                        self.string = None;
+                        self.expect_expression = false;
+                    }
+                    (length, "string")
+                }
+            } else if self.block_comment > 0 || slash_comment && tail.starts_with("/*") {
+                let mut offset = 0;
+                if self.block_comment == 0 {
+                    self.block_comment = 1;
+                    offset = 2;
+                }
+                while offset < tail.len() {
+                    if rust && tail[offset..].starts_with("/*") {
+                        self.block_comment += 1;
+                        offset += 2;
+                    } else if tail[offset..].starts_with("*/") {
+                        self.block_comment -= 1;
+                        offset += 2;
+                        if self.block_comment == 0 {
+                            break;
+                        }
+                    } else {
+                        offset += tail[offset..].chars().next().unwrap().len_utf8();
+                    }
+                }
+                (offset, "comment")
+            } else if python
+                && (tail.starts_with("\"\"\"") || tail.starts_with("\u{27}\u{27}\u{27}"))
+            {
+                let delimiter = if c == '"' {
+                    "\"\"\""
+                } else {
+                    "\u{27}\u{27}\u{27}"
+                };
+                let (length, closed) = string_segment(tail, delimiter, 3, false);
+                if !closed {
+                    self.string = Some(delimiter);
+                }
+                (length, "string")
+            } else if javascript && c == '`' {
+                let (length, closed) = string_segment(tail, "`", 1, true);
+                if !closed {
+                    self.string = Some("`");
+                }
+                self.expect_expression = false;
+                (length, "string")
+            } else if javascript && c == '/' && self.expect_expression && !tail.starts_with("//") {
+                if let Some(length) = regex_end(tail) {
+                    self.expect_expression = false;
+                    (length, "string")
+                } else {
+                    (1, "")
+                }
             } else if (hash_comment && c == '#') || (slash_comment && tail.starts_with("//")) {
                 (tail.len(), "comment")
             } else if c == '"'
@@ -84,6 +153,7 @@ impl Lexer {
                 } else {
                     "string"
                 };
+                self.expect_expression = false;
                 (length, kind)
             } else if c.is_ascii_digit()
                 || (c == '-' && tail.as_bytes().get(1).is_some_and(u8::is_ascii_digit))
@@ -93,6 +163,7 @@ impl Lexer {
                     .skip(1)
                     .find(|(_, c)| !c.is_ascii_alphanumeric() && !['.', '_'].contains(c))
                     .map_or(tail.len(), |(offset, _)| offset);
+                self.expect_expression = false;
                 (length, "number")
             } else if c.is_alphabetic() || c == '_' {
                 let length = tail
@@ -100,6 +171,13 @@ impl Lexer {
                     .find(|(_, c)| !c.is_alphanumeric() && *c != '_')
                     .map_or(tail.len(), |(offset, _)| offset);
                 let word = &tail[..length];
+                if javascript {
+                    self.expect_expression = [
+                        "return", "throw", "case", "delete", "typeof", "void", "yield", "await",
+                        "in", "of",
+                    ]
+                    .contains(&word);
+                }
                 let kind = if [
                     "true",
                     "false",
@@ -122,6 +200,23 @@ impl Lexer {
                 };
                 (length, kind)
             } else {
+                if javascript && !c.is_whitespace() {
+                    if c == '{' {
+                        if let Some(depth) = self.template_depth.last_mut() {
+                            *depth += 1;
+                        }
+                    }
+                    if c == '}' {
+                        if let Some(depth) = self.template_depth.last_mut() {
+                            *depth -= 1;
+                            if *depth == 0 {
+                                self.template_depth.pop();
+                                self.string = Some("`");
+                            }
+                        }
+                    }
+                    self.expect_expression = "([{=,:;!?&|+*-~%<>".contains(c);
+                }
                 (c.len_utf8(), "")
             };
             if !kind.is_empty() {
@@ -131,6 +226,48 @@ impl Lexer {
         }
         tokens
     }
+}
+fn string_segment(text: &str, delimiter: &str, start: usize, template: bool) -> (usize, bool) {
+    let mut i = start;
+    while i < text.len() {
+        if text[i..].starts_with(delimiter) {
+            return (i + delimiter.len(), true);
+        }
+        if template && text[i..].starts_with("${") {
+            return (i, false);
+        }
+        let c = text[i..].chars().next().unwrap();
+        i += c.len_utf8();
+        if c == '\\' && i < text.len() {
+            i += text[i..].chars().next().unwrap().len_utf8();
+        }
+    }
+    (text.len(), false)
+}
+fn regex_end(text: &str) -> Option<usize> {
+    let mut i = 1;
+    let mut class = false;
+    while i < text.len() {
+        let c = text[i..].chars().next()?;
+        i += c.len_utf8();
+        if c == '\\' {
+            i += text[i..].chars().next()?.len_utf8();
+            continue;
+        }
+        if c == '[' {
+            class = true;
+        }
+        if c == ']' {
+            class = false;
+        }
+        if c == '/' && !class {
+            while text.as_bytes().get(i).is_some_and(u8::is_ascii_alphabetic) {
+                i += 1;
+            }
+            return Some(i);
+        }
+    }
+    None
 }
 fn keywords(language: &str) -> &'static str {
     match language {

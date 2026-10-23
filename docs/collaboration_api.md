@@ -138,3 +138,19 @@ replica.destroy();
 복제본 JS 메서드에 `import_markdown`, `replace_markdown`(원본 문법), `replace_projected_text`(리치 본문/셀), `projected_anchor`, `resolve_projected_anchor`, `projected_capture`, `table_action`을 추가했다. snapshot.projection은 표·셀의 Markdown byte 범위와 문서 객체 위치를 제공한다. ABI op20 import, 21 원본 범위 교체, 22/23 투영 앵커/해석, 24 투영 범위 캡처, 26 구조 표 명령, 28 로컬 history 초기화, 29 redo 초기화, 30 리치 투영 범위 교체다. wire SCV2 연산 형식은 바꾸지 않았다.
 
 통합은 현재 프로토타입의 기존 기능을 공유 상태에 연결한 개발 버전이다. 대용량 첨부 blob 모델·checkpoint·호스트 영구 저장·실제 다중 기기 TURN relay 검증을 완료한 제품 릴리스를 뜻하지 않는다. 공유 텍스트의 1MiB/연산·16MiB/프레임 한도와 비용을 그대로 적용하므로 큰 Base64 첨부는 별도 blob 계층을 구현하기 전 제한될 수 있다.
+
+## 표 행·열 순서 이동 및 UI 통합 보강
+
+핸들은 클릭으로 선택, 드래그로 순서 이동, Shift+드래그로 범위 선택을 한다. 선택한 연속 행·열을 핸들로 묶어 이동할 수 있다. Alt+위/아래(행)·왼쪽/오른쪽(열) 키와 표 도구의 이동 명령도 제공한다. Markdown 머리행은 UI에서 고정하며 본문 행만 이동한다. 열 이동은 머리글·모든 셀·정렬을 함께 옮긴다. 같은 범위 내부의 drop과 경계 밖 이동은 변경하지 않는다. Esc·pointercancel 및 드래그 중 원격 변경은 이동을 취소한다. 실제 모바일 터치·가상 키보드는 별도 검증 범위다.
+
+공유 표는 텍스트를 복사·삭제해 재생성하지 않는다. `replica.reorder(table, 'row' | 'column', targets, before = null)`에 안정적인 행/열 ID 배열과 삽입 기준 ID를 전달하며 null은 맨 뒤다. 로컬 UI는 해당 동작을 하나의 undo 그룹으로 기록한다. 다른 작성자의 셀 편집·삭제·삽입은 독립적으로 보존한다. 저수준 API는 머리행도 이동할 수 있으나 편집기 UI는 허용하지 않는다.
+
+코어는 삽입과 활성 이동을 OpId(Lamport timestamp, actor)의 전체 순서로 재생한다. 동시에 겹친 이동이 오면 결정적인 순서로 적용하며 동일 행·열은 한 번만 나타난다. 명시적으로 선택한 ID만 이동한다. 이후 이동된 항목을 기준으로 삽입하면 현재 위치에 삽입한다. undo는 자신의 이동 연산을 비활성화하며 이후 수신한 원격 편집을 되돌리지 않는다. 이 방식은 충돌한 모든 참가자의 시각적 의도를 동시에 만족한다는 보장은 아니며 상태 수렴과 데이터·ID 보존을 보장하는 규칙이다.
+
+추가 ABI op31 입력: table OpId 24바이트, columns u8(0 행/1 열), targets 수 u32, 각 target OpId, before 존재 u8 및 선택적 before OpId다. SCV2에 연산 tag9 Reorder를 추가했다. 기존 tag·magic·ABI 버전은 유지한다. 이전 reader는 새 tag를 처리할 수 없어 프레임을 거절하므로 참가자의 WASM·JS 자산을 함께 갱신해야 한다. 서로 다른 빌드의 협업 호환성을 보장하지 않는다.
+
+복잡한 원본 UI 수용 사례에 여러 표·사이 본문을 가로지르는 교체, 이스케이프된 파이프, 모드 전환 후 단일 undo/redo, 리치 이동→원본 전파→원격 셀 수정→자기 이동 undo를 추가했다. 표 문법 미완성/충돌 시 기존 로컬 초안 정책을 유지한다. 문자열만으로 중복 행의 이동 의도를 추론하는 기능이나 전체 문서 교체의 ID 보존을 새로 보장하는 것은 아니다.
+
+## 로컬 타이핑 history 그룹
+
+coalesce_history() / ABI op32는 자기 undo의 마지막 두 항목을 합친다. 입력·출력 payload 없이 완료하며 change/update 이벤트나 네트워크 연산을 만들지 않는다. 소유 연산 ID만 합치므로 이후 그룹 undo도 원격 편집을 보존한다. 공유 UI가 시간·문맥·커서 경계를 판단하고 선택 bookmark도 같은 그룹으로 합친다. SCV2 형식은 바꾸지 않는다.

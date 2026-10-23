@@ -18,6 +18,10 @@ python3 scripts/serve.py --port 8080
 - 실제 WASM ABI 검증·측정: `node scripts/check_wasm.mjs`
 - 배포 파일 생성: `sh scripts/package.sh`
 
+## 뷰어 전용 렌더러
+
+편집 기능 없이 Markdown 미리보기만 필요하면 `sh scripts/package_renderer.sh`로 `dist/sohjae-renderer-0.1.0.tgz`를 생성한다. 독립 `renderer.js` + `sohjae_renderer.wasm`을 사용하며 편집·history·협업 코드를 포함하지 않는다. 기존 편집기 WASM과 API는 유지한다. [렌더러 API 및 임베딩](docs/renderer.md) · [뷰어 데모](http://127.0.0.1:8080/renderer.html).
+
 ## 협업 코어 v2
 
 기존 단일 사용자 프로토타입을 보존하고 협업 문서 코어를 별도로 추가했다. 문자 CRDT, 안정적인 표·행·열 ID, 작성자별 undo/redo, 상대 커서·IME 캡처, 전송 독립 WASM API와 WebRTC 어댑터를 제공한다. **`create_editor(container, { replica })`로 같은 공유 문서를 리치·하이브리드·Markdown·원본 화면에 연결한다. `replica`를 생략하면 기존 단일 사용자 동작을 유지한다.**
@@ -35,7 +39,7 @@ STUN/TURN 설정은 전송 구성에 전달하며, 다른 기기의 참가자 �
 - 하이브리드·리치·Markdown 모드와 전체 원본 화면, 요소별 문법 노출 설정.
 - 하이라이트(`==내용==`)·정의 목록·사용자 지정 제목 ID·코드 기본 색상 표시.
 - Markdown 입력·서식 도구·undo/redo·한글 IME commit과 UTF-8/UTF-16 선택 매핑.
-- 표 셀 이동·행/열 삽입·삭제·정렬·다중 선택·드래그·표 밖 이동.
+- 표 셀 이동·행/열 삽입·삭제·정렬·다중 선택·핸들 드래그 순서 이동·표 밖 이동.
 - HTML 붙여넣기의 허용 구조 변환, 이미지·파일 Base64 임베딩 및 다운로드.
 - Front Matter와 CSS 레이아웃, 읽기 화면·읽기 전용, 키보드 명령 팔레트.
 - 원문을 유지하면서 지원 문법을 정규화해 내보내기.
@@ -60,6 +64,10 @@ STUN/TURN 설정은 전송 구성에 전달하며, 다른 기기의 참가자 �
 </script>
 ```
 
+## GFM 보강 현황
+
+동일한 672개 구조 비교에서 **585개 일치·87개 불일치**다. 계층적 목록·인용문, 강조 구분자와 링크·참조 정의 처리를 보강했다. [GFM 구현·분류·검증](docs/gfm-conformance.md)에 해결한 320개와 남은 예제의 진단을 기록한다. 전체 적합성 완료는 아니다.
+
 ## 문서
 
 | 문서 | 내용 |
@@ -74,3 +82,5 @@ STUN/TURN 설정은 전송 구성에 전달하며, 다른 기기의 참가자 �
 | [실검증 및 GFM](docs/validation.md) | 전체 예제·실제 OS 입력·모바일 검증 경계 |
 | [호환성](docs/compatibility.md) | 지원 문법·브라우저 검증 범위 |
 | [이전 기록](docs/handoff.md) | 결정 출처와 환경 이전 |
+
+문단 캐시·DOM 좌표 패치, 연속 입력 undo 묶음, 의미 보존 정규화, 키보드 접근성과 코드/정의 목록 확장의 현재 범위는 [편집 보강 기록](docs/editor-hardening.md)을 참고한다.

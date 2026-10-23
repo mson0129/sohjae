@@ -1,0 +1,15 @@
+const [report,results]=await Promise.all(['gfm-report.json','gfm-results.json'].map(path=>fetch(path).then(response=>{if(!response.ok)throw new Error(`검사 결과 로드 실패: ${response.status}`);return response.json();})));
+document.querySelector('#summary').textContent=`${report.examples}개 검사 · ${report.passed}개 일치 / ${report.failed}개 불일치`;
+const classification=report.classification;
+document.querySelector('#progress').textContent=`이번 보강 시작: ${classification.starting_passed}개 일치 · ${classification.starting_failed}개 불일치 → 현재 ${report.passed}개 일치`;
+const sections=document.querySelector('#section'),categories=document.querySelector('#category'),filter=document.querySelector('#filter');
+for(const section of Object.keys(report.sections)){const option=document.createElement('option');option.value=section;option.textContent=section;sections.append(option);}
+const table=document.createElement('table');table.innerHTML='<thead><tr><th>남은 불일치 원인</th><th>개수</th></tr></thead>';const body=document.createElement('tbody');table.append(body);
+for(const [key,item]of Object.entries(classification.categories)){if(!item.remaining)continue;const option=document.createElement('option');option.value=key;option.textContent=`${item.label} (${item.remaining})`;categories.append(option);const row=document.createElement('tr');for(const text of [item.label,item.remaining]){const cell=document.createElement('td');cell.textContent=text;row.append(cell);}body.append(row);}
+document.querySelector('#categories').append(table);
+function render(){const container=document.querySelector('#cases');container.replaceChildren();const selected=results.filter(item=>(filter.value==='all'||item.passed===(filter.value==='passed'))&&(sections.value==='all'||item.section===sections.value)&&(categories.value==='all'||item.classification?.category===categories.value));document.querySelector('#count').textContent=`${selected.length}개 표시`;
+ for(const item of selected){const details=document.createElement('details'),summary=document.createElement('summary');details.id=`case-${item.example}`;summary.textContent=`${item.passed?'일치':'불일치'} #${item.example} · ${item.section}${item.classification?' · '+item.classification.label:''}`;summary.className=item.passed?'pass':'fail';details.append(summary);
+ details.addEventListener('toggle',()=>{if(!details.open||details.childElementCount>1)return;if(item.classification){const note=document.createElement('p');note.textContent=item.classification.policy_signals.join(' / ')||'정책 신호 없음: 파서 또는 출력 구조 검토 대상';details.append(note);}for(const [label,value]of [['Markdown',item.markdown],['명세 HTML',item.expected_html],['실제 HTML',item.actual_html],...(item.difference?[['첫 구조 차이',JSON.stringify(item.difference,null,2)]]:[])]){const title=document.createElement('strong'),pre=document.createElement('pre');title.textContent=label;pre.textContent=value;details.append(title,pre);}});container.append(details);
+ }
+}
+filter.onchange=render;sections.onchange=render;categories.onchange=render;render();

@@ -5,6 +5,7 @@ Failures are reported, never relabeled as full conformance.
 from pathlib import Path
 from html.parser import HTMLParser
 import re,struct,subprocess,json,hashlib,sys
+from gfm_classification import LABELS, classify, first_difference
 root=Path(__file__).resolve().parents[1]
 spec=(root/'tests/fixtures/gfm-spec.txt').read_text()
 examples=[];section='';lines=spec.splitlines(keepends=True);index=0
@@ -58,10 +59,26 @@ process=subprocess.run([str(root/'target/debug/examples/render_gfm')],input=wire
 cursor=0;sections={};passed=0;details=[]
 for item in examples:
     length=struct.unpack('<I',process.stdout[cursor:cursor+4])[0];cursor+=4;html=process.stdout[cursor:cursor+length].decode();cursor+=length
-    match=canonical(html)==canonical(item['expected']);passed+=match
+    expected_tree=canonical(item['expected']);actual_tree=canonical(html)
+    match=expected_tree==actual_tree;passed+=match
     stats=sections.setdefault(item['section'],{'total':0,'passed':0});stats['total']+=1;stats['passed']+=match
-    details.append({'example':item['number'],'section':item['section'],'passed':match,'markdown':item['markdown'],'expected_html':item['expected'],'actual_html':html})
+    details.append({'example':item['number'],'section':item['section'],'passed':match,'markdown':item['markdown'],'expected_html':item['expected'],'actual_html':html, 'classification':None if match else classify(item,expected_tree,actual_tree), 'difference':None if match else first_difference(expected_tree,actual_tree)})
 report={'spec':'GFM 0.29-gfm','source':'https://github.com/github/cmark-gfm/blob/master/test/spec.txt','sha256':hashlib.sha256(spec.encode()).hexdigest(),'examples':len(examples),'passed':passed,'failed':len(examples)-passed,'comparison':'Semantic HTML tree; editor wrappers/classes/empty caret placeholders removed; optional thead/tbody and default left alignment normalized; safe URL/HTML policy remains active. Not a GFM conformance certificate.','sections':sections}
+categories={key:{'label':label,'remaining':0} for key,label in LABELS.items()}
+for item in details:
+    if not item['passed']:categories[item['classification']['category']]['remaining']+=1
+classification_baseline=json.loads((root/'tests/fixtures/gfm-classification-baseline.json').read_text())
+assert classification_baseline['spec_sha256']==report['sha256'], 'Classification baseline fixture changed'
+matched={item['example'] for item in details if item['passed']}
+original=classification_baseline['failed_examples']
+resolved=[item['example'] for item in original if item['example'] in matched]
+remaining_original=[item['example'] for item in original if item['example'] not in matched]
+regressed=sorted(set(classification_baseline['passed_examples'])-matched)
+classification={'starting_passed':len(classification_baseline['passed_examples']), 'starting_failed':len(original), 'current_passed':passed,'current_failed':len(details)-passed,'resolved_examples':resolved,'remaining_starting_examples':remaining_original,'regressed_examples':regressed,'categories':categories,'examples':[{'example':item['example'],'section':item['section'],'classification':item['classification'],'difference':item['difference']} for item in details if not item['passed']]}
+assert sum(item['remaining'] for item in categories.values())==report['failed']
+assert len(original)+len(classification_baseline['passed_examples'])==len(details)
+report['classification']={key:value for key,value in classification.items() if key not in ('examples','remaining_starting_examples','resolved_examples','regressed_examples')}
+(root/'docs/gfm-classification.json').write_text(json.dumps(classification,ensure_ascii=False,indent=2)+'\n')
 (root/'docs/gfm-audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
 (root/'web/gfm-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
 (root/'web/gfm-results.json').write_text(json.dumps(details,ensure_ascii=False)+'\n')

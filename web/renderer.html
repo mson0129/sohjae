@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sohjae Markdown 뷰어</title>
+<link rel="stylesheet" href="./renderer.css">
+<style>body{max-width:900px;margin:32px auto;padding:0 16px;font-family:system-ui}textarea{width:100%;min-height:170px;box-sizing:border-box;font:16px/1.5 monospace}output{display:block;margin:12px 0;color:#526071}article{border-top:1px solid #ddd;padding-top:16px}</style>
+<h1>Sohjae Markdown 뷰어</h1><p>렌더러 전용 WASM으로 미리보기를 생성합니다.</p>
+<label for="source">Markdown 원본</label><textarea id="source"># Markdown 미리보기
+
+편집기 코어 없이 **렌더링**과 ==하이라이트==를 지원합니다.
+
+| 기능 | 상태 |
+| --- | --- |
+| 렌더러 전용 WASM | 준비 |
+
+- [x] 읽기 전용 작업 항목</textarea>
+<output id="status">로딩 중</output><article id="preview" class="sohjae_viewer"></article>
+<script type="module" src="./renderer-demo.js"></script></html>

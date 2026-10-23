@@ -7,6 +7,23 @@ const DEFAULTS = {
   attachments: { enabled: true, storage: 'embedded', max_file_size: 4 * 1024 * 1024, max_total_size: 16 * 1024 * 1024 },
   images: { enabled: true, storage: 'embedded' }, layout: { name: 'default' }, layouts: {}, keybindings: {},
 };
+// Compare content independently of source coordinates, then patch offsets atomically.
+// This preserves text nodes, native selection and unchanged suffix blocks after insertion.
+function patch_coordinates(old, incoming) {
+  const changes = [], coordinates = ['data-start','data-end','data-task'];
+  const compare = (a,b) => {
+    if(a.nodeType !== b.nodeType || a.nodeName !== b.nodeName)return false;
+    if(a.nodeType !== 1)return a.nodeValue === b.nodeValue;
+    const attributes = node => [...node.attributes].filter(attr=>!coordinates.includes(attr.name));
+    const attrs=attributes(a),other=attributes(b);
+    if(attrs.length!==other.length || attrs.some(attr=>b.getAttribute(attr.name)!==attr.value) || a.childNodes.length!==b.childNodes.length)return false;
+    for(const key of coordinates)if(a.getAttribute(key)!==b.getAttribute(key))changes.push([a,key,b.getAttribute(key)]);
+    return [...a.childNodes].every((child,index)=>compare(child,b.childNodes[index]));
+  };
+  if(!compare(old,incoming))return false;
+  for(const [node,key,value]of changes)if(value===null)node.removeAttribute(key);else node.setAttribute(key,value);
+  return true;
+}
 function merge(base, value) {
   const result = { ...base };
   for (const [key, item] of Object.entries(value || {})) {
@@ -69,12 +86,14 @@ class MarkdownEditor extends EventTarget {
     this.root.innerHTML = `<style>${css}</style><link class="layout_link" rel="stylesheet" disabled>
       <div class="markdown_editor"><header><div class="toolbar" role="toolbar" aria-label="문서 편집 도구"></div>
       <div class="view_bar"><label>편집 방식 <select aria-label="편집 방식"><option value="hybrid">하이브리드</option><option value="rich">리치</option><option value="markdown">Markdown</option></select></label>
-      <button data-view="source" aria-pressed="false">원본</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state" role="status"></span><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
-      <div class="surface" contenteditable="true" role="textbox" aria-label="Markdown 문서" aria-multiline="true" spellcheck="false"></div>
-      <textarea class="source" aria-label="Markdown 원본" spellcheck="false" hidden></textarea>
+      <button data-view="source" aria-pressed="false">원본</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state"></span><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
+      <div class="surface" contenteditable="true" role="textbox" aria-label="Markdown 문서" aria-describedby="editor_help" aria-multiline="true" spellcheck="false"></div>
+      <textarea class="source" aria-label="Markdown 원본" aria-describedby="editor_help" spellcheck="false" hidden></textarea>
       <footer><span class="position"></span><span>Esc · 편집 영역 나가기</span></footer>
+      <p id="editor_help" class="sr_only">문서에서 Esc를 누르면 편집 영역을 나갑니다. 도구 모음은 방향키와 Home·End로 이동합니다. 모든 명령은 Control 또는 Command와 Shift와 P로 열 수 있습니다. 표 핸들은 Alt와 방향키로 이동합니다.</p>
+      <div class="errors sr_only" role="alert" aria-atomic="true"></div>
       <div class="announce" role="status" aria-live="polite"></div>
-      <dialog aria-label="편집 명령"><form method="dialog"><h2></h2><div class="fields"></div><div class="dialog_actions"><button value="cancel">취소</button><button value="apply">적용</button></div></form></dialog>
+      <dialog aria-labelledby="command_title"><form method="dialog"><h2 id="command_title"></h2><div class="fields"></div><div class="dialog_actions"><button value="cancel">취소</button><button value="apply">적용</button></div></form></dialog>
       <input class="file_input" type="file" multiple hidden></div>`;
     this.surface = this.root.querySelector('.surface');
     this.source_input = this.root.querySelector('.source');
@@ -96,16 +115,27 @@ class MarkdownEditor extends EventTarget {
       const button = document.createElement('button'); button.type = 'button'; button.dataset.command = command;
       button.textContent = label; button.title = title; button.setAttribute('aria-label', title); this.toolbar.append(button);
     });
-    this.on(this.toolbar, 'pointerdown', event => { if (event.target.closest('button')) event.preventDefault(); });
+    this.on(this.toolbar, 'keydown', event => {
+      const buttons=[...this.toolbar.querySelectorAll('button:not(:disabled)')];
+      const current=buttons.indexOf(this.root.activeElement);
+      const target=event.key==='Home'?0:event.key==='End'?buttons.length-1:['ArrowRight','ArrowDown'].includes(event.key)?(current+1)%buttons.length:['ArrowLeft','ArrowUp'].includes(event.key)?(current-1+buttons.length)%buttons.length:null;
+      if(target!==null&&buttons.length){event.preventDefault();this.typing_group=null;buttons.forEach((button,index)=>button.tabIndex=index===target?0:-1);buttons[target].focus();}
+      if(event.key==='Escape'){event.preventDefault();this.focus();}
+    });
+    this.on(this.toolbar,'focusin',event=>{if(event.target.matches('button'))this.toolbar.querySelectorAll('button').forEach(button=>button.tabIndex=button===event.target?0:-1);});
+    this.on(this.toolbar, 'pointerdown' , event => { if (event.target.closest('button')) event.preventDefault(); });
     this.on(this.toolbar, 'click', event => { const command = event.target.closest('[data-command]')?.dataset.command; if (command) this.run(command); });
     this.on(this.root.querySelector('[data-draft-discard]'), 'click', () => {
       this.discard_pending_draft();
     });
     this.on(this.root.querySelector('select'), 'change', event => this.set_options({ mode: event.target.value }));
     this.root.querySelectorAll('[data-view]').forEach(button => this.on(button, 'click', () => this.set_view(button.dataset.view)));
+    for(const input of [this.surface,this.source_input])this.on(input,'blur',()=>{this.typing_group=null;});
+    this.on(this.source_input,'pointerdown',()=>{this.typing_group=null;});
     this.on(this.surface, 'focus', () => { this.keep_active_syntax = true; this.refresh_syntax(); });
-    this.on(this.surface, 'beforeinput', event => this.before_input(event));
+    this.on(this.surface, 'beforeinput', event => this.input_event(event, () => this.before_input(event)));
     this.on(this.surface, 'compositionstart', () => {
+      this.typing_group = null;
       this.capture_selection(); this.composing = true; this.composition_selection = { ...this.selection };
       this.composition_visible = this.surface.textContent;
       this.core.begin_composition?.(Math.min(this.selection.anchor,this.selection.focus),Math.max(this.selection.anchor,this.selection.focus));
@@ -135,7 +165,7 @@ class MarkdownEditor extends EventTarget {
       this.capture_selection(); this.composing = true;
       this.core.begin_composition(Math.min(this.selection.anchor,this.selection.focus),Math.max(this.selection.anchor,this.selection.focus));
     });
-    this.on(this.source_input, 'input', event => { if (!event.isComposing && !this.composing && !(this.composition_commit != null && event.data === this.composition_commit)) this.source_changed(); });
+    this.on(this.source_input, 'input', event => { if (!event.isComposing && !this.composing && !(this.composition_commit != null && event.data === this.composition_commit)) this.input_event(event, () => this.source_changed()); });
     this.on(this.source_input, 'compositionend', event => {
       if (!this.core.commit_composition) { this.source_changed(); return; }
       this.composing = false; this.state = this.core.commit_composition(event.data ?? ''); this.selection = {anchor:this.state.anchor,focus:this.state.focus};
@@ -157,22 +187,54 @@ class MarkdownEditor extends EventTarget {
       if (!this.dragging) this.refresh_syntax();
     });
     this.on(this.surface, 'pointerdown', event => {
+      this.typing_group = null;
+      if (this.options.read_only || this.reading || this.composing || event.button !== 0) return;
       this.projected_selection = null;
       this.dragging = true;
       const cell = event.target.closest('[data-cell]');
       this.drag_cell = cell;
       this.drag_axis = event.target.closest('[data-row-handle]') ? 'row' : event.target.closest('[data-column-handle]') ? 'column' : null;
-      if (this.drag_axis && cell) { event.preventDefault(); this.select_cell_rectangle(cell, cell); }
+      if (this.drag_axis && cell) {
+        event.preventDefault(); this.set_selection(Number(cell.dataset.start));
+        const axis=this.drag_axis,from=axis==='row'?+cell.dataset.row:+cell.dataset.column;
+        const selected=this.cell_selection;
+        const range=selected&&selected.first.closest('table')===cell.closest('table') ? (axis==='row'?[+selected.first.dataset.row,+selected.last.dataset.row]:[+selected.first.dataset.column,+selected.last.dataset.column]).sort((a,b)=>a-b):null;
+        this.handle_drag={axis,from:range&&from>=range[0]&&from<=range[1]?range[0]:from,to:range&&from>=range[0]&&from<=range[1]?range[1]:from,x:event.clientX,y:event.clientY,select:event.shiftKey,moved:false};
+        if(!range||from<range[0]||from>range[1]||event.shiftKey)this.select_cell_rectangle(cell,cell);
+      }
       if (event.shiftKey && cell) { event.preventDefault(); this.cell_selection = { first: cell, last: cell }; this.paint_cells(); }
     });
     this.on(this.surface, 'pointermove', event => {
       if (!this.dragging || !this.drag_cell) return;
-      const cell = event.target.closest('[data-cell]');
+      const cell = (this.handle_drag&&!this.handle_drag.select&&this.root.elementFromPoint ? this.root.elementFromPoint(event.clientX,event.clientY) : event.target)?.closest('[data-cell]');
+      if(this.handle_drag&&!this.handle_drag.select){
+        const drag=this.handle_drag;
+        if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<6)return;
+        drag.moved=true;this.clear_table_drop();drag.slot=null;
+        if(cell&&cell.closest('table')===this.drag_cell.closest('table')){
+          const rect=cell.getBoundingClientRect(),after=drag.axis==='row'?event.clientY>rect.top+rect.height/2:event.clientX>rect.left+rect.width/2;
+          drag.slot=(drag.axis==='row'?+cell.dataset.row:+cell.dataset.column)+(after?1:0);
+          cell.dataset.drop=drag.axis+(after?'-after':'-before');
+        }
+        return;
+      }
       if (cell && cell !== this.drag_cell && cell.closest('table') === this.drag_cell.closest('table')) {
         this.select_cell_rectangle(this.drag_cell, cell);
       }
     });
-    this.on(document, 'pointerup', () => { if (this.dragging) { this.dragging = false; this.capture_selection(); this.refresh_syntax(); } });
+    this.on(document, 'pointerup', event => {
+      if(!this.dragging)return;
+      const drag=this.handle_drag,cell=this.drag_cell;
+      const hit=this.root.elementFromPoint?.(event.clientX,event.clientY);
+      const target=this.root.elementFromPoint?hit?.closest('[data-cell]'):event.composedPath().find(node=>node?.matches?.('[data-cell]'));
+      this.cancel_table_drag();
+      if(drag&&!drag.select&&drag.moved&&drag.slot!==null&&target?.closest('table')===cell?.closest('table')){
+        try{this.move_table_axis(cell,drag.axis,drag.from,drag.to,drag.slot);}catch(error){this.report(error);}return;
+      }
+      this.capture_selection();this.refresh_syntax();
+    });
+    this.on(document,'pointercancel',()=>this.cancel_table_drag());
+    this.on(this.surface,'keydown',event=>{if(event.key==='Escape'&&this.dragging){event.preventDefault();this.cancel_table_drag();}});
     this.on(this.surface, 'contextmenu', event => { const cell = event.target.closest('[data-cell]'); if (cell) { event.preventDefault(); this.set_selection(Number(cell.dataset.start)); this.table_dialog(); } });
     this.on(this.surface, 'click', event => {
       if (event.target.closest('.table_handle')) { event.preventDefault(); return; }
@@ -200,6 +262,7 @@ class MarkdownEditor extends EventTarget {
     this.render();
     if (this.core.replica) this.on(this.core, 'remotechange', () => {
       if (this.composing) return;
+      this.cancel_table_drag();
       const previous = this.state.source;
       this.state = this.core.snapshot; this.selection = { anchor:this.state.anchor, focus:this.state.focus };
       this.map_dialog_from_sources(previous,this.state.source); this.pairs = []; this.auto_transform = null; this.cell_selection = null;
@@ -218,11 +281,13 @@ class MarkdownEditor extends EventTarget {
   mark_saved() { this.state = this.core.request(9); this.render(); }
   get_options() { return merge({}, this.options); }
   set_markdown(source) {
+    this.typing_group = null;
     if (this.composing) throw new Error('Finish composition before replacing the document');
     if (this.dialog.open) { this.dialog_callback = null; this.dialog_selection = { anchor: 0, focus: 0 }; this.dialog.close('cancel'); }
     this.state = this.core.request(2, source); this.auto_transform = null; this.pairs = []; this.selection = { anchor: 0, focus: 0 }; this.render();
   }
   set_options(options) {
+    this.typing_group = null;
     if ('replica' in options) throw new TypeError('Create a new editor to change its shared replica');
     const next = merge(this.options, options);
     validate_options(next);
@@ -232,9 +297,11 @@ class MarkdownEditor extends EventTarget {
   destroy() { if (!this.core) return; this.listeners.abort(); this.core.request(1); this.core = null; this.state = null; this.pairs = []; this.root.replaceChildren(); }
   focus() { (this.source_view ? this.source_input : this.surface).focus(); this.core.request(4, '', this.selection.anchor, this.selection.focus); this.restore_selection(); }
   set_selection(anchor, focus = anchor, finalize = false) {
-    this.state = this.core.request(finalize ? 11 : 4, '', anchor, focus); this.selection = { anchor, focus }; this.restore_selection();
+    this.typing_group = null;
+    this.state = this.core.request(finalize ? 11 : 4, '', anchor, focus); this.selection = { anchor, focus }; this.restore_selection(); this.sync_accessibility();
   }
   set_view(view) {
+    this.typing_group = null;
     if (this.composing) return;
     this.capture_selection();
     if (view === 'source') { this.source_view = !this.source_view; this.reading = false; }
@@ -249,7 +316,15 @@ class MarkdownEditor extends EventTarget {
     start ??= Math.min(this.selection.anchor, this.selection.focus);
     end ??= Math.max(this.selection.anchor, this.selection.focus);
     const size = byte_length(text);
+    const kind = this.typing_input;
+    const eligible = !this.state.draft && (kind === 'insertText' && start === end && !!text && !/[\r\n*_~`\[\]#>\\=]/u.test(text)
+      || ['deleteContentBackward','deleteContentForward'].includes(kind) && !text && this.selection.anchor === this.selection.focus && !byte_slice(before.source,start,end).includes('\n'));
+    const now = performance.now(), context = `${this.source_view}:${this.active_kind()}`;
+    const previous = this.typing_group;
+    const join = eligible && previous && previous.kind === kind && previous.revision === before.revision && previous.focus === this.selection.focus && previous.context === context && now - previous.time <= 750;
     this.state = this.core.request(3, text, start, end);
+    if (join && before.revision !== this.state.revision) this.state = this.core.request(12);
+    this.typing_group = eligible && !this.state.draft && before.revision !== this.state.revision ? { kind, context, time:now, revision:this.state.revision, focus:this.state.focus } : null;
     const linear=byte_slice(before.source,0,start)+text+byte_slice(before.source,end)===this.state.source;
     if(this.core.replica)this.map_dialog_from_sources(before.source,this.state.source);else this.map_dialog_positions(start,end,size);
     this.pairs = this.pairs.filter(pair => !(start < pair.start + byte_length(pair.close) && end > pair.start)).map(pair => pair.start >= end ? { ...pair, start: pair.start + size - (end - start) } : pair);
@@ -273,13 +348,19 @@ class MarkdownEditor extends EventTarget {
     if (this.reading) template.content.querySelectorAll('.comment,.front_matter,.reference_definition,[data-kind="comment"]').forEach(element => element.remove());
     template.content.querySelectorAll('[data-task]').forEach(input => { input.disabled = this.reading || this.options.read_only; });
     const incoming = [...template.content.children];
-    // Patch blocks, preserving unchanged DOM and native selection outside changed blocks.
-    incoming.forEach((node, index) => {
-      const old = this.surface.children[index];
-      if (!old) this.surface.append(node);
-      else if (!old.isEqualNode(node)) old.replaceWith(node);
+    const old_nodes = [...this.surface.children];
+    let prefix=0,suffix=0;
+    while(prefix<Math.min(old_nodes.length,incoming.length)&&patch_coordinates(old_nodes[prefix],incoming[prefix]))prefix++;
+    while(suffix<Math.min(old_nodes.length,incoming.length)-prefix&&patch_coordinates(old_nodes.at(-suffix-1),incoming.at(-suffix-1)))suffix++;
+    const retained = suffix ? old_nodes[old_nodes.length-suffix] : null;
+    const old_middle = old_nodes.slice(prefix,old_nodes.length-suffix);
+    const new_middle = incoming.slice(prefix,incoming.length-suffix);
+    new_middle.forEach((node,index)=>{
+      const old=old_middle[index];
+      if(old){if(!patch_coordinates(old,node))old.replaceWith(node);}
+      else this.surface.insertBefore(node,retained);
     });
-    while (this.surface.children.length > incoming.length) this.surface.lastElementChild.remove();
+    old_middle.slice(new_middle.length).forEach(node=>node.remove());
     this.source_input.value = this.state.source;
     this.source_input.hidden = !this.source_view;
     this.surface.hidden = this.source_view;
@@ -295,6 +376,7 @@ class MarkdownEditor extends EventTarget {
       button.disabled = ((this.options.read_only || this.reading) && !['copy_markdown', 'save', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
     });
     this.add_table_handles();
+    this.sync_accessibility();
     this.refresh_syntax(false);
     this.apply_layout();
     const shell = this.root.querySelector('.markdown_editor');
@@ -408,6 +490,24 @@ class MarkdownEditor extends EventTarget {
     this.projected_selection = { anchorNode: a_node, anchorOffset: a_offset, focusNode: f_node, focusOffset: f_offset };
     this.dom_selection()?.setBaseAndExtent(a_node, a_offset, f_node, f_offset);
   }
+  sync_accessibility() {
+    this.surface.setAttribute('role',this.reading?'document':'textbox');
+    if(this.reading){this.surface.removeAttribute('aria-readonly');this.surface.removeAttribute('aria-multiline');}
+    else {this.surface.setAttribute('aria-readonly',String(this.options.read_only));this.surface.setAttribute('aria-multiline','true');}
+    this.surface.tabIndex=0;
+    this.source_input.setAttribute('aria-readonly',String(this.options.read_only));
+    const buttons=[...this.toolbar.querySelectorAll('button')];
+    const active=buttons.find(button=>!button.disabled&&button.tabIndex===0)||buttons.find(button=>!button.disabled);
+    buttons.forEach(button=>button.tabIndex=button===active?0:-1);
+    const kinds=new Set([...this.surface.querySelectorAll('[data-kind]')].filter(element=>+element.dataset.start<=this.selection.focus&&+element.dataset.end>=this.selection.focus).map(element=>element.dataset.kind));
+    const formats={bold:'bold',italic:'italic',strikethrough:'strikethrough',highlight:'highlight',inline_code:'inline_code'};
+    const display={line_numbers:'show_code_line_numbers',heading_levels:'show_heading_levels',paragraph_marks:'show_paragraph_marks'};
+    for(const button of buttons){const command=button.dataset.command;if(formats[command]||display[command])button.setAttribute('aria-pressed',String(display[command]?this.options[display[command]]:kinds.has(formats[command])));}
+  }
+  input_event(event, run) {
+    this.typing_input = event.inputType;
+    try { return run(); } finally { this.typing_input = null; }
+  }
   before_input(event) {
     if (this.options.read_only || this.reading) { event.preventDefault(); return; }
     if (event.isComposing || this.composing || event.inputType === 'insertCompositionText') return;
@@ -444,7 +544,9 @@ class MarkdownEditor extends EventTarget {
     if (value !== this.state.source) this.replace(value.slice(start, new_end), utf16_to_byte(this.state.source, start), utf16_to_byte(this.state.source, old_end));
     if (this.core.replica && value !== this.state.source) { this.set_selection(this.state.anchor,this.state.focus); return; }
     const a = utf16_to_byte(value, start_selection), f = utf16_to_byte(value, end_selection);
+    const group=this.typing_group;
     this.set_selection(direction === 'backward' ? f : a, direction === 'backward' ? a : f);
+    this.typing_group=group;
   }
   type_text(text) {
     const start = Math.min(this.selection.anchor, this.selection.focus), end = Math.max(this.selection.anchor, this.selection.focus);
@@ -511,6 +613,7 @@ class MarkdownEditor extends EventTarget {
     this.replace('\n\n');
   }
   keydown(event) {
+    if (/^(Arrow|Home|End|Page|Escape)/u.test(event.key)) this.typing_group=null;
     if (event.isComposing || this.composing) return;
     this.capture_selection();
     const modifier = event.ctrlKey || event.metaKey;
@@ -533,6 +636,8 @@ class MarkdownEditor extends EventTarget {
     try { await this.execute_command(command); } catch (error) { this.report(error); }
   }
   async execute_command(command) {
+    this.typing_group = null;
+    this.root.querySelector('.errors').textContent = '';
     if (this.composing) return;
     const read_command = ['save', 'open', 'open_link', 'copy_markdown'].includes(command);
     if ((this.options.read_only || this.reading) && !read_command) return;
@@ -692,7 +797,7 @@ class MarkdownEditor extends EventTarget {
   }
   table_dialog() {
     if (!this.active_cell()) return;
-    this.show_dialog('표 도구', `<label>작업<select name="action"><option value="row_before">위에 행 삽입</option><option value="row_after">아래에 행 삽입</option><option value="column_before">왼쪽에 열 삽입</option><option value="column_after">오른쪽에 열 삽입</option><option value="delete_rows">선택 행 삭제</option><option value="delete_columns">선택 열 삭제</option><option value="select_row">행 선택</option><option value="select_column">열 선택</option><option value="clear">선택 셀 비우기</option><option value="align_left">왼쪽 정렬</option><option value="align_center">가운데 정렬</option><option value="align_right">오른쪽 정렬</option><option value="exit_before">표 앞으로 이동</option><option value="exit_after">표 뒤로 이동</option><option value="delete_table">표 삭제</option></select></label>`, data => this.table_action(data.get('action')));
+    this.show_dialog('표 도구', `<label>작업<select name="action"><option value="row_before">위에 행 삽입</option><option value="row_after">아래에 행 삽입</option><option value="column_before">왼쪽에 열 삽입</option><option value="column_after">오른쪽에 열 삽입</option><option value="move_row_up">선택 행 위로 이동</option><option value="move_row_down">선택 행 아래로 이동</option><option value="move_column_left">선택 열 왼쪽으로 이동</option><option value="move_column_right">선택 열 오른쪽으로 이동</option><option value="delete_rows">선택 행 삭제</option><option value="delete_columns">선택 열 삭제</option><option value="select_row">행 선택</option><option value="select_column">열 선택</option><option value="clear">선택 셀 비우기</option><option value="align_left">왼쪽 정렬</option><option value="align_center">가운데 정렬</option><option value="align_right">오른쪽 정렬</option><option value="exit_before">표 앞으로 이동</option><option value="exit_after">표 뒤로 이동</option><option value="delete_table">표 삭제</option></select></label>`, data => this.table_action(data.get('action')));
   }
   add_table_handles() {
     if (this.reading || this.options.read_only) return;
@@ -702,12 +807,54 @@ class MarkdownEditor extends EventTarget {
         const handle = (axis, index) => {
           const button = document.createElement('button'); button.type = 'button'; button.className = `table_handle ${axis}_handle`;
           button.dataset[axis === 'row' ? 'rowHandle' : 'columnHandle'] = index;
-          button.contentEditable = 'false'; button.tabIndex = -1; button.setAttribute('aria-label', `${index + 1}${axis === 'row' ? '행' : '열'} 선택`); cell.prepend(button);
+          button.contentEditable = 'false'; button.tabIndex = 0;
+          const label=`${index+1}${axis==='row'?'행':'열'}`;
+          button.setAttribute('aria-label',`${label} 선택 및 이동`);button.title=axis==='row'&&index===0?'머리행: 클릭 선택 · 이동 고정':`${label}: 클릭 선택 · 드래그 이동 · Shift+드래그 범위 선택 · Alt+방향키 이동`;
+          button.addEventListener('keydown',event=>{
+            if(['Enter',' '].includes(event.key)){event.preventDefault();event.stopPropagation();this.drag_axis=axis;this.set_selection(+cell.dataset.start);this.select_cell_rectangle(cell,cell);return;}
+            const backward=axis==='row'?'ArrowUp':'ArrowLeft',forward=axis==='row'?'ArrowDown':'ArrowRight';
+            if(!event.altKey||![backward,forward].includes(event.key))return;
+            event.preventDefault();event.stopPropagation();
+            try{this.move_table_axis(cell,axis,index,index,index+(event.key===backward?-1:2));}catch(error){this.report(error);}
+          });cell.prepend(button);
         };
         if (cell.cellIndex === 0) handle('row', row.rowIndex);
         if (row.rowIndex === 0) handle('column', cell.cellIndex);
       }
     }
+  }
+  clear_table_drop(){this.surface.querySelectorAll('[data-drop]').forEach(cell=>delete cell.dataset.drop);}
+  cancel_table_drag(){this.dragging=false;this.handle_drag=null;this.drag_cell=null;this.clear_table_drop();}
+  move_table_axis(cell,axis,from,to,slot){
+    if(this.options.read_only||this.reading||this.composing||!cell?.isConnected)return;
+    if(!['row','column'].includes(axis))throw new Error('Invalid table axis');
+    const table=cell.closest('table'),block=cell.closest('[data-block]'),start=+block.dataset.start,end=+block.dataset.end;
+    const length=axis==='row'?table.rows.length:table.rows[0].cells.length;
+    if(from<0||to<from||to>=length||slot<0||slot>length)return;
+    if(axis==='row'&&(from===0||slot===0))return; // Markdown header stays pinned.
+    const indices=Array.from({length},(_,i)=>i),targets=indices.slice(from,to+1),before=indices.slice(slot).find(i=>!targets.includes(i));
+    const order=indices.filter(i=>!targets.includes(i)),at=before===undefined?order.length:order.indexOf(before);order.splice(at,0,...targets);
+    if(order.every((value,index)=>value===index))return;
+    this.table_start=start;this.set_selection(+cell.dataset.start);
+    if(this.core.reorder_table){
+      const projection=this.core.replica.snapshot.projection.find(table=>start>=table.start&&start<=table.end);
+      const view=this.core.replica.snapshot.tables.find(table=>table.id===projection?.id);
+      if(!view)throw new Error('원본 표의 열 수를 맞춘 뒤 이동해 주세요.');
+      const ids=axis==='row'?view.rows:view.columns;
+      this.state=this.core.reorder_table(view.id,axis,targets.map(i=>ids[i]),before===undefined?null:ids[before]);
+      this.selection={anchor:this.state.anchor,focus:this.state.focus};this.cell_selection=null;this.pairs=[];this.render();this.emit_change();
+    }else{
+      const rows=[...table.rows].map(row=>[...row.cells].map(cell=>byte_slice(this.state.source,+cell.dataset.start,+cell.dataset.end)));
+      let align=[...table.rows[0].cells].map(cell=>cell.classList.contains('align_right')?'---:':cell.classList.contains('align_center')?':---:':'---');
+      const arranged=axis==='row'?order.map(i=>rows[i]):rows.map(row=>order.map(i=>row[i]));
+      if(axis==='column')align=order.map(i=>align[i]);
+      const format=row=>'| '+row.join(' | ')+' |';this.cell_selection=null;
+      this.replace([format(arranged[0]),format(align),...arranged.slice(1).map(format)].join('\n'),start,end,start);
+    }
+    const row=axis==='row'?at:+cell.dataset.row,column=axis==='column'?at:+cell.dataset.column;
+    this.move_to_cell(row,column);this.core.request(11,'',this.selection.anchor,this.selection.focus);
+    const moved=[...this.surface.querySelectorAll(`[data-${axis}-handle="${axis==='row'?row:column}"]`)].find(handle=>+handle.closest('[data-block]').dataset.start===start);moved?.focus();
+    this.root.querySelector('.announce').textContent=`${axis==='row'?'행':'열'}을 ${at+1}번째 위치로 이동했습니다.`;
   }
   select_cell_rectangle(first, last) {
     const table = first.closest('table');
@@ -734,6 +881,10 @@ class MarkdownEditor extends EventTarget {
     const selected = this.cell_selection;
     const r1 = selected ? Math.min(+selected.first.dataset.row, +selected.last.dataset.row) : row, r2 = selected ? Math.max(+selected.first.dataset.row, +selected.last.dataset.row) : row;
     const c1 = selected ? Math.min(+selected.first.dataset.column, +selected.last.dataset.column) : column, c2 = selected ? Math.max(+selected.first.dataset.column, +selected.last.dataset.column) : column;
+    if(action.startsWith('move_')){
+      const axis=action.startsWith('move_row')?'row':'column',from=axis==='row'?r1:c1,to=axis==='row'?r2:c2;
+      return this.move_table_axis(cell,axis,from,to,action.endsWith('up')||action.endsWith('left')?from-1:to+2);
+    }
     let align = [...cell.closest('table').rows[0].cells].map(cell => cell.classList.contains('align_right') ? '---:' : cell.classList.contains('align_center') ? ':---:' : '---');
     if (action === 'select_row' || action === 'select_column') {
       const table = cell.closest('table');
@@ -811,5 +962,5 @@ class MarkdownEditor extends EventTarget {
     if (rect && viewport && rect.bottom > viewport.height + viewport.offsetTop - 32) this.surface.scrollTop += rect.bottom - viewport.height - viewport.offsetTop + 48;
     this.active_cell()?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
-  report(error) { this.root.querySelector('.announce').textContent = error.message; this.root.querySelector('.state').textContent = error.message; this.dispatchEvent(new CustomEvent('error', { detail: error })); }
+  report(error) { this.root.querySelector('.errors').textContent = error.message; this.root.querySelector('.state').textContent = error.message; this.dispatchEvent(new CustomEvent('error', { detail: error })); }
 }

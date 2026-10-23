@@ -69,3 +69,23 @@ dt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }
 .syntax_key { color:#1d5897; } .syntax_number { color:#a15015; } .syntax_comment { color:#69798d; font-style:italic; }
 @media(max-width:600px){button,select{min-height:44px}.toolbar button{min-width:44px;min-height:44px}.source{font-size:16px}.view_bar{gap:6px}.surface,.source{overscroll-behavior:contain}}
 @media(max-width:950px),(pointer:coarse){button,select,.toolbar button{min-height:44px}.toolbar button{min-width:44px}.source{font-size:16px}.list_item input{width:24px;height:24px}}
+
+.table_handle { cursor:grab; min-height:0; }
+.table_handle:active { cursor:grabbing; }
+.table_handle:focus-visible { opacity:1; outline:2px solid #2563eb; }
+[data-drop="row-before"] { box-shadow:inset 0 3px #2563eb; }
+[data-drop="row-after"] { box-shadow:inset 0 -3px #2563eb; }
+[data-drop="column-before"] { box-shadow:inset 3px 0 #2563eb; }
+[data-drop="column-after"] { box-shadow:inset -3px 0 #2563eb; }
+
+.row_handle { width:10px; height:24px; top:calc(50% - 12px); inset-inline-start:0; }
+.column_handle { height:8px; }
+
+/* Hierarchical lists use native list semantics; source coordinates stay on li/spans. */
+.surface ul,.surface ol { padding-inline-start:1.8em; margin-block:.35em; }
+.surface li.list_item { padding-inline-start:0; }
+.surface li.list_item input { margin-inline-start:0; margin-inline-end:.5em; }
+
+.sr_only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
+@media (forced-colors: active) { button:focus-visible, .surface:focus-visible, .source:focus-visible { outline:2px solid Highlight; } [data-selected] { outline:2px solid Highlight; } }

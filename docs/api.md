@@ -63,13 +63,22 @@ export: `abi_version()`, `reserve_input(length)`, `dispatch(op, handle, revision
 | 9 | 저장 완료 기준 지정 |
 | 10 | 자동 변환 undo: 이스케이프 원문으로 교체, redo에 변환 상태 기록 |
 | 11 | 명령의 최종 선택 지정(redo 복원 위치 포함) |
+| 12 | 인접 로컬 history 병합(문서·revision 불변) |
 
 변경·선택·불러오기·저장 기준 변경은 현재 revision과 일치해야 한다. 새 문서를 불러와도 revision과 노드 ID를 되돌리지 않는다.
 
-snapshot: handle(u32), revision(u64), anchor(u32), focus(u32), flags(u32), 문자열 3개(source, 안전한 HTML, layout 이름) 순. flags bit 0/1/2는 can_undo/can_redo/dirty다. op 4/11은 문자열 없는 24바이트 헤더만 반환해 커서 이동 시 재렌더링을 피한다. op 8은 문자열 하나, op 1은 빈 응답이다.
+snapshot: handle(u32), revision(u64), anchor(u32), focus(u32), flags(u32), 문자열 3개(source, 안전한 HTML, layout 이름) 순. flags bit 0/1/2는 can_undo/can_redo/dirty다. op 4/11/12는 문자열 없는 24바이트 헤더만 반환해 커서 이동 시 재렌더링을 피한다. op 8은 문자열 하나, op 1은 빈 응답이다.
 
 오류 status: 1(입력), 2(handle), 3(편집 거절), 4(미지원 op). 오류 응답은 메시지 문자열 하나다. panic을 오류 프로토콜로 사용하지 않는다. `unsafe` 포인터 역참조는 구현에 없다.
 
 ## 협업 복제본 옵션
 
 `create_editor(container, { replica, ...options })`는 동일한 리치·하이브리드·Markdown·원본 UI를 v2 공유 문서에 연결한다. replica 생략 시 이 문서의 기존 v1 동작을 유지한다. `change.detail`에 origin(local/remote)과 shared(boolean)를 추가했다. 공유되지 않은 원본 초안은 get_pending_draft()/discard_pending_draft()로 다룬다. 소유권·초기화·표 투영과 한도는 [협업 API](collaboration_api.md)를 참고한다.
+
+## 표 순서 이동
+
+표 핸들 클릭은 행/열 선택, 드래그는 순서 이동, Shift+드래그는 범위 선택이다. 포커스한 핸들에서 Alt+방향키로 이동할 수 있다. 표 도구에도 선택 행 위/아래·선택 열 왼쪽/오른쪽 이동 명령이 있다. 머리행은 고정한다. 단일 사용자와 replica UI 모두 지원하며 협업에서는 안정 ID 이동 연산을 사용한다. 상세 충돌·호환성 규칙은 [협업 API](collaboration_api.md)를 따른다.
+
+## 입력 history와 렌더 캐시
+
+ABI op12는 최신 로컬 history 두 항목을 합친다. revision을 검증하며 문서·선택을 바꾸지 않고 24바이트 헤더만 반환한다. UI는 같은 입력 종류·커서·문맥의 750ms 이내 입력에 사용한다. 직접 replace() 호출·붙여넣기·Enter·명령·IME는 묶지 않는다. v1 인스턴스의 RenderCache는 독립 문단을 재사용하고 문맥 의존 문서는 전체 파싱한다. 정규화 내보내기는 문서와 history를 변경하지 않으며, 읽기 의미가 달라지는 후보는 원문을 반환한다.
