@@ -1,0 +1,135 @@
+{
+  "spec": "GFM 0.29-gfm",
+  "source": "https://github.com/github/cmark-gfm/blob/master/test/spec.txt",
+  "sha256": "7d8e5814befec287ac116786d81ff14e0adc9b13295b4494649e995408fd871c",
+  "examples": 672,
+  "passed": 262,
+  "failed": 410,
+  "comparison": "Semantic HTML tree; editor wrappers/classes/empty caret placeholders removed; optional thead/tbody and default left alignment normalized; safe URL/HTML policy remains active. Not a GFM conformance certificate.",
+  "sections": {
+    "Tabs": {
+      "total": 11,
+      "passed": 3
+    },
+    "Precedence": {
+      "total": 1,
+      "passed": 0
+    },
+    "Thematic breaks": {
+      "total": 19,
+      "passed": 13
+    },
+    "ATX headings": {
+      "total": 18,
+      "passed": 17
+    },
+    "Setext headings": {
+      "total": 27,
+      "passed": 12
+    },
+    "Indented code blocks": {
+      "total": 12,
+      "passed": 5
+    },
+    "Fenced code blocks": {
+      "total": 29,
+      "passed": 21
+    },
+    "HTML blocks": {
+      "total": 43,
+      "passed": 2
+    },
+    "Link reference definitions": {
+      "total": 28,
+      "passed": 7
+    },
+    "Paragraphs": {
+      "total": 8,
+      "passed": 4
+    },
+    "Blank lines": {
+      "total": 1,
+      "passed": 0
+    },
+    "Tables (extension)": {
+      "total": 8,
+      "passed": 7
+    },
+    "Block quotes": {
+      "total": 25,
+      "passed": 2
+    },
+    "List items": {
+      "total": 48,
+      "passed": 5
+    },
+    "Task list items (extension)": {
+      "total": 2,
+      "passed": 0
+    },
+    "Lists": {
+      "total": 26,
+      "passed": 0
+    },
+    "Inlines": {
+      "total": 1,
+      "passed": 1
+    },
+    "Backslash escapes": {
+      "total": 13,
+      "passed": 8
+    },
+    "Entity and numeric character references": {
+      "total": 17,
+      "passed": 12
+    },
+    "Code spans": {
+      "total": 22,
+      "passed": 19
+    },
+    "Emphasis and strong emphasis": {
+      "total": 131,
+      "passed": 76
+    },
+    "Strikethrough (extension)": {
+      "total": 2,
+      "passed": 2
+    },
+    "Links": {
+      "total": 87,
+      "passed": 20
+    },
+    "Images": {
+      "total": 22,
+      "passed": 7
+    },
+    "Autolinks": {
+      "total": 19,
+      "passed": 7
+    },
+    "Autolinks (extension)": {
+      "total": 11,
+      "passed": 2
+    },
+    "Raw HTML": {
+      "total": 20,
+      "passed": 1
+    },
+    "Disallowed Raw HTML (extension)": {
+      "total": 1,
+      "passed": 0
+    },
+    "Hard line breaks": {
+      "total": 15,
+      "passed": 5
+    },
+    "Soft line breaks": {
+      "total": 2,
+      "passed": 1
+    },
+    "Textual content": {
+      "total": 3,
+      "passed": 3
+    }
+  }
+}

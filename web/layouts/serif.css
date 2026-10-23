@@ -1,0 +1,7 @@
+.markdown_editor {
+  --body_font_family: Georgia, "Noto Serif KR", serif;
+  --body_line_height: 1.95;
+  --content_max_width: 760px;
+  --text_color: #322e29;
+  --background_color: #fffdf8;
+}

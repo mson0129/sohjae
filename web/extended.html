@@ -1,0 +1,11 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sohjae 확장 문법 예제</title>
+<style>body{margin:0;background:#f2f5f9;color:#25334b;font-family:system-ui,sans-serif}main{max-width:1000px;margin:32px auto;padding:0 20px}h1{font-size:25px}p{line-height:1.6}a{color:#2463b6}</style>
+<main><h1>Sohjae 확장 문법 예제</h1><p>하이라이트·정의 목록·사용자 지정 제목 ID·기본 코드 색상. 위/아래 첨자 Markdown 문법은 사용하지 않습니다. <a href="./index.html">기본 화면</a> · <a href="./extended.md">예제 원문</a></p><div id="editor"></div><p id="error" role="status"></p></main>
+<script type="module">
+import { create_editor } from './editor.js';
+try {
+  const response = await fetch('./extended.md');
+  if (!response.ok) throw new Error('Unable to load example');
+  await create_editor(document.querySelector('#editor'), { markdown: await response.text(), mode: 'rich' });
+} catch(error) { document.querySelector('#error').textContent = error.message; }
+</script></html>

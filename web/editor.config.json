@@ -1,0 +1,5 @@
+{
+  "mode": "hybrid",
+  "layout": { "name": "default" },
+  "layouts": { "serif": { "css_url": "./layouts/serif.css" } }
+}

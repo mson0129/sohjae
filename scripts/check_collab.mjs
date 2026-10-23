@@ -1,0 +1,44 @@
+import { readFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import { CollaborativeReplica, byte_length } from '../web/collab/core.js';
+const module = await WebAssembly.compile(await readFile(new URL('../web/sohjae_core.wasm', import.meta.url)));
+const document_id = '00000000000000000000000000000001';
+async function replica(actor) {
+  const instance = await WebAssembly.instantiate(module, {});
+  return new CollaborativeReplica(instance.exports, document_id, actor.toString(16).padStart(32, '0'));
+}
+const a = await replica(1), b = await replica(2);
+let a_updates = [], b_updates = [];
+a.addEventListener('update', event => a_updates.push(event.detail));
+b.addEventListener('update', event => b_updates.push(event.detail));
+a.replace_text(0, 0, 'ab'); b.merge(a.export_state());
+const capture = a.capture_range(1, 2), anchor = a.anchor_at(1, 'before');
+a_updates = []; b_updates = [];
+b.replace_text(1, 1, '😀'); a.merge(b_updates[0]);
+a.replace_capture(capture, '한'); b.merge(a_updates[0]);
+assert.equal(a.snapshot.text, b.snapshot.text);
+assert.match(a.snapshot.text, /😀/u); assert.match(a.snapshot.text, /한/u);
+assert.equal(a.resolve_anchor(anchor), 1);
+a.undo(); b.merge(a_updates[1]); assert.equal(a.snapshot.text, 'a😀b');
+a.redo(); b.merge(a_updates[2]); assert.equal(a.snapshot.text, b.snapshot.text);
+a.create_table(byte_length(a.snapshot.text), 2, 2); b.merge(a.export_state());
+const table = a.snapshot.tables[0], scope = { table: table.id, row: table.rows[1], column: table.columns[0] };
+a_updates = []; b_updates = [];
+a.replace_text(0, 0, 'cell A', scope); b.replace_text(0, 0, 'cell B', { ...scope, column: table.columns[1] });
+a.merge(b_updates[0]); b.merge(a_updates[0]);
+assert.equal(a.snapshot.markdown, b.snapshot.markdown);
+a.delete_row(table.id, table.rows[1]); b.merge(a.export_state());
+a.undo(); b.merge(a.export_state()); assert.match(b.snapshot.markdown, /cell A/u); assert.match(b.snapshot.markdown, /cell B/u);
+const saved = a.export_state(), restored = await replica(3); restored.merge(saved);
+assert.equal(restored.snapshot.markdown, a.snapshot.markdown);
+assert.throws(() => restored.replace_text(1, 2, 'x'), /InvalidBoundary/u);
+assert.equal(restored.snapshot.markdown, a.snapshot.markdown);
+// A dependent update arrives first through the real binary ABI.
+const c = await replica(4), d = await replica(5), updates = [];
+c.addEventListener('update', event => updates.push(event.detail));
+c.replace_text(0, 0, '한'); c.replace_text(3, 3, '😀');
+d.merge(updates[1]); assert.equal(d.snapshot.pending, 1);
+d.merge(updates[0]); d.merge(updates[0]);
+assert.equal(d.snapshot.text, '한😀'); assert.equal(d.snapshot.pending, 0);
+for (const item of [a, b, c, d, restored]) item.destroy();
+console.log('Collaboration WASM: Unicode, captured IME, anchors, own undo/redo, structural cells, persistence, reordered and duplicate delivery passed.');

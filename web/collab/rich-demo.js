@@ -1,0 +1,9 @@
+import {create_editor} from '../editor.js';
+import {create_replica,new_identity} from './core.js';
+import {connect_local_pair} from './webrtc.js';
+const document_id=new_identity(),a=await create_replica({document_id}),b=await create_replica({document_id});
+const x=await create_editor(document.querySelector('#left'),{replica:a,mode:'rich',markdown:'# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.\n\n| 항목 | 상태 |\n| --- | :---: |\n| 공동 편집 | 준비 |\n\n- [ ] 확인할 작업\n'});
+b.merge(a.export_state());const y=await create_editor(document.querySelector('#right'),{replica:b,mode:'rich'});y.set_view('source');
+let connection=null,busy=false;const button=document.querySelector('#connect'),status=document.querySelector('#status');
+async function toggle(){if(busy)return;busy=true;button.disabled=true;try{if(connection){connection.close();connection=null;status.textContent='연결 끊김 · 독립 편집';}else{status.textContent='연결 중…';connection=await connect_local_pair(a,b);status.textContent='WebRTC 연결됨';for(const transport of connection.transports)transport.addEventListener('error',event=>{connection?.close();connection=null;status.textContent=event.detail.message;button.textContent='다시 연결';});}}catch(error){connection?.close();connection=null;status.textContent=error.message;}finally{busy=false;button.disabled=false;button.textContent=connection?'연결 끊기':'다시 연결';}}
+button.onclick=toggle;await toggle();window.addEventListener('pagehide',()=>{connection?.close();x.destroy();y.destroy();a.destroy();b.destroy();});

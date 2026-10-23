@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sohjae 협업 코어 검증</title>
+<link rel="stylesheet" href="./style.css">
+<header><h1>Sohjae 협업 코어 검증</h1><p>서로 다른 Rust/WASM 복제본을 실제 WebRTC DataChannel로 연결합니다. 연결을 끊고 양쪽을 편집한 뒤 다시 연결해 보세요.</p><p>본문의 <code>￼</code> 문자는 구조화된 표의 위치입니다. 표 셀은 아래에서 편집합니다. 기존 리치 에디터의 협업 통합은 후속 단계입니다.</p><button id="connect">연결 중…</button> <strong id="status" role="status">준비 중</strong> <a href="./tests.html">자동 검증</a> · <a href="../index.html">기존 단일 사용자 에디터</a></header>
+<main id="peers"></main><template id="peer"><section class="peer"><h2></h2><div class="tools"><button data-action="undo">내 작업 취소</button><button data-action="redo">다시 실행</button><button data-action="table">표 추가</button></div><label>본문 · Markdown 소스<textarea class="source" spellcheck="false"></textarea></label><div class="tables"></div><details><summary>Markdown 내보내기</summary><pre class="markdown"></pre></details><div class="preview"></div><p class="state"></p></section></template>
+<script type="module" src="./demo.js"></script></html>

@@ -1,0 +1,32 @@
+{
+  "runtime": "v24.21.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "scope": "WASM ABI only; excludes browser DOM layout and paint",
+  "measurements": [
+    {
+      "source_bytes": 4310,
+      "lines": 203,
+      "load_ms": 1.55,
+      "edit_ms": 1.3,
+      "selection_100_ms": 0.27,
+      "wasm_memory_bytes": 1703936
+    },
+    {
+      "source_bytes": 43010,
+      "lines": 2003,
+      "load_ms": 8.65,
+      "edit_ms": 7.73,
+      "selection_100_ms": 0.22,
+      "wasm_memory_bytes": 5505024
+    },
+    {
+      "source_bytes": 430010,
+      "lines": 20003,
+      "load_ms": 53.36,
+      "edit_ms": 52.28,
+      "selection_100_ms": 0.25,
+      "wasm_memory_bytes": 62980096
+    }
+  ]
+}

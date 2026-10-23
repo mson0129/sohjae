@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+<title>sohjae — Markdown editor</title>
+<style>
+  * { box-sizing:border-box; } body { margin:0; background:#f2f5f9; color:#25334b; font-family:system-ui,sans-serif; }
+  main { max-width:1160px; margin:0 auto; padding:48px 28px; }
+  .masthead { display:flex; justify-content:space-between; align-items:end; margin-bottom:28px; }
+  .eyebrow { font-size:11px; letter-spacing:.18em; color:#5f7290; text-transform:uppercase; }
+  h1 { font-size:30px; letter-spacing:-.04em; margin:8px 0; font-weight:650; }
+  .subtitle { font-size:13px; color:#6b7a90; margin:0; }
+  .badge { background:#e3ebf8; color:#345b96; border:1px solid #d3dff0; padding:7px 11px; border-radius:30px; font-size:11px; white-space:nowrap; }
+  .notes { color:#718098; font-size:12px; line-height:1.8; margin-top:20px; }
+  #error { color:#a52d32; } @media(max-width:600px) { main { padding:24px 12px; } .badge { display:none; } }
+</style>
+<main>
+  <div class="masthead"><div><div class="eyebrow">An open space for your words</div><h1>sohjae <span style="font-size:16px;color:#8190a6;font-weight:400">/ 소재</span></h1><p class="subtitle">내용에 집중하고, 문서는 Markdown으로.</p></div><span class="badge">Rust + WebAssembly · No dependencies</span></div>
+  <div id="editor"></div><p id="error" role="alert"></p>
+  <p><a href="./collab/rich.html">협업 리치·원본 편집</a> · <a href="./gfm-audit.html">GFM 전체 검사 결과</a></p><p class="notes">Markdown을 입력하거나 도구를 사용해 보세요. Ctrl/⌘ + Shift + P로 모든 명령에 접근할 수 있습니다.<br>문서는 이 브라우저 탭의 메모리에서 편집됩니다. 파일로 보관하려면 저장을 눌러 주세요.</p>
+</main>
+<script type="module">
+  import { create_editor } from './editor.js';
+  const initial = `# 생각을 담는 공간\n\n작은 아이디어에서 시작해, **분명한 문서**로 이어집니다.\n\n## 오늘의 기록\n\n- [x] Rust와 브라우저 연결하기\n- [ ] 새로운 아이디어 정리하기\n- [ ] 문서를 Markdown으로 저장하기\n\n> [!TIP]\n> 하이브리드 모드에서는 편집 중인 부분의 문법을 볼 수 있습니다.\n\n| 기능 | 상태 |\n| --- | :---: |\n| Markdown 편집 | 준비됨 |\n| 표와 파일 첨부 | 사용 가능 |\n| 나만의 레이아웃 | 설정 가능 |\n\n\`\`\`rust\nlet thought = "여기서 시작하세요";\n\`\`\`\n\n<!-- 이 메모는 읽기 화면에서는 보이지 않습니다. -->\n\n`;
+  try {
+    window.editor = await create_editor(document.querySelector('#editor'), { config_url: './editor.config.json', markdown: initial });
+    window.editor.addEventListener('error', event => document.querySelector('#error').textContent = event.detail.message);
+    window.addEventListener('beforeunload', event => { if (window.editor.state.dirty) { event.preventDefault(); event.returnValue = ''; } });
+  } catch (error) { document.querySelector('#error').textContent = error.message; }
+</script>
+</html>
