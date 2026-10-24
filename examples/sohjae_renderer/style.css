@@ -1,0 +1,11 @@
+body{font:15px/1.6 system-ui,sans-serif;color:#242833;background:#f5f7fa;margin:0}main{max-width:1120px;margin:auto;padding:24px}h1{font-size:24px}button,textarea{font:inherit}button{padding:8px 16px;cursor:pointer}#status{min-height:1.6em}#status[data-error]{color:#a32121}.columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}#source{width:100%;height:70vh;box-sizing:border-box;padding:16px;border:1px solid #cbd3df;border-radius:8px}#preview{padding:20px;background:white;min-height:60vh;border:1px solid #cbd3df;border-radius:8px;overflow:auto}@media(max-width:760px){.columns{grid-template-columns:1fr}main{padding:12px}}
+/* Optional standalone viewer styles. Scope to .sohjae_viewer; no editor UI CSS. */
+.sohjae_viewer { color:var(--text_color,#242833); font:16px/1.8 system-ui,sans-serif; overflow-wrap:anywhere; }
+.sohjae_viewer pre { overflow:auto; padding:1rem; background:#f4f6f8; white-space:pre; }
+.sohjae_viewer code { font-family:ui-monospace,monospace; }
+.sohjae_viewer table { border-collapse:collapse; display:block; overflow:auto; }
+.sohjae_viewer th,.sohjae_viewer td { border:1px solid #dbe0e8; padding:.4rem .7rem; }
+.sohjae_viewer blockquote { border-left:3px solid #ccd3dd; margin-left:0; padding-left:1rem; }
+.sohjae_viewer img { max-width:100%; height:auto; }
+.sohjae_viewer mark { background:#fff0a6; }
+.sohjae_viewer .front_matter { white-space:pre-wrap; }

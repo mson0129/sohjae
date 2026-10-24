@@ -1,6 +1,9 @@
 import { load_core, byte_length, byte_slice, utf16_to_byte, byte_to_utf16 } from './core.js';
 import { html_to_markdown, safe_url, read_file, file_markdown } from './clipboard.js';
 
+const COMMANDS = new Set(['undo', 'redo', ...Array.from({length:6}, (_,i)=>`heading_${i+1}`), 'paragraph', 'bold', 'italic', 'strikethrough', 'highlight', 'inline_code', 'code_block', 'quote', 'list', 'ordered_list', 'task', 'indent', 'outdent', 'hard_break', 'link', 'unlink', 'open_link', 'table', 'table_tools', 'attachment', 'footnote', 'alert', 'details', 'comment', 'line_numbers', 'heading_levels', 'paragraph_marks', 'copy_markdown', 'open', 'save']);
+const is_record = value => value !== null && typeof value === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(value));
+const initializing = new WeakSet();
 const DEFAULTS = {
   mode: 'hybrid', elements: {}, read_only: false, announce_changes: false, show_code_line_numbers: false, show_heading_levels: false, show_paragraph_marks: false,
   auto_close: { enabled: true, pairs: { bold: true, italic: true, strikethrough: true, highlight: true, inline_code: true, link_brackets: true, html_comment: true }, wrap_selection: true, skip_closing: true, delete_empty_pair: true },
@@ -28,14 +31,23 @@ function merge(base, value) {
   const result = { ...base };
   for (const [key, item] of Object.entries(value || {})) {
     if (['__proto__', 'constructor', 'prototype'].includes(key)) continue;
-    result[key] = item && typeof item === 'object' && !Array.isArray(item) ? merge(base?.[key] || {}, item) : item;
+    result[key] = is_record(item) ? merge(is_record(base?.[key]) ? base[key] : {}, item) : item instanceof URL ? new URL(item.href) : Array.isArray(item) ? item.slice() : item;
   }
   return result;
 }
 function validate_options(options) {
+  if (options.replica !== undefined && (!options.replica || typeof options.replica !== 'object')) throw new TypeError('A live replica is required');
   if (!['hybrid', 'rich', 'markdown'].includes(options.mode)) throw new TypeError('Unknown editing mode');
   for (const key of ['read_only', 'announce_changes', 'show_code_line_numbers', 'show_heading_levels', 'show_paragraph_marks']) if (typeof options[key] !== 'boolean') throw new TypeError(`${key} must be boolean`);
-  if (!options.auto_close || !options.elements || !options.attachments || !options.images || !options.layout || !options.layouts) throw new TypeError('Configuration groups must be objects');
+  for (const key of ['auto_close','elements','attachments','images','layout','layouts','keybindings']) if (!is_record(options[key])) throw new TypeError(`${key} must be an object`);
+  if (!is_record(options.auto_close.pairs)) throw new TypeError('auto_close.pairs must be an object');
+  for (const key of ['markdown','filename','css_text']) if (options[key] !== undefined && typeof options[key] !== 'string') throw new TypeError(`${key} must be a string`);
+  for (const key of ['wasm_url', 'config_url']) if (options[key] !== undefined && typeof options[key] !== 'string' && !(options[key] instanceof URL)) throw new TypeError(`${key} must be a string or URL`);
+  for (const config of [options.layout, ...Object.values(options.layouts)]) {
+    if (!is_record(config) || (config.css_url !== undefined && typeof config.css_url !== 'string')) throw new TypeError('Layout must be an object with an optional css_url string');
+    if (config.css_url) new URL(config.css_url, document.baseURI);
+  }
+  for (const command of Object.values(options.keybindings)) if (typeof command !== 'string' || !COMMANDS.has(command)) throw new TypeError('Unknown keybinding command');
   for (const [element, config] of Object.entries(options.elements)) if (typeof config?.reveal_markdown !== 'boolean') throw new TypeError(`elements.${element}.reveal_markdown must be boolean`);
   for (const key of ['enabled', 'wrap_selection', 'skip_closing', 'delete_empty_pair']) if (typeof options.auto_close[key] !== 'boolean') throw new TypeError(`auto_close.${key} must be boolean`);
   for (const [key, value] of Object.entries(options.auto_close.pairs)) if (typeof value !== 'boolean') throw new TypeError(`auto_close.pairs.${key} must be boolean`);
@@ -59,12 +71,32 @@ export function grapheme_range(source, offset, backwards) {
 }
 
 export async function create_editor(container, options = {}) {
-  if (options.config_url) { const response = await fetch(options.config_url); if (!response.ok) throw new Error('Unable to load editor configuration'); const {replica,...instance_options}=options; options = {...merge(await response.json(),instance_options),...(replica?{replica}:{})}; }
-  const core = options.replica ? await (await import('./collab/editor_core.js')).create_editor_core(options.replica, options) : await load_core(options.wasm_url);
-  const css = await fetch(new URL('./editor.css', import.meta.url)).then(response => {
-    if (!response.ok) throw new Error('Unable to load editor styles'); return response.text();
-  });
-  return new MarkdownEditor(container, core, css, options);
+  if (!(container instanceof Element)) throw new TypeError('Container must be an Element');
+  if (!is_record(options)) throw new TypeError('Options must be an object');
+  if (initializing.has(container) || container.shadowRoot?.childNodes.length) throw new Error('Container already has an active or initializing editor');
+  options = merge({}, options);
+  initializing.add(container);
+  let core;
+  try {
+    validate_options(merge(DEFAULTS, options));
+    if (options.config_url) {
+      const response = await fetch(options.config_url);
+      if (!response.ok) throw new Error('Unable to load editor configuration');
+      const config = await response.json();
+      if (!is_record(config)) throw new TypeError('Configuration file must contain an object');
+      const { replica, ...instance_options } = options;
+      // Replica instances cannot be supplied by JSON configuration.
+      const { replica: _ignored_replica, ...file_options } = config;
+      options = {...merge(file_options, instance_options), ...(replica ? {replica} : {})};
+    }
+    validate_options(merge(DEFAULTS, options));
+    core = options.replica ? await (await import('./collab/editor_core.js')).create_editor_core(options.replica, options) : await load_core(options.wasm_url);
+    const css = options.css_text ?? await fetch(new URL('./editor.css', import.meta.url)).then(response => {
+      if (!response.ok) throw new Error('Unable to load editor styles'); return response.text();
+    });
+    return new MarkdownEditor(container, core, css, options);
+  } catch (error) { if (core?.snapshot) core.request(1); throw error; }
+  finally { initializing.delete(container); }
 }
 
 class MarkdownEditor extends EventTarget {
@@ -271,32 +303,43 @@ class MarkdownEditor extends EventTarget {
   }
   on(target, name, listener) { target.addEventListener(name, listener, { signal: this.listeners.signal }); }
   has_focus() { return this.root.activeElement === this.surface || this.root.activeElement === this.source_input; }
-  get_markdown({ normalize = true } = {}) { return normalize ? this.core.request(8) : this.state.source; }
-  get_selection() { return { ...this.selection, revision: this.state.revision }; }
-  get_pending_draft() { return this.core?.draft?.source ?? null; }
+  assert_active() { if (!this.core) throw new Error('Editor has been destroyed'); }
+  get_markdown(options = {}) {
+    this.assert_active();
+    if (!is_record(options) || (options.normalize !== undefined && typeof options.normalize !== 'boolean')) throw new TypeError('normalize must be boolean');
+    return (options.normalize ?? true) ? this.core.request(8) : this.state.source;
+  }
+  get_selection() { this.assert_active(); return { ...this.selection, revision: this.state.revision }; }
+  get_pending_draft() { this.assert_active(); return this.core.draft?.source ?? null; }
   discard_pending_draft() {
+    this.assert_active();
     const source=this.core.discard_draft?.(); if(source===undefined)return null;
     this.last_source_draft=source;this.state=this.core.snapshot;this.selection={anchor:this.state.anchor,focus:this.state.focus};this.render();return source;
   }
-  mark_saved() { this.state = this.core.request(9); this.render(); }
-  get_options() { return merge({}, this.options); }
+  mark_saved() { this.assert_active(); this.state = this.core.request(9); this.render(); }
+  get_options() { this.assert_active(); return merge({}, this.options); }
   set_markdown(source) {
+    this.assert_active();
+    if (typeof source !== 'string') throw new TypeError('Markdown must be a string');
     this.typing_group = null;
     if (this.composing) throw new Error('Finish composition before replacing the document');
     if (this.dialog.open) { this.dialog_callback = null; this.dialog_selection = { anchor: 0, focus: 0 }; this.dialog.close('cancel'); }
     this.state = this.core.request(2, source); this.auto_transform = null; this.pairs = []; this.selection = { anchor: 0, focus: 0 }; this.render();
   }
   set_options(options) {
+    this.assert_active();
     this.typing_group = null;
-    if ('replica' in options) throw new TypeError('Create a new editor to change its shared replica');
-    const next = merge(this.options, options);
+    if (!is_record(options)) throw new TypeError('Options must be an object');
+    if (['replica','markdown','config_url','wasm_url','css_text'].some(key => key in options)) throw new TypeError('Creation options require a new editor');
+    const next = merge(merge(this.options, this.pending_options), options);
     validate_options(next);
-    if (this.composing) { this.pending_options = options; return; }
+    if (this.composing) { this.pending_options = merge(this.pending_options || {}, options); return; }
     this.options = next; this.render();
   }
   destroy() { if (!this.core) return; this.listeners.abort(); this.core.request(1); this.core = null; this.state = null; this.pairs = []; this.root.replaceChildren(); }
-  focus() { (this.source_view ? this.source_input : this.surface).focus(); this.core.request(4, '', this.selection.anchor, this.selection.focus); this.restore_selection(); }
+  focus() { this.assert_active(); (this.source_view ? this.source_input : this.surface).focus(); this.core.request(4, '', this.selection.anchor, this.selection.focus); this.restore_selection(); }
   set_selection(anchor, focus = anchor, finalize = false) {
+    this.assert_active();
     this.typing_group = null;
     this.state = this.core.request(finalize ? 11 : 4, '', anchor, focus); this.selection = { anchor, focus }; this.restore_selection(); this.sync_accessibility();
   }
@@ -310,12 +353,19 @@ class MarkdownEditor extends EventTarget {
     this.render(); this.focus();
   }
   replace(text, start, end, caret) {
+    this.assert_active();
+    if (typeof text !== 'string') throw new TypeError('Replacement must be a string');
     text = text.replace(/\r\n?/gu, '\n');
     if (this.options.read_only || this.reading || this.composing) return;
     const before = this.state;
     start ??= Math.min(this.selection.anchor, this.selection.focus);
     end ??= Math.max(this.selection.anchor, this.selection.focus);
     const size = byte_length(text);
+    if (caret !== undefined && !this.core.replica) {
+      const result = byte_slice(before.source, 0, start) + text + byte_slice(before.source, end);
+      if (!Number.isInteger(caret) || caret < 0 || caret > byte_length(result)) throw new RangeError('Invalid UTF-8 caret');
+      byte_to_utf16(result, caret); // Validate before editing so an invalid caret cannot partially apply.
+    }
     const kind = this.typing_input;
     const eligible = !this.state.draft && (kind === 'insertText' && start === end && !!text && !/[\r\n*_~`\[\]#>\\=]/u.test(text)
       || ['deleteContentBackward','deleteContentForward'].includes(kind) && !text && this.selection.anchor === this.selection.focus && !byte_slice(before.source,start,end).includes('\n'));
@@ -337,7 +387,8 @@ class MarkdownEditor extends EventTarget {
   }
   emit_change(origin = 'local') {
     this.dispatchEvent(new CustomEvent('change', { detail: { revision: this.state.revision, dirty: this.state.dirty, origin, shared: !this.state.draft } }));
-    if (this.options.announce_changes) this.root.querySelector('.announce').textContent = '문서가 변경되었습니다.';
+    const announce = this.root.querySelector('.announce');
+    if (this.options.announce_changes && announce) announce.textContent = '문서가 변경되었습니다.';
   }
   render() {
     if (this.composing) return;
@@ -636,6 +687,8 @@ class MarkdownEditor extends EventTarget {
     try { await this.execute_command(command); } catch (error) { this.report(error); }
   }
   async execute_command(command) {
+    this.assert_active();
+    if (typeof command !== 'string' || !COMMANDS.has(command)) throw new TypeError('Unknown editor command');
     this.typing_group = null;
     this.root.querySelector('.errors').textContent = '';
     if (this.composing) return;
@@ -705,7 +758,16 @@ class MarkdownEditor extends EventTarget {
     }
     if (command === 'open') {
       const input = document.createElement('input'); input.type = 'file'; input.accept = '.md,.markdown,.txt,text/markdown,text/plain';
-      input.onchange = async () => { if (input.files[0]) this.set_markdown(await input.files[0].text()); }; input.click();
+      const revision = this.state.revision;
+      input.onchange = async () => {
+        try {
+          if (!this.core || !input.files[0]) return;
+          const source = await input.files[0].text();
+          if (!this.core) return;
+          if (this.state.revision !== revision) throw new Error('Document changed while opening the file');
+          this.set_markdown(source);
+        } catch (error) { this.report(error); }
+      }; input.click();
     }
   }
   command_palette() {
@@ -962,5 +1024,5 @@ class MarkdownEditor extends EventTarget {
     if (rect && viewport && rect.bottom > viewport.height + viewport.offsetTop - 32) this.surface.scrollTop += rect.bottom - viewport.height - viewport.offsetTop + 48;
     this.active_cell()?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
-  report(error) { this.root.querySelector('.errors').textContent = error.message; this.root.querySelector('.state').textContent = error.message; this.dispatchEvent(new CustomEvent('error', { detail: error })); }
+  report(error) { const errors = this.root.querySelector('.errors'), state = this.root.querySelector('.state'); if (errors) errors.textContent = error.message; if (state) state.textContent = error.message; this.dispatchEvent(new CustomEvent('error', { detail: error })); }
 }

@@ -1,6 +1,8 @@
-# 협업 API v2 (실험)
+# 협업 API v2 (안정 계약)
 
-`replica` 옵션 없는 `create_editor`와 ABI v1은 단일 사용자 프로토타입이다. 협업 코어와 전송 모듈은 별도 경로에 있으며 replica 옵션으로 기존 UI에 연결한다. 모델·실행 취소·수렴 규칙은 [협업 설계](collaboration.md)를 따른다.
+공개 계약과 wire 형식은 [협업 프로토콜 안정 계약](collaboration-protocol.md)을 따른다. `core.d.ts`와 `webrtc.d.ts`에 공개 타입을 제공한다.
+
+`replica` 옵션 없는 `create_editor`와 ABI v1은 단일 사용자 편집기다. 협업 코어와 전송 모듈은 별도 경로에 있으며 replica 옵션으로 기존 UI에 연결한다. 모델·실행 취소·수렴 규칙은 [협업 설계](collaboration.md)를 따른다.
 
 ## JS 코어
 
@@ -69,13 +71,13 @@ transport.addEventListener('sync', event => console.log(event.detail.pending));
 
 수신 측도 `datachannel` 이벤트의 채널로 같은 어댑터를 생성한다. `authorize_peer`는 필수이며 true를 반환해야 문서를 교환한다. 호스트는 인증된 시그널링 세션과 hello의 actor를 연결해야 한다. 자기 주장 ID만 비교하는 콜백은 실제 사용자 인증이 아니다. 전달받은 로그에는 다른 작성자가 만든 연산도 들어갈 수 있으므로 이 코어는 방 참가자의 악의적 위조에 대한 서명 검증을 제공하지 않는다.
 
-기본 RTCDataChannel의 ordered/reliable 설정을 사용한다. 어댑터는 버전·문서·다른 actor를 확인하고 전체 로그를 교환한다. `ready`는 handshake 완료이며 문서 수렴 완료를 의미하지 않는다. `sync` 후 pending=0 및 기대 상태를 확인한다. 12KiB 분할 전송, 16MiB 업데이트 한도, 32MiB 송수신 큐 한도, bufferedAmount 역압, handshake/fragment timeout을 적용한다. 과부하·잘못된 프레임·권한 거절 시 채널을 닫고 error를 알린다. 호스트가 새 채널을 연결하면 전체 로그로 재동기화한다. 현재 전송은 delta/frontier 최적화와 자동 reconnect를 제공하지 않는다. 원격 연산을 다른 채널에 중계하지 않으므로 3명 이상은 호스트가 모든 참가자 쌍을 연결하는 full mesh를 구성하거나 별도 중계·중복 방지 계층을 제공해야 한다.
+기본 RTCDataChannel의 ordered/reliable 설정을 사용한다. 어댑터는 hello의 protocol=3·codec=2·schema=1, 문서·다른 actor를 확인하고 전체 로그를 교환한다. `ready`는 handshake 완료이며 문서 수렴 완료를 의미하지 않는다. `sync` 후 pending=0 및 기대 상태를 확인한다. 12KiB 분할 전송, 16MiB 업데이트 한도, 32MiB 송수신 큐 한도, bufferedAmount 역압, handshake/fragment timeout을 적용한다. 과부하·잘못된 프레임·권한 거절 시 채널을 닫고 error를 알린다. 호스트가 새 채널을 연결하면 전체 로그로 재동기화한다. 현재 전송은 delta/frontier 최적화와 자동 reconnect를 제공하지 않는다. 원격 연산을 다른 채널에 중계하지 않으므로 3명 이상은 호스트가 모든 참가자 쌍을 연결하는 full mesh를 구성하거나 별도 중계·중복 방지 계층을 제공해야 한다.
 
 `connect_local_pair(a, b, { ice_servers: [], timeout_ms: 20000 })`는 같은 페이지에서 두 RTCPeerConnection의 SDP/ICE를 직접 교환하는 검증 도우미다. 외부 STUN/TURN 기본값은 없으며 서버 없이 로컬 후보로 연결한다. 반환값의 `close()`는 두 채널과 연결을 해제한다. 다른 기기 간 연결은 호스트 시그널링과 실제 ICE 구성이 필요하다.
 
 ## WASM ABI
 
-v1 exports는 유지하며 v2는 `collab_` 접두사를 쓴다. `collab_abi_version() == 2`. `collab_reserve_input(length)`로 얻은 메모리에 바이트를 복사한 뒤 `collab_dispatch(op, handle, start, end)`를 호출한다. 출력은 `collab_output_pointer/length`로 즉시 복사한다. 이후 호출과 memory.grow는 이전 뷰를 무효화할 수 있다. 입력 한도 16MiB, 오류 status=1과 UTF-8 오류 이름이다. 정상 status=0.
+독립 `sohjae_collaborator.wasm`은 `collab_` 접두사 export만 제공하며 editor v1 export는 포함하지 않는다. `collab_abi_version() == 2`, `collab_schema_capabilities() == 1`을 요구한다. `collab_reserve_input(length)`로 얻은 메모리에 바이트를 복사한 뒤 `collab_dispatch(op, handle, start, end)`를 호출한다. 출력은 `collab_output_pointer/length`로 즉시 복사한다. 이후 호출과 memory.grow는 이전 뷰를 무효화할 수 있다. 입력 한도 16MiB, 오류 status=1과 UTF-8 오류 이름이다. 정상 status=0.
 
 일반 응답은 `[JSON 길이 u32][JSON UTF-8][update 길이 u32][SCV2 update]`. 정수는 little-endian이다. 생성 JSON의 handle을 다음 호출에 전달한다. OpId는 counter u64+actor u128, AtomId는 OpId+scalar index u32다. scope는 document tag0 또는 cell tag1+table/row/column OpId다. optional ID는 존재 flag0/1 다음 ID다.
 
@@ -98,13 +100,13 @@ v1 exports는 유지하며 v2는 `collab_` 접두사를 쓴다. `collab_abi_vers
 | 18 | scope, start/end | raw SCE2 capture |
 | 19 | capture 길이 u32+capture+UTF-8 교체 문자열 | 일반 응답 |
 
-anchor는 scope+optional left AtomId+optional right AtomId+bias u8이다. SCE2는 magic4+document u128+scope+optional after AtomId+target count u32+AtomId 목록이다. 상세 wire 구현은 `src/collab/codec.rs`를 기준으로 한다. 프로토콜은 실험 단계이며 버전 간 호환을 보장하지 않는다.
+anchor는 scope+optional left AtomId+optional right AtomId+bias u8이다. SCE2는 magic4+document u128+scope+optional after AtomId+target count u32+AtomId 목록이다. 상세 wire 구현은 `src/collab/codec.rs`를 기준으로 한다. transport3·codec2/schema1을 안정 프로필로 고정하며 향후 호환성·이전 정책은 프로토콜 안정 계약을 따른다. 앵커와 캡처는 같은 문서에서 사용하는 opaque 임시 값이며 영구 저장 형식으로 고정하지 않는다.
 
 ## 검증과 남은 경계
 
 Rust 테스트는 역순·중복·단절·세 작성자 무작위 전달, 겹친 삭제·자기 undo, 안정적 표/행/열 ID, 셀 보존, 인과 참조 검증, codec 경계, IME 캡처를 포함한다. Node는 빌드한 실제 WASM과 JS 어댑터를 호출한다. 브라우저 `/collab/tests.html`은 실제 RTCPeerConnection으로 재연결·Unicode 분할 전송·표 병합을 검사하며 허용되지 않은 peer와 잘못된 프레임도 검사한다.
 
-현재 코어는 정확성 검증을 우선해 연산마다 상태를 복사하고 인과 조상을 순회한다. 삭제 atom/로그는 유지되며 100000 연산 한도나 1MiB/연산은 권장 문서 크기·메모리 보장이 아니다. 전체 로그가 16MiB를 넘으면 현재 export/reconnect가 실패하므로 그 전에 체크포인트 설계와 크기 관리가 필요하다. 대규모 문서에 대한 성능 보장은 없다. 실제 TURN relay 강제 경로, 다른 기기·브라우저·OS IME, 지속 저장 호스트, 커서 presence, 첨부 blob, 원본 표 projection, 전체 리치 UI 통합과 checkpoint/GC는 후속 범위다.
+현재 코어는 정확성 검증을 우선해 연산마다 상태를 복사하고 인과 조상을 순회한다. 삭제 atom/로그는 유지되며 100000 연산 한도나 1MiB/연산은 권장 문서 크기·메모리 보장이 아니다. 전체 로그가 16MiB를 넘으면 현재 export/reconnect가 실패하므로 그 전에 체크포인트 설계와 크기 관리가 필요하다. 대규모 문서에 대한 성능 보장은 없다. 원본 표 projection과 리치 UI 통합은 아래와 같이 구현되어 있다. 실제 TURN relay 강제 경로, 다른 기기·브라우저·OS IME, 지속 저장 호스트, 커서 presence, 첨부 blob과 checkpoint/GC는 별도 범위다.
 
 ## 리치·원본 편집기 통합 (2026-10-23)
 
@@ -147,10 +149,49 @@ replica.destroy();
 
 코어는 삽입과 활성 이동을 OpId(Lamport timestamp, actor)의 전체 순서로 재생한다. 동시에 겹친 이동이 오면 결정적인 순서로 적용하며 동일 행·열은 한 번만 나타난다. 명시적으로 선택한 ID만 이동한다. 이후 이동된 항목을 기준으로 삽입하면 현재 위치에 삽입한다. undo는 자신의 이동 연산을 비활성화하며 이후 수신한 원격 편집을 되돌리지 않는다. 이 방식은 충돌한 모든 참가자의 시각적 의도를 동시에 만족한다는 보장은 아니며 상태 수렴과 데이터·ID 보존을 보장하는 규칙이다.
 
-추가 ABI op31 입력: table OpId 24바이트, columns u8(0 행/1 열), targets 수 u32, 각 target OpId, before 존재 u8 및 선택적 before OpId다. SCV2에 연산 tag9 Reorder를 추가했다. 기존 tag·magic·ABI 버전은 유지한다. 이전 reader는 새 tag를 처리할 수 없어 프레임을 거절하므로 참가자의 WASM·JS 자산을 함께 갱신해야 한다. 서로 다른 빌드의 협업 호환성을 보장하지 않는다.
+추가 ABI op31 입력: table OpId 24바이트, columns u8(0 행/1 열), targets 수 u32, 각 target OpId, before 존재 u8 및 선택적 before OpId다. SCV2에 연산 tag9 Reorder를 추가했다. 기존 tag·magic·ABI 버전은 유지한다. 이전 reader는 새 tag를 처리할 수 없어 프레임을 거절하므로 참가자의 WASM·JS 자산을 함께 갱신해야 한다. 현재 JS/WASM은 schema capability와 hello를 확인해 해당 기능을 모르는 구버전을 문서 교환 전에 거절한다. 저장 SCV2 형식은 유지하며 세부 보존·이전 정책은 [API 안정성](api-stability.md)을 따른다.
 
 복잡한 원본 UI 수용 사례에 여러 표·사이 본문을 가로지르는 교체, 이스케이프된 파이프, 모드 전환 후 단일 undo/redo, 리치 이동→원본 전파→원격 셀 수정→자기 이동 undo를 추가했다. 표 문법 미완성/충돌 시 기존 로컬 초안 정책을 유지한다. 문자열만으로 중복 행의 이동 의도를 추론하는 기능이나 전체 문서 교체의 ID 보존을 새로 보장하는 것은 아니다.
 
 ## 로컬 타이핑 history 그룹
 
 coalesce_history() / ABI op32는 자기 undo의 마지막 두 항목을 합친다. 입력·출력 payload 없이 완료하며 change/update 이벤트나 네트워크 연산을 만들지 않는다. 소유 연산 ID만 합치므로 이후 그룹 undo도 원격 편집을 보존한다. 공유 UI가 시간·문맥·커서 경계를 판단하고 선택 bookmark도 같은 그룹으로 합친다. SCV2 형식은 바꾸지 않는다.
+
+## 선택적 협업 WASM 배포
+
+`create_replica`의 기본 WASM은 `sohjae_collaborator.wasm`이다. `create_editor`의 wasm_url은 일반 편집/투영용 `sohjae_editor.wasm` 경로이며 replica 생성의 wasm_url과 별개다. 일반 편집기는 협업 WASM을 로드하지 않는다.
+
+`sh scripts/package_collaborator.sh`는 선택적 `sohjae-collaborator-0.1.0.tgz`를 만든다. base 편집기 SDK가 배포된 경로에 collaborator archive의 내용(core.js, collab/, sohjae_collaborator.wasm)을 병합한다. `core.js`는 base SDK와 같은 파일이다. 별도 디렉터리에 배포한다면 모듈 상대 경로를 유지하고 editor/replica 각각의 wasm_url을 명시한다.
+
+`examples/sohjae_collaborator/index.html`은 먼저 일반 편집기를 띄우고 ‘협업 시작’ 때만 협업 WASM을 읽어 동일 문서를 두 복제본에 연결한다. 이 전환 시 일반 편집기의 undo는 공유 연산으로 이전하지 않는다. 두 참가자는 같은 페이지의 실제 로컬 RTCDataChannel로 연결하며, 실제 다중 기기의 인증·시그널링/STUN/TURN 서비스는 호스트 책임이다.
+
+## 안정성 경계
+
+협업 공개 API v2·ABI2와 transport3·codec2/schema1을 고정했다. 공개 Replica 메서드·읽기 전용 snapshot·반복 가능한 destroy·Transport 상태 및 오류 코드와 저장 보존 정책은 [프로토콜 안정 계약](collaboration-protocol.md)을 따른다. 호스트가 맡는 인증·시그널링·영구 저장·실환경 검증을 완료한 제품 출시를 의미하지 않는다.
+
+
+## 오류·스냅샷·종료
+
+`COLLABORATION_PROFILE`과 snapshot은 읽기 전용이다. snapshot은 중첩 배열까지 freeze하며 과거 참조를 변경하지 않는다. `CollaborationError.code`와 `TransportError.code`로 오류를 분기한다. 메시지 전문은 계약이 아니다. 이벤트 처리 중 조회는 가능하지만 재진입 변경은 ReentrantCall로 거절하므로 queueMicrotask로 연기한다.
+
+`replica.destroy()`는 반복 호출 가능하고 destroy 이벤트를 한 번 보낸다. 연결된 transport는 닫히며 peer의 문서 상태는 유지된다. 마지막 snapshot은 계속 읽을 수 있다. `transport.close()`는 replica를 파괴하지 않는다. `ready`는 초기 로그 큐 등록 성공 후 발생하며 동기화 완료 신호는 아니다. 실패는 close 후 error 순서다.
+
+추가 ABI 표:
+
+| op | 입력·좌표 | 출력 |
+| --- | --- | --- |
+| 20 | 전체 Markdown UTF-8 | 일반 응답; 명시적 문서 교체 |
+| 21 | Markdown 교체 UTF-8, start/end | 일반 응답 |
+| 22 / 23 | 투영 offset+bias / anchor bytes | raw anchor / raw u32 offset |
+| 24 | 투영 start/end | raw SCE2 capture |
+| 26 | table OpId + row/column 및 범위 u32 6개 + action u8 | 일반 응답 |
+| 28 / 29 | 없음 | 로컬 history 전체 / redo 초기화 일반 응답 |
+| 30 | 리치 투영 교체 UTF-8, start/end | 일반 응답 |
+| 31 | table OpId + columns u8 + count u32 + target OpId 목록 + optional before | 일반 응답 |
+| 32 | 없음 | 로컬 인접 history 병합, 빈 출력; 이벤트 없음 |
+
+ABI 실패는 session 변경을 되돌린 뒤 status=1을 반환한다. 이 보존은 응답 직렬화 실패에도 적용한다. 유효한 merge 프레임 내부의 개별 rejected 연산 격리와는 별도 규칙이다.
+
+## Classic editor plugin
+
+With the optional collaboration overlay deployed beside the editor SDK, use `new Sohjae({ selector: '#editor', plugins: ['collaboration'], collaboration: { document_id } })`. Await `editor.ready`, then access `editor.collaboration.replica` or connect a host-created RTCDataChannel with `editor.collaboration.connect(channel, { authorize_peer })`. The host provides signaling and authentication. Omit creation options to create a new document, or provide an existing `replica` to retain host ownership. See [quick start](quick-start.md).

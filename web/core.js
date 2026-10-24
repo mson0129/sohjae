@@ -1,15 +1,15 @@
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
-export const byte_length = text => encoder.encode(text).length;
+export const byte_length = text => { if (typeof text !== 'string') throw new TypeError('Text must be a string'); return encoder.encode(text).length; };
 export function byte_slice(text, start, end) { return decoder.decode(encoder.encode(text).slice(start, end)); }
 export function utf16_to_byte(text, offset) {
-  if (offset < 0 || offset > text.length || (offset > 0 && offset < text.length && /[\uD800-\uDBFF]/u.test(text[offset - 1]) && /[\uDC00-\uDFFF]/u.test(text[offset]))) throw new RangeError('Invalid UTF-16 boundary');
+  if (!Number.isInteger(offset) || offset < 0 || offset > text.length || (offset > 0 && offset < text.length && /[\uD800-\uDBFF]/u.test(text[offset - 1]) && /[\uDC00-\uDFFF]/u.test(text[offset]))) throw new RangeError('Invalid UTF-16 boundary');
   return byte_length(text.slice(0, offset));
 }
-export function byte_to_utf16(text, offset) { return byte_slice(text, 0, offset).length; }
+export function byte_to_utf16(text, offset) { if (!Number.isInteger(offset) || offset < 0 || offset > byte_length(text)) throw new RangeError('Invalid UTF-8 boundary'); return byte_slice(text, 0, offset).length; }
 
 const modules = new Map();
-export async function load_core(wasm_url = new URL('./sohjae_core.wasm', import.meta.url)) {
+export async function load_core(wasm_url = new URL('./sohjae_editor.wasm', import.meta.url)) {
   const key = String(wasm_url);
   if (!modules.has(key)) modules.set(key, fetch(wasm_url).then(async response => {
     if (!response.ok) throw new Error(`WASM load failed: ${response.status}. Run scripts/build.sh first.`);
@@ -27,6 +27,8 @@ export class Core {
     if (exports.abi_version() !== 1) throw new Error('Unsupported WASM ABI');
   }
   request(op, text = '', start = 0, end = start) {
+    if (typeof text !== 'string') throw new TypeError('Text must be a string');
+    for (const value of [start, end]) if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw new RangeError('Invalid UTF-8 offset');
     text = text.replace(/\r\n?/gu, '\n');
     const bytes = encoder.encode(text);
     const pointer = this.exports.reserve_input(bytes.length);

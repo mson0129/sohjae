@@ -1,4 +1,4 @@
-//! Separate experimental ABI for collaboration. Prototype ABI v1 remains intact.
+//! Separate stable collaboration ABI v2. Editor ABI v1 remains independent.
 use super::*;
 use std::cell::RefCell;
 use std::fmt::Write;
@@ -15,6 +15,11 @@ thread_local! { static RUNTIME: RefCell<Runtime> = RefCell::new(Runtime::default
 #[no_mangle]
 pub extern "C" fn collab_abi_version() -> u32 {
     2
+}
+// Bit 0: the SCV2 operation schema includes row/column Reorder (tag 9).
+#[no_mangle]
+pub extern "C" fn collab_schema_capabilities() -> u32 {
+    1
 }
 #[no_mangle]
 pub extern "C" fn collab_reserve_input(length: u32) -> *mut u8 {
@@ -41,9 +46,19 @@ pub extern "C" fn collab_dispatch(op: u32, handle: u32, start: u32, end: u32) ->
     RUNTIME.with(|runtime| {
         let mut runtime = runtime.borrow_mut();
         runtime.output.clear();
+        // A mutation is committed only when its ABI reply can also be encoded.
+        // Native transactions alone do not cover serialization/resource errors in reply().
+        let previous = if matches!(op, 2 | 3 | 6..=14 | 20 | 21 | 26 | 28..=31) {
+            runtime.sessions.get(&handle).cloned()
+        } else {
+            None
+        };
         match execute(&mut runtime, op, handle, start as usize, end as usize) {
             Ok(()) => 0,
             Err(error) => {
+                if let Some(previous) = previous {
+                    runtime.sessions.insert(handle, previous);
+                }
                 runtime.output = format!("{error:?}").into_bytes();
                 1
             }
@@ -458,5 +473,40 @@ mod tests {
         assert_eq!(decode_update(&bytes).unwrap().operations.len(), 1);
         assert_eq!(collab_dispatch(1, handle, 0, 0), 0);
         assert_eq!(collab_dispatch(5, handle, 0, 0), 1);
+    }
+    #[test]
+    fn invalid_mutations_preserve_document_log_and_local_history() {
+        RUNTIME.with(|runtime| {
+            runtime.borrow_mut().input = [7u128.to_le_bytes(), 8u128.to_le_bytes()].concat();
+        });
+        assert_eq!(collab_dispatch(0, 0, 0, 0), 0);
+        let handle = RUNTIME.with(|runtime| runtime.borrow().next);
+        RUNTIME.with(|runtime| runtime.borrow_mut().input = "한😀".as_bytes().to_vec());
+        assert_eq!(collab_dispatch(2, handle, 0, 0), 0);
+        assert_eq!(collab_dispatch(4, handle, 0, 0), 0);
+        let before = RUNTIME.with(|runtime| runtime.borrow().output.clone());
+        for (input, start, end) in [(vec![255], 0, 0), (b"x".to_vec(), 1, 2)] {
+            RUNTIME.with(|runtime| runtime.borrow_mut().input = input);
+            assert_eq!(collab_dispatch(2, handle, start, end), 1);
+            assert_eq!(collab_dispatch(4, handle, 0, 0), 0);
+            assert_eq!(
+                RUNTIME.with(|runtime| runtime.borrow().output.clone()),
+                before
+            );
+        }
+        assert_eq!(collab_dispatch(6, handle, 0, 0), 0);
+        RUNTIME.with(|runtime| {
+            assert_eq!(
+                runtime.borrow().sessions[&handle]
+                    .text(TextScope::Document)
+                    .unwrap(),
+                ""
+            );
+        });
+        assert_eq!(collab_dispatch(7, handle, 0, 0), 0);
+        assert_eq!(collab_dispatch(4, handle, 0, 0), 0);
+        let restored = RUNTIME.with(|runtime| decode_update(&runtime.borrow().output).unwrap());
+        assert_eq!(restored.operations.len(), 3);
+        assert_eq!(collab_dispatch(1, handle, 0, 0), 0);
     }
 }

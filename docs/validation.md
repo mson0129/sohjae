@@ -20,7 +20,7 @@ python3 scripts/serve.py --port 8080
 
 ## GFM 전체 예제
 
-공식 GFM 0.29-gfm 명세의 예제 672개를 모두 실행했다. 출처는 https://github.com/github/cmark-gfm/blob/master/test/spec.txt 이고 고정 snapshot·SHA256·CC BY-SA 출처 표기는 tests/fixtures에 보관한다. 결과의 원문·기대 HTML·실제 HTML은 web/gfm-results.json에 있으며 집계는 docs/gfm-audit.json이다.
+공식 GFM 0.29-gfm 명세의 예제 672개를 모두 실행했다. 출처는 https://github.com/github/cmark-gfm/blob/master/test/spec.txt 이고 고정 snapshot·SHA256·CC BY-SA 출처 표기는 spec에 보관한다. 결과의 원문·기대 HTML·실제 HTML은 web/gfm-results.json에 있으며 집계는 docs/gfm-audit.json이다.
 
 편집기 전용 section/span·빈 커서 자리, 선택적 thead/tbody, 기본 왼쪽 정렬을 정규화해 **HTML 트리 구조와 텍스트를 비교**한다. 이 방식은 공식 테스트 도구의 byte-for-byte HTML 비교와 다르다. 안전한 HTML·URL 제한이나 별도 확장은 끄지 않는다. 정규화 기준을 바꿔 실패를 통과로 숨기지 않는다.
 
@@ -80,3 +80,31 @@ Rust 70개(안정 ID 이동·동시 이동/삽입/삭제 수렴·잘못된/비�
 ## 현재 편집 보강 검증
 
 현재 결과와 테스트 집계는 [편집 보강 기록](editor-hardening.md)을 따른다. 위의 단계별 수치는 당시 실행 기록이며 현재 미구현 목록이 아니다.
+
+## API v1 계약 검사 (2026-10-24)
+
+`node scripts/check_api_contracts.mjs`는 실제 WASM으로 ABI 불일치 거절·렌더러 인스턴스 격리·숫자 좌표 오류·안정화 전 SCV2 로그 복원·손상된 프레임의 원자적 거절·협업 handshake 스키마 불일치 차단을 검사한다. 저장 fixture는 `spec/api/`에 유지한다.
+
+실제 인앱 브라우저에서 `/api-contracts.html` 6/6, 기존 단일 사용자 40/40, 공유 UI 22/22, 전송·입력 8/8을 통과했다. API 계약의 IME 검사는 합성 composition 이벤트를 사용하며 새로운 OS 입력기·모바일 실기기 검증 결과가 아니다. 정책과 공개 범위는 [API 안정성](api-stability.md)을 따른다.
+
+## 단일 사용자 API 확장 검사 (2026-10-24)
+
+`/api-contracts.html`은 11개로 확장했다. 기존 검사에 잘못된 설정·명령의 무변경 거절, 다중 IME 대기 설정 병합과 사본 격리, 생성 경합·설정 파일 우선순위·실패 후 재사용, toolbar 명령 타입 누락, 지연된 파일 열기 보호를 추가했다. `scripts/check_editor_types.ts`는 TypeScript 5.9.3 strict 검사에서 정상 호출과 잘못된 옵션·명령·이벤트·내부 상태 접근의 @ts-expect-error를 함께 검증했다. 임시 개발 도구만 사용하고 SDK 의존성은 추가하지 않았다.
+
+## 협업 안정 계약 검사 (2026-10-24)
+
+`check_collab_contracts.mjs` 10/10에서 전체 tag0~9 고정 로그의 참조 파싱·복원·재출력 바이트 동일성, factory 입력/ABI 거절, 불변 snapshot, 이벤트 순서·재진입·반복 종료, 프로필·identity·인증·timeout, 분할 헤더·역압·대기 큐 한도, 손상 프레임 거절과 초기 export/send 실패를 검사한다. 기존 저장 fixture 검사와 실제 WASM 검사도 유지한다.
+
+브라우저 협업 검사는 11개로 확장해 실제 3인 full mesh의 동시 편집·오프라인 재연결 수렴과 replica 종료 후 peer 문서 보존을 추가했다. 타입 선언은 TypeScript 5.9.3 strict 정상/부정 예제로 검사한다. 이 검사는 로컬 ICE이며 실제 다중 기기 TURN relay·모바일·다른 OS IME 검증을 의미하지 않는다.
+
+## 간편 스크립트 진입점 (2026-10-25)
+
+`/quick-start/tests.html` 9/9 통과. 스크립트와 다른 디렉터리에서 head 초기화, 자동 경로, textarea/form 데이터·중복 name, undo/redo·호스트 교체, reset/취소, 실패 후 복구, 중복 초기화·종료·재사용, div와 selector 약식, required·readonly·disabled fieldset, label 및 중복 엔트리 로드를 확인했다. `/quick-start.html`과 별도 examples 서버의 `/sohjae_editor/quick-start.html`도 실제 WASM 편집기 초기화를 확인했다. 타입 정상/부정 검사는 기존 TypeScript strict 검사에 포함한다.
+
+## 생성자 초기화 계약 (2026-10-25)
+
+간편 진입점 브라우저 검사 15/15 통과. 기존 9개에 생성자 반환·ready 및 메서드/이벤트 전달, 비동기 실패·재시도, 준비 전 종료, CSS 로딩 중 종료, DOM 마운트와 handle 준비 사이 취소, 로딩 중 textarea 입력 보존을 추가했다. 기존 init 호환 테스트도 유지하며 TypeScript strict 정상/부정 검사를 통과했다.
+
+### Optional classic collaboration and renderer constructors
+
+The classic entry contract harness passes 20 tests, including constructor readiness/cancellation, form integration, absence of collaboration runtime requests in ordinary editors, plugin replica synchronization and ownership, transport teardown, and div renderer update/destroy/reinitialization. Strict TypeScript checks and full package build pass. GFM audit remains 585/672 with the existing 87 documented policy mismatches; no parser changes in this update.

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { CollaborativeReplica, byte_length } from '../web/collab/core.js';
-const module = await WebAssembly.compile(await readFile(new URL('../web/sohjae_core.wasm', import.meta.url)));
+const module = await WebAssembly.compile(await readFile(new URL('../web/sohjae_collaborator.wasm', import.meta.url)));
 const document_id = '00000000000000000000000000000001';
 async function replica(actor) {
   const instance = await WebAssembly.instantiate(module, {});

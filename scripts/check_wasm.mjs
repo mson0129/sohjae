@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 import { Core, byte_length } from '../web/core.js';
 
-const wasm = await WebAssembly.compile(await readFile(new URL('../web/sohjae_core.wasm', import.meta.url)));
+const wasm = await WebAssembly.compile(await readFile(new URL('../web/sohjae_editor.wasm', import.meta.url)));
 const core = new Core((await WebAssembly.instantiate(wasm, {})).exports);
 let state = core.request(0, '한😀');
 state = core.request(3, '글', 3, 7); assert.equal(state.source, '한글');

@@ -107,7 +107,7 @@ mod tests {
     use super::*;
     #[test]
     fn normalization_is_idempotent_and_semantic_for_all_official_examples() {
-        let fixture = include_str!("../../tests/fixtures/gfm-spec.txt");
+        let fixture = include_str!("../../spec/gfm-spec.txt");
         let mut source = None::<String>;
         let mut expected = false;
         let mut count = 0;

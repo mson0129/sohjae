@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 import re,struct,subprocess,json,hashlib,sys
 from gfm_classification import LABELS, classify, first_difference
 root=Path(__file__).resolve().parents[1]
-spec=(root/'tests/fixtures/gfm-spec.txt').read_text()
+spec=(root/'spec/gfm-spec.txt').read_text()
 examples=[];section='';lines=spec.splitlines(keepends=True);index=0
 while index<len(lines):
     if lines[index].startswith('#'): section=lines[index].lstrip('#').strip()
@@ -67,7 +67,7 @@ report={'spec':'GFM 0.29-gfm','source':'https://github.com/github/cmark-gfm/blob
 categories={key:{'label':label,'remaining':0} for key,label in LABELS.items()}
 for item in details:
     if not item['passed']:categories[item['classification']['category']]['remaining']+=1
-classification_baseline=json.loads((root/'tests/fixtures/gfm-classification-baseline.json').read_text())
+classification_baseline=json.loads((root/'spec/gfm-classification-baseline.json').read_text())
 assert classification_baseline['spec_sha256']==report['sha256'], 'Classification baseline fixture changed'
 matched={item['example'] for item in details if item['passed']}
 original=classification_baseline['failed_examples']
@@ -84,7 +84,7 @@ report['classification']={key:value for key,value in classification.items() if k
 (root/'web/gfm-results.json').write_text(json.dumps(details,ensure_ascii=False)+'\n')
 print(json.dumps(report,ensure_ascii=False,indent=2) if '--verbose' in sys.argv else f"GFM semantic audit: {passed}/{len(examples)} matched; {len(examples)-passed} mismatches recorded in docs/gfm-audit.json and web/gfm-results.json.")
 
-baseline_path=root/'tests/fixtures/gfm-baseline.json'
+baseline_path=root/'spec/gfm-baseline.json'
 if '--update-baseline' in sys.argv:
     baseline_path.write_text(json.dumps({'spec_sha256':report['sha256'],'passed_examples':[item['example'] for item in details if item['passed']]},indent=2)+'\n')
 if '--check' in sys.argv:

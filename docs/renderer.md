@@ -1,6 +1,8 @@
 # 독립 Markdown 렌더러
 
-파일 브라우저의 Markdown 미리보기처럼 편집 기능이 필요 없는 호스트는 렌더러 전용 WASM을 사용한다. `sohjae_renderer.wasm`은 파서·HTML 렌더링·문자 참조·코드 색상 로직만 포함하며 편집 세션·history·CRDT·WebRTC를 포함하지 않는다. 에디터는 기존 `sohjae_core.wasm`을 계속 사용하며 렌더러 WASM을 추가 다운로드하지 않는다. 두 바이너리는 같은 Rust 파서/렌더러 소스를 각각 컴파일하므로 문법 규칙이 갈라지지 않는다.
+파일 브라우저의 Markdown 미리보기처럼 편집 기능이 필요 없는 호스트는 렌더러 전용 WASM을 사용한다. `sohjae_render.wasm`은 파서·HTML 렌더링·문자 참조·코드 색상 로직만 포함하며 편집 세션·history·CRDT·WebRTC를 포함하지 않는다. 에디터는 기존 `sohjae_editor.wasm`을 계속 사용하며 렌더러 WASM을 추가 다운로드하지 않는다. 두 바이너리는 같은 Rust 파서/렌더러 소스를 각각 컴파일하므로 문법 규칙이 갈라지지 않는다.
+
+`create_renderer`와 반환 객체의 `render`·`destroy`는 안정 API v1이다. [안정성 및 호환성 정책](api-stability.md)을 따른다. HTML의 정확한 문자열·내부 DOM 구조는 안정 계약에 포함하지 않는다.
 
 ## 빌드와 배포
 
@@ -14,7 +16,7 @@ sh scripts/build.sh
 node scripts/check_renderer.mjs
 ```
 
-`dist/sohjae-renderer-0.1.0.tgz`에는 renderer.js, renderer.css, sohjae_renderer.wasm과 API.md, gfm-conformance.md, LICENSE를 포함한다. CSS는 선택 사항이다. JS/WASM을 같은 디렉터리에 HTTP(S)로 제공한다. wasm은 application/wasm MIME을 사용한다. 외부 패키지·CDN이 필요하지 않으며 단일 Python 파일 서버에 포함하려면 호스트가 해당 바이트를 자체 리소스 경로로 제공할 수 있다. 참조 파일 브라우저 프로젝트 자체는 변경하지 않았다.
+`dist/sohjae-renderer-0.1.0.tgz`에는 renderer.js, renderer.css, sohjae_render.wasm과 API.md, gfm-conformance.md, LICENSE를 포함한다. CSS는 선택 사항이다. JS/WASM을 같은 디렉터리에 HTTP(S)로 제공한다. wasm은 application/wasm MIME을 사용한다. 외부 패키지·CDN이 필요하지 않으며 단일 Python 파일 서버에 포함하려면 호스트가 해당 바이트를 자체 리소스 경로로 제공할 수 있다. 참조 파일 브라우저 프로젝트 자체는 변경하지 않았다.
 
 ```html
 <link rel="stylesheet" href="./sohjae-renderer/renderer.css">
@@ -50,3 +52,7 @@ exports: memory, renderer_abi_version, renderer_reserve_input, renderer_render, 
 Cargo 기본 feature는 editor다. renderer는 `--no-default-features --features renderer --lib`로 별도 빌드하며 editor와 동시에 활성화하지 않는다. 별도 target/renderer 디렉터리를 사용해 기존 에디터 산출물을 덮어쓰지 않는다.
 
 최신 컨테이너·delimiter/link 구현과 불일치 분류는 [GFM 보강 기록](gfm-conformance.md)을 따른다.
+
+## Classic-script constructor
+
+Load `sohjae-renderer.js`, then call `new SeojaeRenderer({ selector: '#preview' })` to render the matched div's `textContent` as Markdown. `SohjaeRenderer` is an alias. Await `renderer.ready` before calling `render(markdown)` or `get_markdown()`. `destroy()` restores the latest Markdown text. CSS and renderer WASM load automatically beside the entry script; editor and collaboration modules are not loaded. See [quick start](quick-start.md).

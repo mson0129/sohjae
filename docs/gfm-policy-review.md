@@ -16,4 +16,4 @@
 
 기존 정규화 테스트의 `<br />` 다음에는 빈 줄을 넣었다. GFM에서 독립된 HTML 태그 줄은 빈 줄 전까지 HTML 블록이므로, 뒤 문단의 hard break 변환을 검사하려면 블록을 먼저 끝내야 한다. 별도 회귀 검사는 HTML 블록 내부 Markdown이 정규화되지 않는 점과 문단 중간의 HTML 태그가 문단을 끊지 않는 점을 확인한다.
 
-모든 예제의 원문과 출력: `web/gfm-results.json`. 출처·라이선스: `tests/fixtures/NOTICE.md`.
+모든 예제의 원문과 출력: `web/gfm-results.json`. 출처·라이선스: `spec/NOTICE.md`.

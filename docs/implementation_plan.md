@@ -126,3 +126,33 @@ Rust 54개(문법 테스트 6개 추가), 기존/확장 브라우저 33개(4개 
 ## 편집·정규화·접근성 후속 보강
 
 독립 문단 캐시와 DOM 좌표 패치, 시간·문맥 기반 입력 undo 그룹, 의미 보존 정규화와 672개 멱등성 검사, 도구 모음 키보드/접근성 의미, 정의 목록 중첩·여러 문단, 상태를 유지하는 코드 색상 분석을 추가했다. 출시 지원 기준은 이번 작업 범위에 포함하지 않았다. 실제 VoiceOver 음성 출력은 사용자 답변에 따라 제외한다. 구현·검증·제한은 editor-hardening.md에 기록한다.
+
+## API 계약 고정 및 협업 호환성 보강 (2026-10-24)
+
+렌더러와 단일 사용자 편집기의 공개 호출 계약을 API v1로 고정했다. 내부 DOM·속성·정확한 HTML 출력과 협업 API는 안정 범위에서 제외하며, 버전·사용 중단·JS/WASM 동시 배포 정책은 [API 안정성](api-stability.md)을 따른다. 종료 후 호출 오류 통일, 생성 전 옵션 검사와 초기화 실패 정리, 숫자 좌표 검증을 보강했다.
+
+협업은 ABI v2·SCV2 저장 형식을 유지하면서 WASM schema capability와 WebRTC protocol3/codec2/schema1 확인을 추가했다. 이전 hello는 문서 교환 전에 거절하며 저장된 이전 로그는 별도 fixture로 복원 검증한다. 자동 로그 변환이나 모든 과거 빌드 호환을 제공하는 것은 아니다. 실제 WASM 계약 검사를 build.sh에 포함하고 `/api-contracts.html`에 공개 브라우저 계약 검사를 추가했다.
+
+## 단일 사용자 API 상세 안정화 (2026-10-24)
+
+`editor.d.ts`에 공개 메서드·부분 설정·명령 union·이벤트 detail을 선언했다. 생성 전 설정 검사, 생성 중 같은 컨테이너의 중복 요청 거절, URL·설정 사본 유지, IME 중 다중 옵션 변경 누적, 생성 전용 옵션 변경 거절, 잘못된 명령·normalize 인수 검증, 종료/문서 변경 이후의 파일 열기 결과 보호를 구현했다. 알려지지 않은 설정 키는 기존처럼 보관하되 동작 계약에는 포함하지 않는다.
+
+타입 부정 예제까지 포함한 TypeScript 5.9.3 strict 검사와 브라우저 API 계약 11/11을 통과했다. TypeScript는 임시 개발 검증 도구이며 SDK 런타임 의존성이 아니다. build.sh는 tsc가 설치된 환경에서 타입 검사를 추가 실행한다. 공개 가이드와 타입 선언을 편집기 SDK에 포함한다.
+
+## 협업 API·프로토콜 안정화 (2026-10-24)
+
+공개 Replica·Transport API v2와 ABI2·transport3·codec2/schema1을 고정했다. 프로필 객체, 두 TypeScript 선언, 읽기 전용 snapshot, 오류 code, 반복 가능한 종료와 destroy 시 transport 정리를 제공한다. 이벤트 재진입 변경은 명시적으로 거절하고 조회는 허용한다. 공유 UI의 replica 옵션·초안 API도 계약에 포함하며 같은 SDK의 살아 있는 replica만 연결한다.
+
+SCV2 저장 형식은 유지하고 전체 tag0~9의 고정 fixture를 추가했다. 독립 참조 reader·실제 WASM 복원/재출력 동일성, 인증·프레임·역압·초기 실패·종료 계약을 자동 검사한다. ABI는 응답 직렬화 실패까지 변경을 되돌린다. 브라우저의 실제 3인 full mesh·오프라인 재연결과 peer 문서 보존을 검증했다. 기존의 실험 단계 표시는 [프로토콜 안정 계약](collaboration-protocol.md)으로 대체한다. 인증·시그널링·저장 호스트, checkpoint/GC/blob와 실환경 출시 검증은 별도 범위다.
+
+## 간편 스크립트 초기화 (2026-10-25)
+
+`sohjae.js`를 클래식 script로 한 번 로드한 뒤 `Sohjae.init({ selector: '#editor' })` 또는 target 요소로 기존 Editor를 생성한다. 모듈·CSS·WASM은 엔트리 스크립트의 위치 기준으로 처리한다. head 초기화의 DOM 준비 대기, textarea 초기값·폼 동기화·reset·required·label·readonly/disabled, 종료 복원과 중복 생성 방지를 구현했다. 모듈 API 및 선택적 협업 WASM 분리는 유지한다.
+
+편집기 SDK와 HTTP 예제에 엔트리·타입·quick-start.html을 포함한다. 기존 파일 직접 열기용 self-contained index.html도 유지한다. 상세 계약은 [간편 시작](quick-start.md)을 따른다. 공개 진입점이 하나이며 내부 자산 전체를 한 파일에 넣거나 CDN에 게시한 것은 아니다.
+
+## 생성자 형태의 간편 초기화 (2026-10-25)
+
+`new Sohjae({ selector: '#editor' })`가 즉시 EventTarget 기반 handle을 반환하고 자동 초기화한다. ready Promise는 동일 handle로 resolve하며 ready 이벤트 이후 기존 Editor 메서드를 전달한다. 이벤트는 생성 직후 구독할 수 있고 로딩 실패는 ready reject와 error 이벤트로 전달한다. 준비 전 메서드 실행은 거절하며 초기화 중 destroy는 AbortError와 원문 복원으로 종료한다. 늦게 끝난 초기화 결과도 해제하고, textarea에 로딩 중 입력한 내용은 초기 문서에 반영한다.
+
+기존 init Promise API는 호환 함수로 유지한다. get은 생성자 handle 또는 기존 init 결과를 반환한다. 예제와 네 언어 README의 기본 초기화 코드를 생성자 방식으로 변경하고 타입 선언에 생성 시그니처와 ready 이벤트/Promise를 추가했다.

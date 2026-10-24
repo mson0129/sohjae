@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sohjae 간편 시작</title>
+  <script src="./sohjae.js"></script>
+  <script>new Sohjae({ selector: '#editor', plugins: ['collaboration'] });</script>
+</head>
+<body>
+  <h1>Sohjae 간편 시작</h1>
+  <form id="document" onsubmit="event.preventDefault(); document.getElementById('output').textContent = new FormData(this).get('markdown');">
+    <textarea id="editor" name="markdown"># Hello, Sohjae!
+
+**굵게**, ==하이라이트==와 표를 편집해 보세요.</textarea>
+    <p><button type="submit">폼 데이터 확인</button> <button type="reset">초기 내용으로</button></p>
+  </form>
+  <pre id="output" aria-live="polite"></pre>
+</body>
+</html>

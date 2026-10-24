@@ -87,7 +87,7 @@ await test('Authorization rejects unknown peers before binary document exchange'
   const transport = new WebRTCTransport(a, channel, { authorize_peer: () => false });
   try {
     await Promise.resolve();
-    channel.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'hello', protocol: 2, document_id: a.snapshot.document_id, actor_id: b.snapshot.actor_id }) }));
+    channel.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'hello', protocol: 3, codec: 2, schema: 1, document_id: a.snapshot.document_id, actor_id: b.snapshot.actor_id }) }));
     await until(() => transport.closed);
     assert(channel.sent.length === 1 && typeof channel.sent[0] === 'string');
   } finally { transport.close(); a.destroy(); b.destroy(); }
@@ -101,7 +101,7 @@ await test('Malformed fragment is rejected and transport listeners are removed',
   const channel = new FakeChannel(), transport = new WebRTCTransport(a, channel, { authorize_peer: () => true });
   try {
     await Promise.resolve();
-    channel.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'hello', protocol: 2, document_id: a.snapshot.document_id, actor_id: b.snapshot.actor_id }) }));
+    channel.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'hello', protocol: 3, codec: 2, schema: 1, document_id: a.snapshot.document_id, actor_id: b.snapshot.actor_id }) }));
     await until(() => transport.ready);
     channel.dispatchEvent(new MessageEvent('message', { data: new ArrayBuffer(20) }));
     await until(() => transport.closed);
@@ -144,6 +144,36 @@ await test('Textarea stable selection follows remote Unicode insertion', async (
     b.replace_text(0, 0, '한😀'); a.merge(b.export_state());
     assert(field.value === '한😀abc' && field.selectionStart === 4 && field.selectionEnd === 5);
   } finally { field.remove(); a.destroy(); b.destroy(); }
+});
+await test('Stable snapshots, error codes, reentry rules and repeatable replica teardown', async () => {
+  const [a,b]=await pair();
+  try {
+    a.replace_text(0,0,'한😀');const snapshot=a.snapshot;
+    assert(Object.isFrozen(snapshot)&&Object.isFrozen(snapshot.tables));
+    let error;try{snapshot.text='bad';}catch(caught){error=caught;}assert(error instanceof TypeError);
+    a.addEventListener('change',()=>{a.export_state();let error;try{a.undo();}catch(caught){error=caught;}assert(error?.code==='ReentrantCall');});
+    a.replace_text(7,7,'!');assert(snapshot.text==='한😀');b.merge(a.export_state());assert(a.snapshot.text===b.snapshot.text);
+    a.destroy();a.destroy();try{a.export_state();}catch(caught){error=caught;}assert(error?.code==='Destroyed');
+  }finally{a.destroy();b.destroy();}
+});
+await test('Actual WebRTC: three-peer full mesh converges after offline edits and reconnect', async () => {
+  const document_id=new_identity(),actors=await Promise.all([0,1,2].map(()=>create_replica({document_id})));let connections=[];
+  const connect=async()=>{for(const [left,right]of [[0,1],[0,2],[1,2]])connections.push(await connect_local_pair(actors[left],actors[right]));};
+  const converged=()=>actors.every(actor=>actor.snapshot.text===actors[0].snapshot.text&&actor.snapshot.operation_count===actors[0].snapshot.operation_count&&actor.snapshot.pending===0);
+  try {
+    actors[0].replace_text(0,0,'seed');actors[1].merge(actors[0].export_state());actors[2].merge(actors[0].export_state());await connect();
+    actors.forEach((actor,i)=>actor.replace_text(0,0,['한','😀','C'][i]));await until(()=>converged()&&actors[0].snapshot.text.includes('C'));
+    connections.forEach(connection=>connection.close());connections=[];
+    actors.forEach((actor,i)=>actor.replace_text(0,0,String(i)));await connect();await until(()=>converged()&&['0','1','2'].every(char=>actors[0].snapshot.text.includes(char)));
+  }finally{connections.forEach(connection=>connection.close());actors.forEach(actor=>actor.destroy());}
+});
+await test('Actual WebRTC: destroying a replica closes its transport but preserves the peer document', async () => {
+  const [a,b]=await pair();let connection;
+  try {
+    a.replace_text(0,0,'preserved');connection=await connect_local_pair(a,b);await until(()=>b.snapshot.text==='preserved');
+    a.destroy();a.destroy();await until(()=>connection.transports.every(transport=>transport.closed));
+    b.replace_text(0,0,'still alive ');assert(b.snapshot.text==='still alive preserved');
+  }finally{connection?.close();a.destroy();b.destroy();}
 });
 document.querySelector('#summary').textContent = `${passed} passed / ${failed} failed`;
 document.documentElement.dataset.result = failed ? 'failed' : 'passed';

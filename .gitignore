@@ -1,7 +1,10 @@
 /target/
-/web/sohjae_core.wasm
+/web/sohjae_editor.wasm
 /dist/
 /artifacts/
-/web/sohjae_renderer.wasm
+/web/sohjae_render.wasm
 
 __pycache__/
+
+/tests/
+/web/sohjae_collaborator.wasm

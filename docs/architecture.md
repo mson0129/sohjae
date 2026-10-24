@@ -42,7 +42,7 @@ WASM은 생성기가 없는 ABI v1과 선형 메모리를 사용한다. 버퍼 �
 
 ## 독립 렌더러 빌드
 
-뷰어 전용 feature renderer는 markdown/syntax/entities와 stateless renderer ABI만 포함한다. editor feature의 편집·협업 모듈은 컴파일하지 않는다. 기본 editor 빌드는 기존 ABI v1/v2 및 내장 렌더링을 유지하므로 추가 WASM 로딩이 필요 없다. 두 바이너리는 같은 파서 소스를 사용한다. 빌드·API·배포는 [독립 렌더러](renderer.md)를 따른다.
+뷰어 전용 feature renderer는 markdown/syntax/entities와 stateless renderer ABI만 포함한다. editor feature의 편집·협업 모듈은 컴파일하지 않는다. editor는 단일 사용자 ABI v1과 내장 렌더링만 포함한다. collaborator는 별도 feature로 ABI v2·CRDT·표 투영을 빌드한다. 협업 사용 시에만 sohjae_collaborator.wasm을 추가 로드한다. 세 바이너리는 같은 파서 소스를 사용한다. 빌드·API·배포는 [독립 렌더러](renderer.md)를 따른다.
 
 ## GFM 컨테이너와 인라인 패스
 

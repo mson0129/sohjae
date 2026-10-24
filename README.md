@@ -1,10 +1,52 @@
-# sohjae
+# Sohjae
 
-다른 프로젝트에 임베딩하는 Rust/WASM Markdown 편집기. 외부 crate·JavaScript 패키지·편집기 프레임워크 없이 Rust 표준 라이브러리와 브라우저 기본 API로 구현한다. [MIT](LICENSE).
+[English](README.md) | [Español](docs/readme/README.es.md) | [日本語](docs/readme/README.ja.md) | [한국어](docs/readme/README.ko.md)
 
-## 실행
+An embeddable Markdown editor and renderer built with Rust/WASM, the Rust standard library, and native browser APIs. No external crates, JavaScript packages, or editor frameworks are required. Licensed under [MIT](LICENSE).
 
-Rust와 Python 3가 필요하다. Node는 ABI 검증·성능 측정에만 사용한다.
+Renderer and single-user editor public APIs follow the [API v1 stability and compatibility policy](docs/api-stability.md). Collaboration follows the [API v2 and protocol stability contract](docs/collaboration-protocol.md), with explicit protocol/schema checks before document exchange.
+
+## Quick start
+
+Serve the editor SDK folder and load one script. CSS, WASM, and internal modules load automatically relative to that script.
+
+```html
+<script src="./sohjae/sohjae.js"></script>
+<textarea id="editor" name="markdown"># Hello, Sohjae!</textarea>
+<script>new Sohjae({ selector: '#editor' });</script>
+```
+
+[Quick-start guide](docs/quick-start.md) · [Runnable example](http://127.0.0.1:8080/quick-start.html). A textarea keeps its form value synchronized; a div can also be used.
+
+## Ready-to-run examples
+
+| Example | WASM modules |
+| --- | --- |
+| [Markdown renderer](examples/sohjae_renderer/index.html) | `sohjae_render.wasm` |
+| [Markdown editor](examples/sohjae_editor/index.html) | `sohjae_editor.wasm` |
+| [Collaborative editor](examples/sohjae_collaborator/index.html) | `sohjae_editor.wasm` + optional `sohjae_collaborator.wasm` |
+
+Each folder contains `index.html`, JavaScript, CSS, WASM binaries, and companions for opening local files. Keep the entire folder together. HTTP loads the adjacent WASM binary; `file://` uses a companion containing the same binary. Opening the examples requires no build tools. Direct local-file opening has not been verified end to end because browser automation restricts `file://`; use the local HTTP server if your browser restricts local scripts.
+
+```sh
+python3 scripts/serve_examples.py --port 8081
+```
+
+Open [renderer](http://127.0.0.1:8081/sohjae_renderer/index.html), [editor](http://127.0.0.1:8081/sohjae_editor/index.html), or [collaborative editor](http://127.0.0.1:8081/sohjae_collaborator/index.html). See the [example guide](examples/README.md).
+
+## Features
+
+- Rich, hybrid, and Markdown modes, a full-source view, and per-element syntax visibility.
+- Highlighting (`==text==`), definition lists, custom heading IDs, and basic code highlighting. Superscript and subscript extensions are excluded.
+- Formatting tools, undo/redo, Korean IME composition handling, and UTF-8/UTF-16 selection mapping.
+- Table navigation, row/column insertion and removal, alignment, multiple selection, and drag handles for reordering rows and columns.
+- Conversion of supported HTML paste structures, Base64 image/file embedding, and downloads.
+- Front Matter, CSS layouts, reading and read-only views, and a keyboard command palette.
+- Source-preserving editing and normalized export for supported syntax.
+
+## Build and run
+
+Install Rust and Python 3. Node.js is used for WASM checks and measurements.
 
 ```sh
 rustup target add wasm32-unknown-unknown
@@ -12,50 +54,23 @@ sh scripts/build.sh
 python3 scripts/serve.py --port 8080
 ```
 
-- 편집기: <http://127.0.0.1:8080/>
-- [확장 문법 예제](http://127.0.0.1:8080/extended.html) · [예제 원문](web/extended.md)
-- 브라우저 수용 테스트: <http://127.0.0.1:8080/tests.html>
-- 실제 WASM ABI 검증·측정: `node scripts/check_wasm.mjs`
-- 배포 파일 생성: `sh scripts/package.sh`
+- [Editor](http://127.0.0.1:8080/), [renderer](http://127.0.0.1:8080/renderer.html), and [extended syntax](http://127.0.0.1:8080/extended.html) ([source](web/extended.md)).
+- [Browser tests](http://127.0.0.1:8080/tests.html) and [GFM audit](http://127.0.0.1:8080/gfm-audit.html).
+- Editor WASM verification: `node scripts/check_wasm.mjs`.
+- Build all three SDK archives: `sh scripts/package.sh`.
 
-## 뷰어 전용 렌더러
+The renderer SDK uses `renderer.js` and `sohjae_render.wasm` without editing, history, CRDT, or WebRTC code. Build it separately with `sh scripts/package_renderer.sh`. See the [renderer API](docs/renderer.md).
 
-편집 기능 없이 Markdown 미리보기만 필요하면 `sh scripts/package_renderer.sh`로 `dist/sohjae-renderer-0.1.0.tgz`를 생성한다. 독립 `renderer.js` + `sohjae_renderer.wasm`을 사용하며 편집·history·협업 코드를 포함하지 않는다. 기존 편집기 WASM과 API는 유지한다. [렌더러 API 및 임베딩](docs/renderer.md) · [뷰어 데모](http://127.0.0.1:8080/renderer.html).
+## Embed the editor
 
-## 협업 코어 v2
-
-기존 단일 사용자 프로토타입을 보존하고 협업 문서 코어를 별도로 추가했다. 문자 CRDT, 안정적인 표·행·열 ID, 작성자별 undo/redo, 상대 커서·IME 캡처, 전송 독립 WASM API와 WebRTC 어댑터를 제공한다. **`create_editor(container, { replica })`로 같은 공유 문서를 리치·하이브리드·Markdown·원본 화면에 연결한다. `replica`를 생략하면 기존 단일 사용자 동작을 유지한다.**
-
-- [리치·원본 협업 화면](http://127.0.0.1:8080/collab/rich.html) · [통합 테스트](http://127.0.0.1:8080/collab/rich-tests.html) · [실제 한글 입력기 검증](http://127.0.0.1:8080/collab/ime.html)
-- [협업 코어 검증 화면](http://127.0.0.1:8080/collab/index.html): 실제 WebRTC 연결·단절·재연결, 본문/셀 편집.
-- [협업 브라우저 테스트](http://127.0.0.1:8080/collab/tests.html), 실제 WASM 검증: `node scripts/check_collab.mjs`
-- [협업 설계](docs/collaboration.md), [협업 API](docs/collaboration_api.md)
-- 보존본: `artifacts/prototype-v1-2026-10-23.tar.gz` (원본별 SHA256 manifest 포함).
-
-STUN/TURN 설정은 전송 구성에 전달하며, 다른 기기의 참가자 연결에는 호스트의 인증·시그널링이 필요하다. 같은 페이지 검증은 외부 서버 없이 로컬 ICE 후보를 사용한다.
-
-## 단일 사용자 프로토타입 기능
-
-- 하이브리드·리치·Markdown 모드와 전체 원본 화면, 요소별 문법 노출 설정.
-- 하이라이트(`==내용==`)·정의 목록·사용자 지정 제목 ID·코드 기본 색상 표시.
-- Markdown 입력·서식 도구·undo/redo·한글 IME commit과 UTF-8/UTF-16 선택 매핑.
-- 표 셀 이동·행/열 삽입·삭제·정렬·다중 선택·핸들 드래그 순서 이동·표 밖 이동.
-- HTML 붙여넣기의 허용 구조 변환, 이미지·파일 Base64 임베딩 및 다운로드.
-- Front Matter와 CSS 레이아웃, 읽기 화면·읽기 전용, 키보드 명령 팔레트.
-- 원문을 유지하면서 지원 문법을 정규화해 내보내기.
-
-현재는 개발 버전이다. 자체 문법 fixture와 브라우저 수용 테스트를 통과했지만 **전체 GFM 적합성과 대상 브라우저 전체·모바일 실기기 검증은 완료하지 않았다.** 공식 GFM 672개 전체 예제의 구조 비교 결과와 실패 목록은 [GFM 검사 화면](http://127.0.0.1:8080/gfm-audit.html)에 공개한다. macOS 두벌식은 Firefox에서 실제 키 이벤트로 리치·원본 조합 중 원격 삽입까지 검증했다. 이 결과는 모바일 가상 키보드나 다른 OS 입력기 검증을 대신하지 않는다. 정확한 구현·검증 경계는 [구현 상태](docs/implementation_plan.md)와 [호환성](docs/compatibility.md)에 기록한다.
-
-## 임베딩
-
-빌드한 `web`의 모듈·CSS·WASM 파일을 같은 디렉터리에 제공한다. 인스턴스는 Shadow DOM으로 호스트 스타일과 격리한다.
+Serve the built JavaScript modules, CSS, and WASM files from `web/` together, preserving their relative paths. Each editor uses Shadow DOM to isolate its styles from the host page.
 
 ```html
 <div id="editor"></div>
 <script type="module">
   import { create_editor } from './sohjae/editor.js';
   const editor = await create_editor(document.querySelector('#editor'), {
-    markdown: '# 문서\n\n내용',
+    markdown: '# Document\n\nContent',
     mode: 'hybrid',
     elements: { table: { reveal_markdown: false } }
   });
@@ -64,23 +79,44 @@ STUN/TURN 설정은 전송 구성에 전달하며, 다른 기기의 참가자 �
 </script>
 ```
 
-## GFM 보강 현황
+The editor loads `sohjae_editor.wasm` by default and does not require the renderer WASM.
 
-동일한 672개 구조 비교에서 **585개 일치·87개 불일치**다. 계층적 목록·인용문, 강조 구분자와 링크·참조 정의 처리를 보강했다. [GFM 구현·분류·검증](docs/gfm-conformance.md)에 해결한 320개와 남은 예제의 진단을 기록한다. 전체 적합성 완료는 아니다.
+## Optional collaboration
 
-## 문서
+The standalone editor WASM contains no collaboration ABI or CRDT. Add the collaboration SDK only when needed. When deploying the optional SDK archive, merge its contents into the same SDK root while preserving relative paths.
 
-| 문서 | 내용 |
+Use `create_editor(container, { replica })` to connect rich, hybrid, Markdown, and source views to a shared document. Omitting `replica` keeps single-user operation. Collaboration provides a character CRDT, stable table/row/column IDs, per-author undo/redo, relative cursor anchors, IME capture, a transport-independent WASM API, and a WebRTC adapter.
+
+STUN/TURN settings belong to the transport configuration. Connecting participants on different devices also requires host-provided authentication and signaling. The same-page example uses local ICE candidates without external servers.
+
+See the [collaboration design](docs/collaboration.md), [API](docs/collaboration_api.md), [rich/source demo](http://127.0.0.1:8080/collab/rich.html), [integration tests](http://127.0.0.1:8080/collab/rich-tests.html), and [IME verification page](http://127.0.0.1:8080/collab/ime.html). Verify the collaboration WASM with `node scripts/check_collab.mjs`.
+
+## Validation and limitations
+
+Sohjae is a development version. The recorded structural comparison against 672 official GFM examples has **585 matches and 87 differences**. Hierarchical lists and block quotes, emphasis delimiters, links, and reference definitions have been improved. This is not a claim of complete GFM conformance. The [GFM report](docs/gfm-conformance.md) documents the resolved cases and remaining differences.
+
+Real macOS Korean two-set IME input was verified in Firefox, including remote insertion during composition in rich and source views. This does not replace mobile-device, other operating-system, or full browser-matrix testing. See [implementation status](docs/implementation_plan.md) and [compatibility](docs/compatibility.md) for the validation boundaries.
+
+## Documentation
+
+The detailed reference documents are currently written in Korean.
+
+| Document | Contents |
 | --- | --- |
-| [요구사항](docs/requirements.md) | 합의한 목표 범위 |
-| [문법 및 저장 규칙](docs/formatting.md) | 정규화·HTML·붙여넣기 |
-| [아키텍처](docs/architecture.md) | 현재 구현과 목표 설계의 차이 |
-| [협업 설계 및 API](docs/collaboration_api.md) | v2 코어·WebRTC·원본 좌표 경계 |
-| [설정](docs/configuration.md) | 기본값과 적용 순서 |
-| [API 및 ABI](docs/api.md) | 임베딩·버퍼·오류·라이프사이클 |
-| [구현 및 검증](docs/implementation_plan.md) | 검증 결과와 남은 작업 |
-| [실검증 및 GFM](docs/validation.md) | 전체 예제·실제 OS 입력·모바일 검증 경계 |
-| [호환성](docs/compatibility.md) | 지원 문법·브라우저 검증 범위 |
-| [이전 기록](docs/handoff.md) | 결정 출처와 환경 이전 |
+| [Requirements](docs/requirements.md) | Agreed scope |
+| [Formatting and storage](docs/formatting.md) | Normalization, HTML, and paste handling |
+| [Architecture](docs/architecture.md) | Implementation and target design |
+| [Configuration](docs/configuration.md) | Defaults and precedence |
+| [API and ABI](docs/api.md) | Embedding, buffers, errors, and lifecycle |
+| [Single-user API guide](docs/single-user-api.md) | Typed integration, settings, commands, and lifecycle |
+| [Implementation plan](docs/implementation_plan.md) | Results and remaining work |
+| [Validation](docs/validation.md) | GFM, OS input, and mobile testing |
+| [Compatibility](docs/compatibility.md) | Syntax and browser coverage |
+| [Editor hardening](docs/editor-hardening.md) | Caching, undo grouping, normalization, and accessibility |
+| [Handoff record](docs/handoff.md) | Decisions and environment migration |
 
-문단 캐시·DOM 좌표 패치, 연속 입력 undo 묶음, 의미 보존 정규화, 키보드 접근성과 코드/정의 목록 확장의 현재 범위는 [편집 보강 기록](docs/editor-hardening.md)을 참고한다.
+`tests/` is reserved for local verification and excluded from Git tracking. Official standard fixtures needed by build/audit tools are stored in `spec/`. Rust helper programs live in `tools/`; their Cargo example names and commands are preserved.
+
+## Optional collaboration and div rendering
+
+Enable collaboration with `new Sohjae({ selector: "#editor", plugins: ["collaboration"] })`. Render Markdown inside a div with `new SeojaeRenderer({ selector: "#preview" })` after loading `sohjae-renderer.js`. See [quick start](docs/quick-start.md) for deployment and connection details.

@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { Renderer, create_renderer } from '../web/renderer.js';
-const bytes = await readFile(new URL('../web/sohjae_renderer.wasm', import.meta.url));
+const bytes = await readFile(new URL('../web/sohjae_render.wasm', import.meta.url));
 const module = await WebAssembly.compile(bytes);
 assert.deepEqual(WebAssembly.Module.imports(module), []);
 const functions = WebAssembly.Module.exports(module).filter(item => item.kind === 'function').map(item => item.name).sort();
@@ -28,4 +28,4 @@ assert.throws(() => renderer.render(null), TypeError);
 renderer.destroy(); renderer.destroy(); assert.throws(() => renderer.render('x'), /destroyed/);
 const loaded = await create_renderer({ wasm_url: `data:application/wasm;base64,${bytes.toString('base64')}` });
 assert.match(loaded.render('**뷰어**'), /<strong/); loaded.destroy();
-console.log(`Renderer: ${fixtures.length} GFM outputs unchanged; Unicode, safety, read-only, ABI limits, recovery, memory growth, loader and lifecycle passed. WASM ${bytes.length} bytes; editor ${(await readFile(new URL('../web/sohjae_core.wasm', import.meta.url))).length} bytes.`);
+console.log(`Renderer: ${fixtures.length} GFM outputs unchanged; Unicode, safety, read-only, ABI limits, recovery, memory growth, loader and lifecycle passed. WASM ${bytes.length} bytes; editor ${(await readFile(new URL('../web/sohjae_editor.wasm', import.meta.url))).length} bytes.`);

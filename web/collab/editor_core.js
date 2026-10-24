@@ -1,6 +1,7 @@
 // Adapts the shared document to the existing rich/source editor protocol.
 // The v1 core is used solely as a local parser/normalizer and DOM projection.
 import { load_core, byte_length, byte_slice } from '../core.js';
+import { CollaborativeReplica } from './core.js';
 function diff(old_text, text) {
   let start = 0, end = old_text.length, to = text.length;
   while (start < Math.min(end,to) && old_text[start] === text[start]) start++;
@@ -10,6 +11,7 @@ function diff(old_text, text) {
   return [byte_length(old_text.slice(0,start)), byte_length(old_text.slice(0,end)), text.slice(start,to)];
 }
 export async function create_editor_core(replica, options = {}) {
+  if (!(replica instanceof CollaborativeReplica) || !replica.handle) throw new TypeError('A live replica from this SDK is required');
   const renderer = await load_core(options.wasm_url);
   if (!replica.snapshot.operation_count && options.markdown) { replica.import_markdown(options.markdown); replica.clear_local_history(); }
   renderer.request(0, replica.snapshot.markdown);

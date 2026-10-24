@@ -9,6 +9,7 @@ description = "Dependency-free foundations for an embeddable Markdown editor"
 default = ["editor"]
 editor = []
 renderer = []
+collaborator = []
 
 [lib]
 crate-type = ["rlib", "cdylib"]
@@ -17,3 +18,11 @@ crate-type = ["rlib", "cdylib"]
 lto = true
 opt-level = "s"
 panic = "abort"
+
+[[example]]
+name = "render_gfm"
+path = "tools/render_gfm.rs"
+
+[[example]]
+name = "benchmark_incremental"
+path = "tools/benchmark_incremental.rs"

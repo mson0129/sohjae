@@ -3,7 +3,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
 const modules = new Map();
 
-export async function create_renderer({ wasm_url = new URL('./sohjae_renderer.wasm', import.meta.url) } = {}) {
+export async function create_renderer({ wasm_url = new URL('./sohjae_render.wasm', import.meta.url) } = {}) {
   const key = String(wasm_url);
   if (!modules.has(key)) modules.set(key, fetch(wasm_url).then(async response => {
     if (!response.ok) throw new Error(`Renderer WASM load failed: ${response.status}. Run scripts/build_renderer.sh first.`);

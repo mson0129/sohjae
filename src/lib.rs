@@ -1,9 +1,13 @@
 //! Dependency-free Markdown editing core, source-preserving parser, and raw WASM ABI.
 
-#[cfg(all(feature = "editor", feature = "renderer"))]
-compile_error!(
-    "Build editor and renderer separately; use --no-default-features --features renderer"
-);
+#[cfg(any(
+    all(
+        feature = "renderer",
+        any(feature = "editor", feature = "collaborator")
+    ),
+    all(target_arch = "wasm32", feature = "editor", feature = "collaborator")
+))]
+compile_error!("Build editor, renderer and collaborator WASMs separately with exclusive features");
 
 #[cfg(feature = "editor")]
 pub mod abi;
@@ -12,7 +16,7 @@ pub mod editor;
 pub mod markdown;
 pub mod position;
 
-#[cfg(feature = "editor")]
+#[cfg(feature = "collaborator")]
 pub mod collab;
 
 mod syntax;

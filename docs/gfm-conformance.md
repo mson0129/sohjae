@@ -37,9 +37,9 @@
 
 **진단 분류는 합격 판정을 바꾸지 않는다.** 이번 후속 수정은 526→585개 일치(59개 추가 해결), 146→87개 불일치다. 컨테이너·들여쓰기·구조 공백 진단은 모두 해결했고, 남은 블록 경계 2개는 Front Matter 확장이다. 남은 예제를 정책/확장 근거와 함께 [개별 검토 기록](gfm-policy-review.md)에 명시했다. HTML/URL 신호만으로 의도된 차이라고 자동 판정하지 않는다.
 
-`tests/fixtures/gfm-classification-baseline.json`은 시작 시점의 265개 통과/407개 실패와 각 실패의 진단 분류를 고정한다. `docs/gfm-classification.json`은 해결/남음/회귀 ID와 남은 모든 예제의 원인·정책 신호·첫 구조 차이를 기록한다. `web/gfm-results.json`에는 672개 전체의 원문·기대 HTML·실제 HTML이 있다. `/gfm-audit.html`에서 결과·명세 영역·원인별 필터로 확인한다.
+`spec/gfm-classification-baseline.json`은 시작 시점의 265개 통과/407개 실패와 각 실패의 진단 분류를 고정한다. `docs/gfm-classification.json`은 해결/남음/회귀 ID와 남은 모든 예제의 원인·정책 신호·첫 구조 차이를 기록한다. `web/gfm-results.json`에는 672개 전체의 원문·기대 HTML·실제 HTML이 있다. `/gfm-audit.html`에서 결과·명세 영역·원인별 필터로 확인한다.
 
-비교 함수 canonical은 이번 보강에서 변경하지 않았다. 단순히 정책 차이로 재분류하거나 비교를 완화해 통과 수를 늘리지 않았다. fixture 원문과 파생 예제의 출처/CC BY-SA 4.0 표기는 tests/fixtures/NOTICE.md를 따른다.
+비교 함수 canonical은 이번 보강에서 변경하지 않았다. 단순히 정책 차이로 재분류하거나 비교를 완화해 통과 수를 늘리지 않았다. fixture 원문과 파생 예제의 출처/CC BY-SA 4.0 표기는 spec/NOTICE.md를 따른다.
 
 ## 편집·호환성
 

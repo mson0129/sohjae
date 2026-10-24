@@ -1,4 +1,4 @@
-//! Experimental collaboration core v2. The prototype editor is intentionally separate.
+//! Collaboration core for the frozen SCV2 codec v2/schema v1; Rust internals are not a public API.
 //! An operation-based replicated sequence with explicit causal dependencies.
 pub mod abi;
 mod codec;
