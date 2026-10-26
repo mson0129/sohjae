@@ -25,7 +25,7 @@ for(const [folder,names]of examples){
  }
 }
 
-for (const name of ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','editor.d.ts','core.js','clipboard.js','html.js','editor.css']) {
+for (const name of ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','editor.d.ts','core.js','clipboard.js','html.js','rich-dom.js','editor.css']) {
   assert.deepEqual(await readFile(new URL(`../examples/sohjae_editor/${name}`,import.meta.url)),await readFile(new URL(`../web/${name}`,import.meta.url)));
 }
 console.log('Classic-script quick start and SDK example assets verified.');

@@ -1,3 +1,4 @@
+import { RichDOM } from './rich-dom.js';
 import { pretty_html } from './html.js';
 import { load_core, byte_length, byte_slice, utf16_to_byte, byte_to_utf16 } from './core.js';
 import { html_to_markdown, safe_url, read_file, file_markdown } from './clipboard.js';
@@ -133,6 +134,7 @@ class MarkdownEditor extends EventTarget {
     this.surface = this.root.querySelector('.surface');
     this.source_input = this.root.querySelector('.source');
     this.html_output = this.root.querySelector('.html_output');
+    this.native_rich = new RichDOM(this);
     this.toolbar = this.root.querySelector('.toolbar');
     this.dialog = this.root.querySelector('dialog');
     const tools = [
@@ -318,9 +320,10 @@ class MarkdownEditor extends EventTarget {
     return (options.normalize ?? true) ? this.core.request(8) : this.state.source;
   }
   get_selection() { this.assert_active(); return { ...this.selection, revision: this.state.revision }; }
-  get_pending_draft() { this.assert_active(); return this.core.draft?.source ?? null; }
+  get_pending_draft() { this.assert_active(); return this.rich_pending_draft ?? this.core.draft?.source ?? null; }
   discard_pending_draft() {
     this.assert_active();
+    if(this.rich_pending_draft!=null){const draft=this.rich_pending_draft;this.rich_pending_draft=null;return draft;}
     const source=this.core.discard_draft?.(); if(source===undefined)return null;
     this.last_source_draft=source;this.state=this.core.snapshot;this.selection={anchor:this.state.anchor,focus:this.state.focus};this.render();return source;
   }
@@ -400,11 +403,14 @@ class MarkdownEditor extends EventTarget {
     if (this.options.announce_changes && announce) announce.textContent = '문서가 변경되었습니다.';
   }
   render() {
-    if (this.composing) return;
+    if (this.composing || this.native_rich?.transaction) return;
     this.rendering = true;
     const focused = this.has_focus();
     const scroll = this.surface.scrollTop;
     const template = document.createElement('template'); template.innerHTML = this.state.html;
+    if (this.options.mode === 'rich') {
+      this.native_rich.fill(template);
+    } else {
     if (this.reading) template.content.querySelectorAll('.comment,.front_matter,.reference_definition,[data-kind="comment"]').forEach(element => element.remove());
     template.content.querySelectorAll('[data-task]').forEach(input => {
       input.disabled = this.reading || this.options.read_only;
@@ -468,6 +474,7 @@ class MarkdownEditor extends EventTarget {
       else this.surface.insertBefore(node,retained);
     });
     old_middle.slice(new_middle.length).forEach(node=>node.remove());
+    }
     this.source_input.value = this.state.source;
     this.source_input.hidden = !this.source_view;
     this.surface.hidden = this.source_view || this.html_view;
@@ -478,6 +485,7 @@ class MarkdownEditor extends EventTarget {
       input.setSelectionRange(selectionStart, selectionEnd); input.scrollTop = scrollTop; input.scrollLeft = scrollLeft;
     }
     this.root.querySelector('[data-view="html"]').setAttribute('aria-pressed', String(this.html_view));
+    this.surface.classList.toggle('native_rich',this.options.mode==='rich');
     this.surface.contentEditable = String(!this.options.read_only && !this.reading);
     this.source_input.readOnly = this.options.read_only;
     this.root.querySelector('select').value = this.options.mode;
@@ -514,7 +522,7 @@ class MarkdownEditor extends EventTarget {
     return this.options.mode === 'markdown' || this.options.mode === 'hybrid' && ['bold', 'italic', 'strikethrough', 'highlight', 'inline_code', 'link', 'heading', 'list', 'quote'].includes(kind);
   }
   refresh_syntax(restore = true) {
-    if (this.composing || this.dragging || this.source_view || this.html_view || this.reading || (!this.keep_active_syntax && !this.has_focus())) return;
+    if (this.options.mode === 'rich' || this.composing || this.dragging || this.source_view || this.html_view || this.reading || (!this.keep_active_syntax && !this.has_focus())) return;
     const focus = this.selection.focus;
     const reveal = [...this.surface.querySelectorAll('[data-kind]')].filter(element => this.should_reveal(element.dataset.kind) && focus >= Number(element.dataset.start) && focus <= Number(element.dataset.end));
     // Restore only if the active syntax region changed; never rebuild on caret movement inside it.
@@ -545,9 +553,11 @@ class MarkdownEditor extends EventTarget {
     this.core.request(4, '', this.selection.anchor, this.selection.focus);
   }
   at_paragraph_gap(node, offset) {
+    if (this.native_rich.active) return false;
     return node?.nodeType === 1 && (node === this.surface || node.matches('section[data-block]'));
   }
   dom_to_source(node, offset) {
+    if (this.native_rich.active) return this.native_rich.capture(node, offset);
     const element = node.nodeType === 1 ? node : node.parentElement;
     const decoration = element.closest('.break_mark');
     if (decoration?.nextElementSibling?.matches('br[data-break]')) return Number(decoration.nextElementSibling.dataset.start);
@@ -591,6 +601,7 @@ class MarkdownEditor extends EventTarget {
     return previous ? Number(previous.dataset.end) : position;
   }
   source_to_dom(position) {
+    if (this.options.mode === 'rich' && !this.source_view && !this.html_view) return this.native_rich.locate(position);
     position = this.visual_position(position);
     const separator = [...this.surface.querySelectorAll('.paragraph_separator')].find(block => Number(block.dataset.start) <= position && position <= Number(block.dataset.separatorEnd));
     if (separator && !separator.hasAttribute('data-gap')) return [separator.firstChild, 0];
@@ -936,7 +947,7 @@ class MarkdownEditor extends EventTarget {
       if (this.active_cell()) { event.preventDefault(); this.move_cell(event.shiftKey ? -1 : 1); }
       else if (/^\s*(?:[-+*]|\d+[.)]) /u.test(this.line_range().text)) { event.preventDefault(); this.run(event.shiftKey ? 'outdent' : 'indent'); }
     }
-    if (!event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
+    if (!this.native_rich.active && !event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
     if (!this.source_view && !event.shiftKey && !modifier && event.key.startsWith('Arrow')) this.cell_arrow(event);
   }
   async run(command) {
@@ -950,6 +961,7 @@ class MarkdownEditor extends EventTarget {
     if (this.composing) return;
     const read_command = ['save', 'open', 'open_link', 'copy_markdown'].includes(command);
     if ((this.options.read_only || this.reading || this.html_view) && !read_command) return;
+    if (this.native_rich.active && this.active_cell() && (command==='table'||command.startsWith('heading_')||['quote','list','ordered_list','task','code_block','details','alert'].includes(command))) { this.report(new Error('표 셀에는 인라인 내용만 허용합니다. 중첩 표와 블록 삽입은 사용할 수 없습니다.')); return; }
     const display_options = { line_numbers: 'show_code_line_numbers', heading_levels: 'show_heading_levels', paragraph_marks: 'show_paragraph_marks' };
     if (display_options[command]) { this.set_options({ [display_options[command]]: !this.options[display_options[command]] }); return; }
     if (command === 'undo' || command === 'redo') {
@@ -968,7 +980,7 @@ class MarkdownEditor extends EventTarget {
       const [open, close] = wrappers[command], start = Math.min(this.selection.anchor, this.selection.focus), end = Math.max(this.selection.anchor, this.selection.focus);
       const selected = byte_slice(this.state.source, start, end);
       if (start === end) {
-        const active = [...this.surface.querySelectorAll('[data-kind]')].find(element => element.dataset.kind === command && Number(element.dataset.start) <= start && Number(element.dataset.end) >= end);
+        const active = [...this.editing_markup().querySelectorAll('[data-kind]')].find(element => element.dataset.kind === command && Number(element.dataset.start) <= start && Number(element.dataset.end) >= end);
         if (active) {
           const from = Number(active.dataset.start), to = Number(active.dataset.end), raw = byte_slice(this.state.source, from, to);
           if (raw.startsWith(open) && raw.endsWith(close)) { this.replace(raw.slice(open.length, -close.length), from, to, Math.max(from, Math.min(to - byte_length(open + close), start - byte_length(open)))); this.focus(); return; }

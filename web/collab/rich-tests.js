@@ -1,3 +1,4 @@
+// Source-backed regression suite (hybrid/Markdown/source). Native rich contracts: /native-rich-tests.html.
 import {create_editor} from '../editor.js';
 import {create_replica,new_identity,byte_length,byte_to_utf16} from './core.js';
 import {connect_local_pair} from './webrtc.js';
@@ -7,8 +8,8 @@ async function until(predicate){const end=performance.now()+10000;while(!predica
 async function fixture(source){
  const document_id=new_identity(),a=await create_replica({document_id}),b=await create_replica({document_id});
  const left=document.createElement('div'),right=document.createElement('div');document.querySelector('#fixtures').append(left,right);
- const x=await create_editor(left,{replica:a,markdown:source,mode:'rich',auto_close:{enabled:false}});b.merge(a.export_state());
- const y=await create_editor(right,{replica:b,mode:'rich',auto_close:{enabled:false}});
+ const x=await create_editor(left,{replica:a,markdown:source,mode:'hybrid',elements:Object.fromEntries(['bold','italic','strikethrough','highlight','inline_code','link','heading','list','quote'].map(kind=>[kind,{reveal_markdown:false}])),auto_close:{enabled:false}});b.merge(a.export_state());
+ const y=await create_editor(right,{replica:b,mode:'hybrid',elements:Object.fromEntries(['bold','italic','strikethrough','highlight','inline_code','link','heading','list','quote'].map(kind=>[kind,{reveal_markdown:false}])),auto_close:{enabled:false}});
  return {a,b,x,y,close(){x.destroy();y.destroy();a.destroy();b.destroy();left.remove();right.remove();}};
 }
 async function test(name,run){const item=document.createElement('li');document.querySelector('#results').append(item);try{await run();passed++;item.textContent=`PASS ${name}`;}catch(error){failed++;item.textContent=`FAIL ${name}: ${error.stack}`;console.error(error);}}
@@ -95,7 +96,7 @@ await test('IME on table delimiters retains a local draft when remote changes ar
 });
 await test('Configured shared editor preserves replica identity and destroy leaves host-owned state alive',async()=>{
  const replica=await create_replica({document_id:new_identity()}),host=document.createElement('div');document.querySelector('#fixtures').append(host);
- let editor;try{editor=await create_editor(host,{replica,config_url:new URL('../editor.config.json',import.meta.url),markdown:'configured',mode:'rich'});editor.set_selection(10);editor.replace('!');assert(replica.snapshot.markdown==='configured!');
+ let editor;try{editor=await create_editor(host,{replica,config_url:new URL('../editor.config.json',import.meta.url),markdown:'configured',mode:'hybrid'});editor.set_selection(10);editor.replace('!');assert(replica.snapshot.markdown==='configured!');
  let rejected=false;try{editor.set_options({replica});}catch{rejected=true;}assert(rejected);editor.destroy();editor=null;assert(replica.export_state().length>26);
  }finally{editor?.destroy();replica.destroy();host.remove();}
 });
@@ -175,7 +176,7 @@ await test('Multiple-table raw source edits, mode transitions and undo retain st
  }finally{f.close();}
 });
 await test('Standalone table range moves preserve alignment, header and undo/redo',async()=>{
- const container=document.createElement('div');document.querySelector('#fixtures').append(container);const editor=await create_editor(container,{mode:'rich',markdown:'| A | B |\n| ---: | :---: |\n| a | b |\n| c | d |\n| e | f |'});try{
+ const container=document.createElement('div');document.querySelector('#fixtures').append(container);const editor=await create_editor(container,{mode:'hybrid',markdown:'| A | B |\n| ---: | :---: |\n| a | b |\n| c | d |\n| e | f |'});try{
  const source=editor.state.source;let table=editor.surface.querySelector('table');editor.move_table_axis(table.rows[1].cells[0],'row',1,2,4);assert(editor.state.source.indexOf('| e | f |')<editor.state.source.indexOf('| a | b |'));
  await editor.execute_command('undo');assert(editor.state.source===source);await editor.execute_command('redo');
  table=editor.surface.querySelector('table');editor.move_table_axis(table.rows[0].cells[0],'column',0,0,2);assert(editor.surface.querySelector('table').rows[0].cells[1].classList.contains('align_right'));
@@ -208,7 +209,7 @@ await test('GFM tab code, multiline heading and fallback link survive shared sou
 });
 await test('Grouped shared typing undoes one burst and preserves remote text',async()=>{
  const f=await fixture('');let connection;
- try{connection=await connect_local_pair(f.a,f.b);f.x.set_options({auto_close:{enabled:false},mode:'rich'});f.x.focus();
+ try{connection=await connect_local_pair(f.a,f.b);f.x.set_options({auto_close:{enabled:false},mode:'hybrid'});f.x.focus();
  for(const data of ['한','😀','끝'])f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data,bubbles:true,cancelable:true}));
  await until(()=>f.y.state.source===f.x.state.source);f.y.set_selection(0);f.y.replace('원격');await until(()=>f.x.state.source===f.y.state.source);
  await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='원격');

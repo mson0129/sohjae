@@ -56,3 +56,5 @@ Cargo 기본 feature는 editor다. renderer는 `--no-default-features --features
 ## Classic-script constructor
 
 Load `sohjae-renderer.js`, then call `new SeojaeRenderer({ selector: '#preview' })` to render the matched div's `textContent` as Markdown. `SohjaeRenderer` is an alias. Await `renderer.ready` before calling `render(markdown)` or `get_markdown()`. `destroy()` restores the latest Markdown text. CSS and renderer WASM load automatically beside the entry script; editor and collaboration modules are not loaded. See [quick start](quick-start.md).
+
+표의 구분자 위 머리글은 `table > thead > tr > th`, 아래 데이터는 `table > tbody > tr > td`로 출력한다. 데이터 행이 없는 경우에도 빈 tbody를 유지한다. 편집기 좌표용 출력·HTML 보기·독립 렌더러 모두 같은 공통 표 생성 경로를 사용한다.

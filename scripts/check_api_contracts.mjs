@@ -20,6 +20,11 @@ for (const offset of [-1, 0.5, NaN, Infinity, 2 ** 32, 1]) {
   assert.equal(core.request(7).source, '한😀');
 }
 const beforeHTML=core.request(7);assert.equal(core.request(13),'<p>한😀</p>');assert.deepEqual(core.request(7),beforeHTML);
+const parityRenderer=new Renderer(await instantiate('sohjae_render'));
+for(const source of ['| A | B |\n| --- | :---: |\n| **x** | y |','| H |\n| --- |','> | A |\n> | --- |\n> | v |']){
+ core.request(2,source);assert.equal(core.request(13),parityRenderer.render(source));assert.match(core.request(7).html,/<thead><tr><th\b/);assert.match(core.request(7).html,/<tbody>/);
+}
+parityRenderer.destroy();
 core.request(1);
 const ce = await instantiate('sohjae_collaborator');
 const expected = JSON.parse(await readFile(new URL('../spec/api/scv2-schema1.json', import.meta.url)));

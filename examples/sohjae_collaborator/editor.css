@@ -106,3 +106,9 @@ dt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }
 .empty_task_caret { display:inline-block; min-width:1px; height:1em; }
 
 .after_paragraph_gap { margin-block-start:1.85em; }
+
+/* Native rich editing follows ordinary HTML flow, with actual paragraph margins. */
+.surface.native_rich { white-space:normal; }
+.surface.native_rich > p { margin-block:.8em; }
+.surface.native_rich pre { white-space:pre; }
+.surface.native_rich li > p:first-child { display:inline; }

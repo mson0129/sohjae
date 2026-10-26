@@ -868,6 +868,7 @@ fn render_flat(source: &str, reading: bool) -> String {
             }
             BlockKind::Table { rows, align } => {
                 let _ = write!(out, "<div class=\"table_scroll\" data-kind=\"table\" data-start=\"{start}\" data-end=\"{end}\"><table aria-label=\"표\">");
+                out.push_str("<thead>");
                 for (row_index, row) in rows.iter().enumerate() {
                     out.push_str("<tr>");
                     for (column, cell) in row.iter().enumerate() {
@@ -882,8 +883,11 @@ fn render_flat(source: &str, reading: bool) -> String {
                         let _ = write!(out, "</{tag}>");
                     }
                     out.push_str("</tr>");
+                    if row_index == 0 {
+                        out.push_str("</thead><tbody>");
+                    }
                 }
-                out.push_str("</table></div>");
+                out.push_str("</tbody></table></div>");
             }
             BlockKind::Heading { level, content } => {
                 let body = &source[content.start..content.end];

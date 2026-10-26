@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 sh scripts/build.sh
 mkdir -p dist/sohjae
 rm -f dist/sohjae/sohjae_core.wasm
-cp web/sohjae.js web/sohjae.d.ts web/quick-start.html web/core.js web/clipboard.js web/html.js web/editor.js web/editor.d.ts web/editor.css web/sohjae_editor.wasm LICENSE dist/sohjae/
+cp web/sohjae.js web/sohjae.d.ts web/quick-start.html web/core.js web/clipboard.js web/html.js web/rich-dom.js web/editor.js web/editor.d.ts web/editor.css web/sohjae_editor.wasm LICENSE dist/sohjae/
 # Collaboration ships as an optional overlay, not part of the base editor SDK.
 rm -rf dist/sohjae/collab
 mkdir -p dist/sohjae/collab

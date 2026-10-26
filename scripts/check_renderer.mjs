@@ -16,7 +16,7 @@ for (const fixture of fixtures) assert.equal(semantic(renderer.render(fixture.ma
 assert.equal(renderer.render('# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.'), '<h1>함께 쓰는 문서</h1><p><mark>리치 화면</mark>과 <strong>원본 화면</strong>을 같은 문서에 연결했습니다.</p>');
 assert.doesNotMatch(renderer.render('> **인용**\n\n- [x] 완료\n\n![그림](image.png)'), /data-(?:start|end|block|text|kind|task)|contenteditable|<section/);
 const tableHTML=renderer.render('| A | B |\n| --- | --- |\n| x | y |');
-assert.match(tableHTML,/^<table\b/);assert.doesNotMatch(tableHTML,/table_scroll|<div/);assert.match(tableHTML,/<th\b/);assert.match(tableHTML,/<td\b/);
+assert.match(tableHTML,/^<table\b/);assert.doesNotMatch(tableHTML,/table_scroll|<div/);assert.match(tableHTML,/<thead><tr><th\b/);assert.match(tableHTML,/<\/thead><tbody><tr><td\b/);assert.match(tableHTML,/<\/tbody><\/table>$/);
 assert.match(renderer.render('# Heading {#custom}\n\n[Go](#custom)'), /id="custom"/);
 assert.match(renderer.render('# Heading\n\n[Go](#heading)'), /id="heading"/);
 assert.equal(renderer.render('한😀\r\n\r\n==강조=='), renderer.render('한😀\n\n==강조=='));

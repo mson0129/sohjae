@@ -1,3 +1,4 @@
+// Source-backed regression suite (hybrid/Markdown/source). Native rich contracts: /native-rich-tests.html.
 import { create_editor, grapheme_range } from './editor.js';
 import { byte_length, byte_slice } from './core.js';
 import { html_to_markdown, file_markdown } from './clipboard.js';
@@ -13,7 +14,7 @@ async function test(name, action) {
 }
 async function fixture(markdown = '', options = {}) {
   const container = document.createElement('div'); document.querySelector('#fixtures').append(container);
-  return create_editor(container, { markdown, mode: 'rich', auto_close: { enabled: false }, ...options });
+  return create_editor(container, { markdown, mode: 'hybrid', elements:Object.fromEntries(['bold','italic','strikethrough','highlight','inline_code','link','heading','list','quote'].map(kind=>[kind,{reveal_markdown:false}])), auto_close: { enabled: false }, ...options });
 }
 
 await test('WASM create, edit, undo, redo and independent instances', async () => {
@@ -48,7 +49,7 @@ await test('Grapheme deletion handles Korean, combining marks, ZWJ families and 
     const [start, stop] = grapheme_range(source, end, true); equal(byte_slice(source, start, stop), grapheme);
   }
 });
-await test('Rich input routes through WASM with selection restoration', async () => {
+await test('Source-backed input routes through WASM with selection restoration', async () => {
   const editor = await fixture('한😀'); editor.focus(); editor.set_selection(3, 7);
   editor.surface.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertText', data: '글', bubbles: true, cancelable: true }));
   equal(editor.get_markdown(), '한글'); equal(editor.selection.focus, 6);
@@ -134,10 +135,10 @@ await test('Loading replaces revision and cancels stale asynchronous insertion',
   editor.core.revision = old_revision; assert(rejected, 'stale edit accepted'); equal(editor.state.source, 'new'); editor.destroy();
 });
 await test('Element override and runtime options validation are atomic', async () => {
-  const editor = await fixture('**text**', { mode: 'rich', elements: { bold: { reveal_markdown: true } } }); editor.focus(); editor.set_selection(3); editor.render();
-  assert(editor.surface.querySelector('[data-revealed]'), 'rich override did not reveal');
+  const editor = await fixture('**text**', { mode: 'hybrid', elements: { bold: { reveal_markdown: true } } }); editor.focus(); editor.set_selection(3); editor.render();
+  assert(editor.surface.querySelector('[data-revealed]'), 'hybrid override did not reveal');
   let rejected = false; try { editor.set_options({ mode: 'invalid' }); } catch { rejected = true; }
-  assert(rejected, 'bad mode accepted'); equal(editor.options.mode, 'rich'); equal(editor.state.source, '**text**'); editor.destroy();
+  assert(rejected, 'bad mode accepted'); equal(editor.options.mode, 'hybrid'); equal(editor.state.source, '**text**'); editor.destroy();
 });
 await test('Row and column drag handles select rectangular rows and columns', async () => {
   const editor = await fixture('| a | b |\n| --- | --- |\n| c | d |\n| e | f |');
@@ -151,7 +152,7 @@ await test('Hidden link destination and delimiter positions survive DOM projecti
   for (const position of [1, 10, 20, 35]) {
     editor.set_selection(position); editor.capture_selection(); equal(editor.selection.focus, position);
     editor.set_view('source'); editor.set_view('source'); editor.capture_selection(); equal(editor.selection.focus, position);
-    editor.set_options({ mode: 'markdown' }); editor.set_options({ mode: 'rich' }); editor.capture_selection(); equal(editor.selection.focus, position);
+    editor.set_options({ mode: 'markdown' }); editor.set_options({ mode: 'hybrid' }); editor.capture_selection(); equal(editor.selection.focus, position);
   }
   editor.destroy();
 });
@@ -242,7 +243,7 @@ await test('Extended blocks, explicit heading links, colored code and excluded s
   assert(!editor.surface.querySelector('sub,sup'), 'excluded Markdown script syntax was enabled');
   assert(editor.surface.textContent.includes('H~2~O X^2^'));
   assert(editor.surface.textContent.includes('⛺') && editor.surface.textContent.includes('😂'));
-  editor.set_options({ mode: 'markdown' }); editor.set_options({ mode: 'rich' });
+  editor.set_options({ mode: 'markdown' }); editor.set_options({ mode: 'hybrid' });
   equal(editor.state.source, source); editor.destroy();
 });
 await test('HTML paste preserves mark and definition semantics without importing styles', async () => {
@@ -285,7 +286,7 @@ await test('GFM tab-expanded code and multiline headings preserve glyph carets a
  }finally{editor.destroy();}
 });
 await test('Typing and deletion group by time and caret while paste, commands and IME remain separate',async()=>{
- const editor=await fixture('',{mode:'rich',auto_close:{enabled:false}});
+ const editor=await fixture('',{mode:'hybrid',auto_close:{enabled:false}});
  const type=text=>editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:text,bubbles:true,cancelable:true}));
  try{editor.focus();for(const c of 'hello😀')type(c);equal(editor.state.source,'hello😀');await editor.execute_command('undo');equal(editor.state.source,'');await editor.execute_command('redo');equal(editor.state.source,'hello😀');
  type('a');await new Promise(resolve=>setTimeout(resolve,800));type('b');await editor.execute_command('undo');equal(editor.state.source,'hello😀a');await editor.execute_command('undo');equal(editor.state.source,'hello😀');
@@ -298,7 +299,7 @@ await test('Typing and deletion group by time and caret while paste, commands an
  }finally{editor.destroy();}
 });
 await test('Inserting before unchanged blocks retains DOM text nodes and patches UTF-8 coordinates',async()=>{
- const source='첫째\n\n둘째😀\n\n셋째';const editor=await fixture(source,{mode:'rich'});
+ const source='첫째\n\n둘째😀\n\n셋째';const editor=await fixture(source,{mode:'hybrid'});
  try{const old=[...editor.surface.children],text=old[1].querySelector('[data-text]').firstChild;
  editor.set_selection(0);editor.replace('앞😀\n\n');equal(editor.surface.children[2],old[1]);equal(old[1].querySelector('[data-text]').firstChild,text);
  const offset=byte_length('앞😀\n\n첫째\n\n');equal(+old[1].dataset.start,offset);
@@ -307,7 +308,7 @@ await test('Inserting before unchanged blocks retains DOM text nodes and patches
  }finally{editor.destroy();}
 });
 await test('Accessibility toolbar has one Tab stop, arrow navigation, named dialogs and read-only semantics',async()=>{
- const editor=await fixture('**한글**\n\n| A | B |\n| --- | --- |\n| x | y |',{mode:'rich'});
+ const editor=await fixture('**한글**\n\n| A | B |\n| --- | --- |\n| x | y |',{mode:'hybrid'});
  try{const enabled=()=>[...editor.toolbar.querySelectorAll('button:not(:disabled)')];equal(enabled().filter(button=>button.tabIndex===0).length,1);
  let buttons=enabled();buttons[0].focus();buttons[0].dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true,cancelable:true}));equal(editor.root.activeElement,buttons.at(-1));
  buttons.at(-1).dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}));equal(editor.root.activeElement,buttons[0]);
@@ -355,7 +356,7 @@ await test('Shift+Enter at paragraph end places caret after BR without a duplica
  }
 });
 await test('Rich and hybrid Delete/Backspace remove complete rendered line breaks, leaving literal code intact', async () => {
- for(const mode of ['rich','hybrid'])for(const token of ['<br>','<br/>','<br />','  \n','\\\n']) {
+ for(const mode of ['hybrid'])for(const token of ['<br>','<br/>','<br />','  \n','\\\n']) {
   const source='앞'+token+'뒤',editor=await fixture(source,{mode,show_paragraph_marks:true});
   try {
    editor.focus();editor.set_selection(byte_length('앞'));
@@ -370,7 +371,7 @@ await test('Rich and hybrid Delete/Backspace remove complete rendered line break
  try{editor.focus();editor.set_selection(1);editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));equal(editor.get_markdown({normalize:false}),'`br>`');}finally{editor.destroy();}
 });
 await test('Task labels stay beside checkboxes in tight, loose and nested lists without changing source', async () => {
- for(const source of ['- [x] 한글 라벨\n- [ ] 다음 라벨','- [x] **굵은 라벨**\n\n- [ ] 다음 라벨','- [x] 부모\n  - [ ] 자식'])for(const mode of ['rich','hybrid']) {
+ for(const source of ['- [x] 한글 라벨\n- [ ] 다음 라벨','- [x] **굵은 라벨**\n\n- [ ] 다음 라벨','- [x] 부모\n  - [ ] 자식'])for(const mode of ['hybrid']) {
   const editor=await fixture(source,{mode});
   try {
    for(const reading of [false,true]) {
@@ -387,7 +388,7 @@ await test('Task labels stay beside checkboxes in tight, loose and nested lists 
  }
 });
 await test('Soft newlines have no BR mark and semantic block endings carry paragraph marks', async () => {
- for(const mode of ['rich','hybrid']) {
+ for(const mode of ['hybrid']) {
   const editor=await fixture('연결했습니다.\n가나다',{mode,show_paragraph_marks:true});
   try {
    editor.focus();editor.set_selection(byte_length('연결했습니다.'));
@@ -403,7 +404,7 @@ await test('Soft newlines have no BR mark and semantic block endings carry parag
 });
 await test('Rich and hybrid leading spaces become nbsp entities with atomic deletion and unchanged middle/code spaces', async () => {
  const type=(editor,data)=>editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data,bubbles:true,cancelable:true}));
- for(const mode of ['rich','hybrid']) {
+ for(const mode of ['hybrid']) {
   const editor=await fixture('한글',{mode});
   try {
    editor.focus();editor.set_selection(0);type(editor,' ');type(editor,' ');equal(editor.get_markdown({normalize:false}),'&nbsp;&nbsp;한글');equal(editor.get_selection().focus,12);
@@ -417,7 +418,7 @@ await test('Rich and hybrid leading spaces become nbsp entities with atomic dele
  const editor=await fixture('text',{mode:'markdown'});try{editor.focus();editor.set_selection(0);type(editor,' ');equal(editor.get_markdown({normalize:false}),' text');}finally{editor.destroy();}
 });
 await test('Enter at task label start splits sibling tasks, including a caret in the checkbox gap', async () => {
- for(const mode of ['rich','hybrid'])for(const gap of [false,true]) {
+ for(const mode of ['hybrid'])for(const gap of [false,true]) {
   const editor=await fixture('- [ ] 확인할 작업',{mode,elements:{list:{reveal_markdown:false}}});
   try {
    editor.focus();editor.set_selection(6);
@@ -457,7 +458,7 @@ await test('Separator blanks have no marks and empty task markers sit after chec
  }finally{editor.destroy();}
 });
 await test('Multiple blank source lines collapse to one paragraph separator while source and code stay intact',async()=>{
- for(const mode of ['rich','hybrid']) {
+ for(const mode of ['hybrid']) {
   const source='앞\n\n\n\n\n뒤',editor=await fixture(source,{mode});
   try {
    equal(editor.surface.querySelectorAll('[data-gap-start]').length,1);equal(editor.surface.querySelectorAll('p').length,2);
@@ -470,7 +471,7 @@ await test('Multiple blank source lines collapse to one paragraph separator whil
  }
 });
 await test('Paragraph separators are noneditable spacing and visual caret skips to content',async()=>{
- for(const mode of ['rich','hybrid']) {
+ for(const mode of ['hybrid']) {
   const source='# 제목\n\n\n본문',editor=await fixture(source,{mode,elements:{heading:{reveal_markdown:false}}});
   try {
    const gap=editor.surface.querySelector('[data-gap-start]');assert(gap);assert(!editor.surface.querySelector('.paragraph_separator'),'no spacer DOM');
@@ -496,7 +497,7 @@ await test('HTML view is a read-only renderer output after Source and preserves 
 });
 await test('Right/Left cross heading-paragraph boundaries and no gap DOM remains',async()=>{
  const source='# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.';
- for(const mode of ['rich','hybrid']) {
+ for(const mode of ['hybrid']) {
   const editor=await fixture(source,{mode,elements:{heading:{reveal_markdown:false},highlight:{reveal_markdown:false}}});
   try {
    const heading=[...editor.surface.querySelectorAll('h1 [data-text]')].at(-1),paragraph=editor.surface.querySelector('p [data-text]');
@@ -512,7 +513,7 @@ await test('Right/Left cross heading-paragraph boundaries and no gap DOM remains
 await test('Delete/Backspace join body paragraphs by deleting the entire blank separator',async()=>{
  const left='==리치 화면==과 **원본 화면**을 같은',right='문서에 연결했습니다.';
  const prefix='# 함께 쓰는 문서\n\n',suffix='\n\n| 항목 | 상태 |\n| --- | --- |\n| 공동 편집 | 준비 |\n\n- [ ] 확인할 작업';
- for(const mode of ['rich','hybrid'])for(const separator of ['\n\n','\n\n\n\n'])for(const backwards of [false,true]) {
+ for(const mode of ['hybrid'])for(const separator of ['\n\n','\n\n\n\n'])for(const backwards of [false,true]) {
   const source=prefix+left+separator+right+suffix,editor=await fixture(source,{mode,show_paragraph_marks:true});
   try {
    editor.focus();editor.set_selection(byte_length(prefix+left+(backwards?separator:'')));
@@ -523,7 +524,7 @@ await test('Delete/Backspace join body paragraphs by deleting the entire blank s
  }
 });
 await test('Horizontal arrows cross an entire rendered BR, never stopping on its decoration',async()=>{
- for(const mode of ['rich','hybrid'])for(const marks of [false,true])for(const token of ['<br>','<br/>','<br />','  \n','\\\n']) {
+ for(const mode of ['hybrid'])for(const marks of [false,true])for(const token of ['<br>','<br/>','<br />','  \n','\\\n']) {
   const source='앞'+token+'뒤',editor=await fixture(source,{mode,show_paragraph_marks:marks});
   try {
    const start=byte_length('앞'),end=byte_length('앞'+token);editor.focus();editor.set_selection(start);
@@ -536,7 +537,7 @@ await test('Horizontal arrows cross an entire rendered BR, never stopping on its
  const editor=await fixture('끝<br>',{show_paragraph_marks:true});try{editor.focus();editor.set_selection(byte_length('끝'));editor.surface.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));equal(editor.get_selection().focus,byte_length('끝<br>'));assert(editor.surface.querySelector('br[data-caret]'));}finally{editor.destroy();}
 });
 await test('Shift+Enter exits generated bold closers before inserting BR in rich and hybrid modes',async()=>{
- for(const mode of ['rich','hybrid']) {
+ for(const mode of ['hybrid']) {
   const editor=await fixture('',{mode,auto_close:{enabled:true}});
   try {
    editor.focus();for(const data of ['*','*','원','본'])editor.type_text(data);
@@ -548,7 +549,7 @@ await test('Shift+Enter exits generated bold closers before inserting BR in rich
  const editor=await fixture('**원본**',{auto_close:{enabled:true}});try{editor.focus();editor.set_selection(byte_length('**원본'));await editor.execute_command('hard_break');equal(editor.get_markdown({normalize:false}),'**원본<br>**');}finally{editor.destroy();}
 });
 await test('Breaks before rich inline formatting preserve opening delimiters',async()=>{
- for(const mode of ['rich','hybrid'])for(const hard of [false,true]) {
+ for(const mode of ['hybrid'])for(const hard of [false,true]) {
   const editor=await fixture('**굵게**',{mode});
   try {
    editor.focus();editor.set_selection(2);
@@ -563,7 +564,7 @@ await test('Breaks before rich inline formatting preserve opening delimiters',as
 });
 await test('Enter at a rich paragraph end inserts a persistent editable paragraph before a list',async()=>{
  const text='**굵게**, *기울임*, ==하이라이트==를 확인하세요.';
- for(const mode of ['rich','hybrid'])for(const gap of ['\n\n','\n\n\n\n']) {
+ for(const mode of ['hybrid'])for(const gap of ['\n\n','\n\n\n\n']) {
   const source=text+gap+'- [x] WASM으로 렌더링',editor=await fixture(source,{mode});
   try{editor.focus();editor.set_selection(byte_length(text));editor.enter();
    equal(editor.state.source,text+'\n\n&nbsp;\n\n- [x] WASM으로 렌더링');
@@ -578,7 +579,7 @@ await test('Enter at a rich paragraph end inserts a persistent editable paragrap
 });
 await test('Semantic inline boundaries preserve formatting across paragraph deletion and breaks',async()=>{
  const formats=[['**','**'],['__','__'],['*','*'],['~~','~~'],['==','=='],['[','](https://example.com)'],['`','`'],['***','***']];
- for(const mode of ['rich','hybrid'])for(const [open,close] of formats){
+ for(const mode of ['hybrid'])for(const [open,close] of formats){
   const formatted=open+'한😀'+close,source='앞 문단\n\n'+formatted,editor=await fixture(source,{mode});
   try{
    editor.focus();editor.set_selection(byte_length('앞 문단\n\n'+open));
@@ -599,7 +600,7 @@ await test('Semantic inline boundaries preserve formatting across paragraph dele
  }
 });
 await test('Heading end Enter creates a paragraph before the following text and preserves title formatting',async()=>{
- for(const mode of ['rich','hybrid'])for(const title of ['# 제목','## **한😀**','### ==제목=='])for(const gap of ['\n','\n\n','\n\n\n\n']){
+ for(const mode of ['hybrid'])for(const title of ['# 제목','## **한😀**','### ==제목=='])for(const gap of ['\n','\n\n','\n\n\n\n']){
   const editor=await fixture(title+gap+'기존 문단',{mode});
   try{editor.focus();editor.set_selection(byte_length(title));editor.enter();equal(editor.state.source,title+'\n\n&nbsp;\n\n기존 문단');equal(editor.selection.focus,byte_length(title)+2);
    const [node]=editor.source_to_dom(editor.selection.focus);equal(node.textContent,'\u00a0');
@@ -608,7 +609,7 @@ await test('Heading end Enter creates a paragraph before the following text and 
  }
 });
 await test('Visible deletion skips inline closers and removes empty constructs atomically',async()=>{
- for(const mode of ['rich','hybrid']){
+ for(const mode of ['hybrid']){
   const editor=await fixture('**한글**끝',{mode});try{editor.focus();editor.set_selection(byte_length('**한글'));editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));equal(editor.state.source,'**한글**');
    editor.set_markdown('앞 ==😀== 뒤');editor.focus();editor.set_selection(byte_length('앞 ==😀'));editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));equal(editor.state.source,'앞  뒤');
   }finally{editor.destroy();}
@@ -632,9 +633,19 @@ await test('HTML view removes editor wrappers, hides source-only blocks and form
 });
 await test('Pure HTML view emits tables without scroll wrappers while editing retains scrolling',async()=>{
  const editor=await fixture('| A | B |\n| --- | --- |\n| x | y |');
- try{assert(editor.surface.querySelector('.table_scroll'));editor.set_view('html');assert(editor.html_output.value.startsWith('<table '));assert(!editor.html_output.value.includes('table_scroll'));assert(editor.html_output.value.includes('\n  <tr>'));
+ try{assert(editor.surface.querySelector('.table_scroll'));editor.set_view('html');assert(editor.html_output.value.startsWith('<table '));assert(!editor.html_output.value.includes('table_scroll'));assert(editor.html_output.value.includes('\n  <thead>'));
   editor.set_view('html');assert(editor.surface.querySelector('.table_scroll'));}
  finally{editor.destroy();}
+});
+await test('Tables explicitly group header and body in editing and pure HTML output',async()=>{
+ for(const source of ['| A | B |\n| --- | :---: |\n| **x** | y |','| H |\n| --- |']){
+  const editor=await fixture(source);
+  try{assert(editor.state.html.includes('<thead><tr><th'));assert(editor.state.html.includes('</thead><tbody>'));
+   const table=editor.surface.querySelector('table');equal(table.tHead.rows.length,1);equal(table.tBodies.length,1);assert(table.tHead.rows[0].cells[0].matches('th'));
+   if(table.tBodies[0].rows.length)assert(table.tBodies[0].rows[0].cells[0].matches('td'));
+   editor.set_view('html');assert(editor.html_output.value.includes('\n  <thead>'));assert(editor.html_output.value.includes('\n  <tbody>'));assert(!editor.html_output.value.includes('data-cell'));
+  }finally{editor.destroy();}
+ }
 });
 document.querySelector('#summary').textContent = `${results.filter(Boolean).length}/${results.length} passed`;
 document.body.dataset.passed = results.every(Boolean) ? 'true' : 'false';
