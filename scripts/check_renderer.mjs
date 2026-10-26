@@ -10,12 +10,18 @@ assert.deepEqual(functions, ['renderer_abi_version', 'renderer_output_length', '
 const instance = await WebAssembly.instantiate(module, {}), e = instance.exports;
 const renderer = new Renderer(e);
 const fixtures = JSON.parse(await readFile(new URL('../web/gfm-results.json', import.meta.url), 'utf8'));
-for (const fixture of fixtures) assert.equal(renderer.render(fixture.markdown), fixture.actual_html, `GFM renderer parity ${fixture.example}`);
+// Compare semantic content after removing editor-only wrappers and attributes.
+const semantic = html => html.replace(/<\/?(?:section|span)\b[^>]*>/g, '').replace(/\s(?:data-[\w-]+|contenteditable|id)="[^"]*"/g, '').replace(/<strong>/g, '<b>').replace(/<\/strong>/g, '</b>').replace(/<[^>]+>/g, tag => tag.replace(/\s+/g, ' ').replace(/\s+>/g, '>'));
+for (const fixture of fixtures) assert.equal(semantic(renderer.render(fixture.markdown)), semantic(fixture.actual_html), `GFM renderer parity ${fixture.example}`);
+assert.equal(renderer.render('# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.'), '<h1>함께 쓰는 문서</h1><p><mark>리치 화면</mark>과 <b>원본 화면</b>을 같은 문서에 연결했습니다.</p>');
+assert.doesNotMatch(renderer.render('> **인용**\n\n- [x] 완료\n\n![그림](image.png)'), /data-(?:start|end|block|text|kind|task)|contenteditable|<section/);
+assert.match(renderer.render('# Heading {#custom}\n\n[Go](#custom)'), /id="custom"/);
+assert.match(renderer.render('# Heading\n\n[Go](#heading)'), /id="heading"/);
 assert.equal(renderer.render('한😀\r\n\r\n==강조=='), renderer.render('한😀\n\n==강조=='));
 assert.match(renderer.render('- [x] 완료'), /disabled/);
 const reported = renderer.render('## 서명\n- 이메일 하단에 자동으로 작성될 내용을 지정\n-');
 assert.equal((reported.match(/<h2\b/g) || []).length, 1);
-assert.equal((reported.match(/data-kind="list"/g) || []).length, 2);
+assert.equal((reported.match(/<li\b/g) || []).length, 2);
 assert.doesNotMatch(renderer.render('<script>alert(1)</script>\n\n[bad](javascript:alert(1))'), /<script|href="javascript:/);
 assert.equal(renderer.render(''), '');
 assert.equal(e.renderer_reserve_input(32 * 1024 * 1024 + 1), 0);
@@ -27,5 +33,5 @@ assert.match(renderer.render('반복😀 '.repeat(30000)), /반복😀/);
 assert.throws(() => renderer.render(null), TypeError);
 renderer.destroy(); renderer.destroy(); assert.throws(() => renderer.render('x'), /destroyed/);
 const loaded = await create_renderer({ wasm_url: `data:application/wasm;base64,${bytes.toString('base64')}` });
-assert.match(loaded.render('**뷰어**'), /<strong/); loaded.destroy();
-console.log(`Renderer: ${fixtures.length} GFM outputs unchanged; Unicode, safety, read-only, ABI limits, recovery, memory growth, loader and lifecycle passed. WASM ${bytes.length} bytes; editor ${(await readFile(new URL('../web/sohjae_editor.wasm', import.meta.url))).length} bytes.`);
+assert.match(loaded.render('**뷰어**'), /<b/); loaded.destroy();
+console.log(`Renderer: ${fixtures.length} GFM semantic outputs preserved; Unicode, safety, read-only, ABI limits, recovery, memory growth, loader and lifecycle passed. WASM ${bytes.length} bytes; editor ${(await readFile(new URL('../web/sohjae_editor.wasm', import.meta.url))).length} bytes.`);

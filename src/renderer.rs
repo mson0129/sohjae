@@ -40,7 +40,7 @@ pub extern "C" fn renderer_render() -> u32 {
             std::str::from_utf8(&runtime.input)
                 .map(|source| {
                     let source = source.replace("\r\n", "\n").replace('\r', "\n");
-                    crate::markdown::render(&source, true)
+                    crate::markdown::render_viewer(&source)
                 })
                 .map_err(|_| "Input must be UTF-8")
         };

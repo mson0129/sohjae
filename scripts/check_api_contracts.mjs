@@ -11,7 +11,7 @@ const re = await instantiate('sohjae_render');
 assert.throws(() => new Renderer({ ...re, renderer_abi_version: () => 99 }), /Unsupported/);
 const url = `data:application/wasm;base64,${(await bytes('sohjae_render')).toString('base64')}`;
 const first = await create_renderer({ wasm_url: url }), second = await create_renderer({ wasm_url: url });
-first.destroy(); assert.match(second.render('**independent**'), /<strong/); second.destroy();
+first.destroy(); assert.match(second.render('**independent**'), /<b/); second.destroy();
 const ee = await instantiate('sohjae_editor');
 assert.throws(() => new Core({ ...ee, abi_version: () => 99 }), /Unsupported/);
 const core = new Core(ee); core.request(0, '한😀');

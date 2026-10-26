@@ -671,11 +671,12 @@ fn render_mapped(map: &Mapped, reading: bool, tight: bool, nesting: usize, depth
             continue;
         }
         if plain < index {
-            out.push_str(&render_plain(
-                &map.range(lines[plain].start, line.start),
-                reading,
-                tight,
-            ));
+            let html = render_plain(&map.range(lines[plain].start, line.start), reading, tight);
+            // The fragment ends before a container, not at the document EOF.
+            // split('\n') creates a synthetic final empty line at this boundary.
+            let at = map.starts[line.start];
+            let sentinel = format!("<section data-block=\"1\" data-start=\"{at}\" data-end=\"{at}\"><p><br></p></section>");
+            out.push_str(html.strip_suffix(&sentinel).unwrap_or(&html));
         }
         let start = line.start;
         if quote(line.text).is_some() {
@@ -864,14 +865,20 @@ fn render_mapped(map: &Mapped, reading: bool, tight: bool, nesting: usize, depth
             }
             for (begin, end, mut child) in items {
                 let _=write!(out,"<li class=\"list_item\" data-depth=\"{nesting}\" data-kind=\"list\" data-start=\"{}\" data-end=\"{}\">",map.starts[begin],map.ends[end]);
-                let task = child.text.starts_with("[ ] ")
-                    || child.text.starts_with("[x] ")
-                    || child.text.starts_with("[X] ");
+                let task = ["[ ]", "[x]", "[X]"]
+                    .iter()
+                    .any(|marker| child.text.starts_with(marker))
+                    && matches!(child.text.as_bytes().get(3), None | Some(b' ' | b'\n'));
                 if task {
                     let checked = child.text.as_bytes()[1] != b' ';
                     let _=write!(out,"<input type=\"checkbox\" aria-label=\"작업 완료\" data-task=\"{}\" contenteditable=\"false\" {} {}>",map.starts[begin],if checked{"checked"}else{""},if reading{"disabled"}else{""});
                     out.push(' ');
-                    child = child.range(4, child.text.len());
+                    let prefix = if child.text.as_bytes().get(3) == Some(&b' ') {
+                        4
+                    } else {
+                        3
+                    };
+                    child = child.range(prefix, child.text.len());
                 }
                 let html = render_mapped(&child, reading, !loose, nesting + 1, depth + 1);
                 if reading {

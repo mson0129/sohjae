@@ -215,5 +215,107 @@ await test('Grouped shared typing undoes one burst and preserves remote text',as
  await f.x.execute_command('redo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='원격한😀끝');
  }finally{connection?.close();f.close();}
 });
+await test('Shared trailing line-break caret, paragraph count and atomic Delete converge',async()=>{
+ const f=await fixture('확인하세요.\n\n- [x] WASM으로 렌더링');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);f.x.set_options({show_paragraph_marks:true});f.x.focus();f.x.set_selection(byte_length('확인하세요.'));await f.x.execute_command('hard_break');
+  await until(()=>f.y.state.source===f.x.state.source);
+  assert(f.x.surface.querySelectorAll('p').length===1&&f.y.surface.querySelectorAll('p').length===1);
+  const br=f.x.surface.querySelector('br[data-break]'),selection=f.x.dom_selection();assert(selection.focusNode===br.parentNode&&selection.focusOffset===[...br.parentNode.childNodes].indexOf(br)+1);
+  f.x.set_options({mode:'hybrid'});f.x.set_selection(byte_length('확인하세요.'));f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));
+  await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source==='확인하세요.\n\n- [x] WASM으로 렌더링');
+  await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source.includes('<br>'));
+ }finally{connection?.close();f.close();}
+});
+await test('Shared task labels stay on the checkbox line and toggles synchronize',async()=>{
+ const f=await fixture('- [ ] 한글 라벨\n- [x] 다음 라벨');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);
+  for(const editor of [f.x,f.y])for(const input of editor.surface.querySelectorAll('input[data-task]')) {
+   const label=input.nextElementSibling.querySelector('[data-text]')||input.nextElementSibling;
+   const range=document.createRange();range.selectNodeContents(label);const r=range.getClientRects()[0],b=input.getBoundingClientRect();assert(Math.abs((r.top+r.bottom-b.top-b.bottom)/2)<12,'shared label wraps after checkbox');
+  }
+  const checkbox=f.x.surface.querySelector('input[data-task]');checkbox.click();
+  await until(()=>f.y.state.source===f.x.state.source);assert(f.y.state.source.startsWith('- [x] 한글 라벨'));
+ }finally{connection?.close();f.close();}
+});
+await test('Shared paragraph separator deletion follows HTML block boundaries on both peers',async()=>{
+ const f=await fixture('연결했습니다.\n\n가나다');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);for(const editor of [f.x,f.y])editor.set_options({show_paragraph_marks:true});
+  f.x.focus();f.x.set_selection(byte_length('연결했습니다.'));f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));
+  await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source==='연결했습니다.가나다');
+  for(const editor of [f.x,f.y]){assert(!editor.surface.querySelector('.soft_break,.break_mark'));assert(editor.surface.querySelectorAll('p[data-paragraph-end]').length===1);}
+  await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);for(const editor of [f.x,f.y])assert(!editor.surface.querySelector('.soft_break'));
+ }finally{connection?.close();f.close();}
+});
+await test('Shared leading spaces preserve nbsp entities through sync, deletion and undo',async()=>{
+ const f=await fixture('한글');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);f.x.focus();f.x.set_selection(0);
+  for(let i=0;i<2;i++)f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:' ',bubbles:true,cancelable:true}));
+  await until(()=>f.y.state.source===f.x.state.source);assert(f.y.state.source==='&nbsp;&nbsp;한글');
+  f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));await until(()=>f.y.state.source===f.x.state.source);assert(f.y.state.source==='&nbsp;한글');
+  await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);assert(f.y.state.source==='&nbsp;&nbsp;한글');
+ }finally{connection?.close();f.close();}
+});
+await test('Shared task-label Enter creates empty sibling and preserves label through undo',async()=>{
+ const prefix='# 문서\n\n| A | B |\n| --- | --- |\n| a | b |\n\n';
+ const f=await fixture(prefix+'- [ ] 확인할 작업');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);f.x.focus();f.x.set_selection(byte_length(prefix)+6);
+  const input=f.x.surface.querySelector('input[data-task]');f.x.dom_selection().collapse(input.parentNode,[...input.parentNode.childNodes].indexOf(input)+1);
+  f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertParagraph',bubbles:true,cancelable:true}));
+  await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source===prefix+'- [ ]\n- [ ] 확인할 작업','shared split source');
+  for(const editor of [f.x,f.y]){assert(editor.surface.querySelectorAll('input[data-task]').length===2);assert(!editor.state.html.includes('data-depth="1"'));}
+  await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source===prefix+'- [ ] 확인할 작업');
+ }finally{connection?.close();f.close();}
+});
+await test('Shared repeated blank lines render as one separator and preserve synchronized source',async()=>{
+ const source='앞\n\n\n\n뒤',f=await fixture(source);let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);
+  for(const editor of [f.x,f.y]){assert(editor.surface.querySelectorAll('[data-gap-start]').length===1);assert(editor.state.source===source);}
+  f.x.focus();f.x.set_selection(byte_length('앞\n\n'));f.x.replace('중간');await until(()=>f.y.state.source===f.x.state.source);assert(f.y.state.source==='앞\n\n\n\n중간뒤');
+  await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);for(const editor of [f.x,f.y])assert(editor.surface.querySelectorAll('[data-gap-start]').length===1);
+ }finally{connection?.close();f.close();}
+});
+await test('Read-only HTML view updates on remote changes without editing the document',async()=>{
+ const f=await fixture('# Shared');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);f.x.set_view('html');assert(f.x.html_output.readOnly);
+  f.y.set_selection(byte_length(f.y.state.source));f.y.replace(' remote');await until(()=>f.x.state.source===f.y.state.source);
+  assert(f.x.html_view&&!f.x.html_output.hidden);assert(f.x.html_output.value===f.x.state.html&&f.x.html_output.value.includes('remote'));
+  const source=f.x.state.source;await f.x.execute_command('paragraph');assert(f.x.state.source===source);
+  f.x.set_view('html');assert(!f.x.html_view&&!f.x.surface.hidden);
+ }finally{connection?.close();f.close();}
+});
+await test('Shared Delete joins complete paragraph boundary and undo restores both peers',async()=>{
+ const prefix='# 제목\n\n',left='==리치 화면==과 **원본 화면**을 같은',right='문서에 연결했습니다.',suffix='\n\n- [ ] 확인할 작업';
+ const source=prefix+left+'\n\n'+right+suffix,f=await fixture(source);let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);f.x.focus();f.x.set_selection(byte_length(prefix+left));
+  f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));
+  await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source===prefix+left+right+suffix);assert(!f.x.state.source.includes('같은\n'));
+  await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source===source);
+ }finally{connection?.close();f.close();}
+});
+await test('Shared BR arrow skips the marker and typing starts on the next line',async()=>{
+ const f=await fixture('앞<br>뒤');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);f.x.set_options({show_paragraph_marks:true});f.x.focus();f.x.set_selection(byte_length('앞'));
+  f.x.surface.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));assert(f.x.get_selection().focus===byte_length('앞<br>'));
+  f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'새',bubbles:true,cancelable:true}));await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source==='앞<br>새뒤');
+ }finally{connection?.close();f.close();}
+});
+await test('Generated bold closer is kept before shared Shift+Enter BR',async()=>{
+ const f=await fixture('');let connection;
+ try {
+  connection=await connect_local_pair(f.a,f.b);f.x.set_options({auto_close:{enabled:true}});f.x.focus();
+  for(const data of ['*','*','원','본'])f.x.type_text(data);
+  await f.x.execute_command('hard_break');await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source==='**원본**<br>');
+  await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source==='**원본**');
+ }finally{connection?.close();f.close();}
+});
 document.querySelector('#summary').textContent=`${passed} passed / ${failed} failed`;
 document.body.dataset.passed=failed?'false':'true';

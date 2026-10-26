@@ -299,9 +299,9 @@ await test('Typing and deletion group by time and caret while paste, commands an
 });
 await test('Inserting before unchanged blocks retains DOM text nodes and patches UTF-8 coordinates',async()=>{
  const source='첫째\n\n둘째😀\n\n셋째';const editor=await fixture(source,{mode:'rich'});
- try{const old=[...editor.surface.children],text=old[2].querySelector('[data-text]').firstChild;
- editor.set_selection(0);editor.replace('앞😀\n\n');equal(editor.surface.children[4],old[2]);equal(old[2].querySelector('[data-text]').firstChild,text);
- const offset=byte_length('앞😀\n\n첫째\n\n');equal(+old[2].dataset.start,offset);
+ try{const old=[...editor.surface.children],text=old[1].querySelector('[data-text]').firstChild;
+ editor.set_selection(0);editor.replace('앞😀\n\n');equal(editor.surface.children[2],old[1]);equal(old[1].querySelector('[data-text]').firstChild,text);
+ const offset=byte_length('앞😀\n\n첫째\n\n');equal(+old[1].dataset.start,offset);
  const [node,index]=editor.source_to_dom(offset);equal(editor.dom_to_source(node,index),offset);
  await editor.execute_command('undo');equal(editor.state.source,source);
  }finally{editor.destroy();}
@@ -323,13 +323,13 @@ await test('Paragraph and hard-break marks preserve empty-line height and source
  const source='첫 문단\n\n\n다음 줄<br>마지막 줄';
  const editor=await fixture(source,{show_paragraph_marks:false});
  try {
-  const empty=[...editor.surface.querySelectorAll('p')].find(p=>p.matches(':has(> br:only-child)'));assert(empty,'empty paragraph fixture');
+  const empty=editor.surface.querySelector('[data-gap-start]');assert(empty,'empty paragraph fixture');
   const height=empty.getBoundingClientRect().height;
   editor.set_options({show_paragraph_marks:true});
-  const current=[...editor.surface.querySelectorAll('p')].find(p=>p.matches(':has(> br:only-child)'));
+  const current=editor.surface.querySelector('[data-gap-start]');
   equal(current.getBoundingClientRect().height,height);
-  equal(getComputedStyle(current,'::after').position,'absolute');
-  assert(getComputedStyle(current,'::after').content.includes('↵'),'paragraph arrow');
+  assert(!current.hasAttribute('data-paragraph-end'),'separator placeholder is not a paragraph end');
+  assert(getComputedStyle(editor.surface.querySelector('p[data-paragraph-end]'),'::after').content.includes('↵'),'paragraph arrow');
   const marker=editor.surface.querySelector('.break_mark');assert(marker,'hard-break decoration');
   assert(getComputedStyle(marker,'::before').content.includes('↓'),'line arrow');
   equal(marker.getAttribute('aria-hidden'),'true');
@@ -337,6 +337,215 @@ await test('Paragraph and hard-break marks preserve empty-line height and source
   editor.set_selection(0,3);editor.replace('새');assert(editor.get_markdown({normalize:false}).startsWith('새 문단'),'selection survives decoration');
   editor.set_options({show_paragraph_marks:false});equal(getComputedStyle(editor.surface.querySelector('.break_mark')).display,'none');
  }finally{editor.destroy();}
+});
+await test('Shift+Enter at paragraph end places caret after BR without a duplicate container-boundary paragraph', async () => {
+ for(const marks of [false,true]) {
+  const editor=await fixture('확인하세요.\n\n- [x] WASM으로 렌더링',{show_paragraph_marks:marks});
+  try {
+   editor.focus();editor.set_selection(byte_length('확인하세요.'));await editor.execute_command('hard_break');
+   equal(editor.get_markdown({normalize:false}),'확인하세요.<br>\n\n- [x] WASM으로 렌더링');
+   equal(editor.surface.querySelectorAll('p').length,1);
+   const br=editor.surface.querySelector('br[data-break]'),selection=editor.dom_selection();
+   equal(selection.focusNode,br.parentNode);equal(selection.focusOffset,[...br.parentNode.childNodes].indexOf(br)+1);
+   equal(editor.dom_to_source(selection.focusNode,selection.focusOffset),byte_length('확인하세요.<br>'));
+   assert(br.nextElementSibling?.matches('br[data-caret]'),'trailing BR needs a caret line');
+   editor.replace('다음');equal(editor.get_markdown({normalize:false}),'확인하세요.<br>다음\n\n- [x] WASM으로 렌더링');
+   assert(!editor.surface.querySelector('br[data-caret]'),'text replaces visual placeholder');
+  }finally{editor.destroy();}
+ }
+});
+await test('Rich and hybrid Delete/Backspace remove complete rendered line breaks, leaving literal code intact', async () => {
+ for(const mode of ['rich','hybrid'])for(const token of ['<br>','<br/>','<br />','  \n','\\\n']) {
+  const source='앞'+token+'뒤',editor=await fixture(source,{mode,show_paragraph_marks:true});
+  try {
+   editor.focus();editor.set_selection(byte_length('앞'));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));
+   equal(editor.get_markdown({normalize:false}),'앞뒤');
+   await editor.execute_command('undo');editor.set_selection(byte_length('앞'+token));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));
+   equal(editor.get_markdown({normalize:false}),'앞뒤');
+  }finally{editor.destroy();}
+ }
+ const editor=await fixture('`<br>`');
+ try{editor.focus();editor.set_selection(1);editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));equal(editor.get_markdown({normalize:false}),'`br>`');}finally{editor.destroy();}
+});
+await test('Task labels stay beside checkboxes in tight, loose and nested lists without changing source', async () => {
+ for(const source of ['- [x] 한글 라벨\n- [ ] 다음 라벨','- [x] **굵은 라벨**\n\n- [ ] 다음 라벨','- [x] 부모\n  - [ ] 자식'])for(const mode of ['rich','hybrid']) {
+  const editor=await fixture(source,{mode});
+  try {
+   for(const reading of [false,true]) {
+    editor.set_view(reading?'reading':'rich');
+    for(const input of editor.surface.querySelectorAll('input[data-task]')) {
+     const label=input.nextElementSibling;
+     assert(label,'task label exists');
+     const range=document.createRange();range.selectNodeContents(label.querySelector('[data-text]')||label);
+     const rect=range.getClientRects()[0],box=input.getBoundingClientRect();assert(rect&&Math.abs((rect.top+rect.bottom-box.top-box.bottom)/2)<12,'checkbox and label share a line');
+    }
+    equal(editor.get_markdown({normalize:false}),source);
+   }
+  }finally{editor.destroy();}
+ }
+});
+await test('Soft newlines have no BR mark and semantic block endings carry paragraph marks', async () => {
+ for(const mode of ['rich','hybrid']) {
+  const editor=await fixture('연결했습니다.\n가나다',{mode,show_paragraph_marks:true});
+  try {
+   editor.focus();editor.set_selection(byte_length('연결했습니다.'));
+   equal(editor.get_markdown({normalize:false}),'연결했습니다.\n가나다');
+   equal(editor.surface.querySelectorAll('p').length,1);const marker=[...editor.surface.querySelectorAll('[data-text]')].find(span=>span.textContent==='\n');assert(marker,'source newline retained');
+   assert(!editor.surface.querySelector('.soft_break,.break_mark'),'no BR for soft newline');
+   const start=byte_length('연결했습니다.');equal(editor.dom_to_source(marker.firstChild,0),start);equal(editor.dom_to_source(marker.firstChild,1),start+1);
+   editor.set_options({show_paragraph_marks:false});equal(getComputedStyle(editor.surface.querySelector('[data-paragraph-end]'),'::after').content,'none');
+   editor.set_selection(start);editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));equal(editor.get_markdown({normalize:false}),'연결했습니다.가나다');
+  }finally{editor.destroy();}
+ }
+ const editor=await fixture('```\na\nb\n```',{show_paragraph_marks:true});try{assert(!editor.surface.querySelector('.soft_break'),'code newlines are not paragraph soft breaks');}finally{editor.destroy();}
+});
+await test('Rich and hybrid leading spaces become nbsp entities with atomic deletion and unchanged middle/code spaces', async () => {
+ const type=(editor,data)=>editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data,bubbles:true,cancelable:true}));
+ for(const mode of ['rich','hybrid']) {
+  const editor=await fixture('한글',{mode});
+  try {
+   editor.focus();editor.set_selection(0);type(editor,' ');type(editor,' ');equal(editor.get_markdown({normalize:false}),'&nbsp;&nbsp;한글');equal(editor.get_selection().focus,12);
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));equal(editor.get_markdown({normalize:false}),'&nbsp;한글');
+   editor.set_selection(0);editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));equal(editor.get_markdown({normalize:false}),'한글');
+   editor.set_selection(3);type(editor,' ');equal(editor.get_markdown({normalize:false}),'한 글');
+   for(const separator of ['\n','<br>']){editor.set_markdown('앞'+separator+'뒤');editor.set_selection(byte_length('앞'+separator));type(editor,' ');equal(editor.get_markdown({normalize:false}),'앞'+separator+'&nbsp;뒤');}
+   editor.set_markdown('```\ncode\n```');editor.set_selection(byte_length('```\n'));type(editor,' ');equal(editor.get_markdown({normalize:false}),'```\n code\n```');
+  }finally{editor.destroy();}
+ }
+ const editor=await fixture('text',{mode:'markdown'});try{editor.focus();editor.set_selection(0);type(editor,' ');equal(editor.get_markdown({normalize:false}),' text');}finally{editor.destroy();}
+});
+await test('Enter at task label start splits sibling tasks, including a caret in the checkbox gap', async () => {
+ for(const mode of ['rich','hybrid'])for(const gap of [false,true]) {
+  const editor=await fixture('- [ ] 확인할 작업',{mode,elements:{list:{reveal_markdown:false}}});
+  try {
+   editor.focus();editor.set_selection(6);
+   if(gap){const input=editor.surface.querySelector('input[data-task]');assert(input.nextSibling.nodeType===1);editor.dom_selection().collapse(input.parentNode,[...input.parentNode.childNodes].indexOf(input)+1);}
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertParagraph',bubbles:true,cancelable:true}));
+   equal(editor.get_markdown({normalize:false}),'- [ ]\n- [ ] 확인할 작업');
+   // Hybrid may reveal the active item's Markdown; the inactive empty item must remain a checkbox.
+   assert(editor.state.html.match(/type="checkbox"/g).length===2,'both siblings render checkboxes');
+   assert(!editor.state.html.includes('data-depth="1"'),'no accidental nested list');
+   equal(editor.get_selection().focus,12);
+   await editor.execute_command('undo');equal(editor.get_markdown({normalize:false}),'- [ ] 확인할 작업');
+  }finally{editor.destroy();}
+ }
+});
+await test('HTML block markers cover headings, paragraphs and list items without coordinate wrapper duplicates',async()=>{
+ const editor=await fixture('# 제목\n\n본문<br>다음\n줄\n\n- 목록',{show_paragraph_marks:true});
+ try {
+  for(const selector of ['h1','p','li']){const block=editor.surface.querySelector(selector+'[data-paragraph-end]');assert(block,selector+' block end');assert(getComputedStyle(block,'::after').content.includes('↵'));}
+  equal(editor.surface.querySelectorAll('.break_mark').length,1);assert(!editor.surface.querySelector('section[data-paragraph-end]'));
+  assert(!editor.surface.querySelector('.soft_break'));equal(editor.surface.querySelectorAll('br[data-break]').length,1);
+ }finally{editor.destroy();}
+});
+await test('Separator blanks have no marks and empty task markers sit after checkboxes without editable gaps',async()=>{
+ const source='# 제목\n\n본문\n\n| A | B |\n| --- | --- |\n| a | b |\n\n- [ ]\n- [ ] 확인할 작업';
+ const editor=await fixture(source,{show_paragraph_marks:true});
+ try {
+  equal(editor.surface.querySelectorAll('h1[data-paragraph-end],p[data-paragraph-end]').length,2);
+  for(const p of editor.surface.querySelectorAll('p'))if(!p.textContent)assert(!p.hasAttribute('data-paragraph-end'),'no separator marks');
+  const tasks=[...editor.surface.querySelectorAll('input[data-task]')];equal(tasks.length,2);
+  for(const input of tasks){assert(input.nextSibling.nodeType===1,'no editable checkbox gap');const span=input.parentNode.querySelector('[data-text]');assert(span);const pos=+span.dataset.start;equal(editor.dom_to_source(input.parentNode,[...input.parentNode.childNodes].indexOf(input)+1),pos);}
+  const item=tasks[0].parentElement;assert(item.querySelector('.empty_task_caret'));equal(getComputedStyle(item,'::after').position,'static');
+  assert(item.querySelector('.empty_task_caret').getBoundingClientRect().left>=tasks[0].getBoundingClientRect().right,'mark anchor follows checkbox');
+  equal(editor.get_markdown({normalize:false}),source);
+  editor.focus();editor.set_selection(+item.querySelector('.empty_task_caret').dataset.start);
+  editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'새',bubbles:true,cancelable:true}));
+  equal(editor.get_markdown({normalize:false}),source.replace('- [ ]\n','- [ ] 새\n'));
+ }finally{editor.destroy();}
+});
+await test('Multiple blank source lines collapse to one paragraph separator while source and code stay intact',async()=>{
+ for(const mode of ['rich','hybrid']) {
+  const source='앞\n\n\n\n\n뒤',editor=await fixture(source,{mode});
+  try {
+   equal(editor.surface.querySelectorAll('[data-gap-start]').length,1);equal(editor.surface.querySelectorAll('p').length,2);
+   const gap=getComputedStyle(editor.surface.querySelector('[data-gap-start]')).marginBlockStart;
+   editor.set_markdown('앞\n\n뒤');equal(getComputedStyle(editor.surface.querySelector('[data-gap-start]')).marginBlockStart,gap);
+   editor.set_markdown(source);equal(editor.get_markdown({normalize:false}),source);
+   editor.focus();editor.set_selection(byte_length('앞\n\n\n'));equal(editor.get_selection().focus,byte_length('앞\n\n\n\n\n'));editor.replace('중간');equal(editor.get_markdown({normalize:false}),'앞\n\n\n\n\n중간뒤');
+   editor.set_markdown('```\na\n\n\n\nb\n```');assert(!editor.surface.querySelector('[data-gap-start]'));assert(editor.surface.querySelector('code').textContent.includes('a\n\n\n\nb'));
+  }finally{editor.destroy();}
+ }
+});
+await test('Paragraph separators are noneditable spacing and visual caret skips to content',async()=>{
+ for(const mode of ['rich','hybrid']) {
+  const source='# 제목\n\n\n본문',editor=await fixture(source,{mode,elements:{heading:{reveal_markdown:false}}});
+  try {
+   const gap=editor.surface.querySelector('[data-gap-start]');assert(gap);assert(!editor.surface.querySelector('.paragraph_separator'),'no spacer DOM');
+   editor.focus();editor.set_selection(+gap.dataset.gapStart);equal(editor.get_selection().focus,byte_length('# 제목\n\n\n'));assert(!editor.dom_selection().focusNode.parentElement.closest('.paragraph_separator'));
+   const index=[...editor.surface.childNodes].indexOf(gap);editor.dom_selection().collapse(editor.surface,index);
+   document.dispatchEvent(new Event('selectionchange'));assert(!editor.at_paragraph_gap(editor.dom_selection().focusNode,editor.dom_selection().focusOffset));
+   editor.set_view('source');editor.set_selection(byte_length('# 제목\n\n'));equal(editor.get_selection().focus,byte_length('# 제목\n\n'));equal(editor.get_markdown({normalize:false}),source);
+  }finally{editor.destroy();}
+ }
+});
+await test('HTML view is a read-only renderer output after Source and preserves editing state',async()=>{
+ const source='# 제목\n\n**본문**',editor=await fixture(source);
+ try {
+  const buttons=[...editor.root.querySelectorAll('[data-view]')].map(button=>button.textContent);equal(buttons.join(','),'원본,HTML,읽기');
+  editor.set_selection(byte_length('# 제목\n\n**'),byte_length('# 제목\n\n**본문'));const before=editor.get_selection();
+  editor.root.querySelector('[data-view="html"]').click();assert(editor.html_view&&editor.html_output.readOnly&&!editor.html_output.hidden);assert(editor.surface.hidden&&editor.source_input.hidden);
+  equal(editor.html_output.value,editor.state.html);assert(editor.html_output.value.includes('<h1'));assert(!editor.html_output.value.includes('data-paragraph-end'),'not decorated live DOM');
+  await editor.execute_command('bold');equal(editor.get_markdown({normalize:false}),source);equal(editor.get_selection().anchor,before.anchor);equal(editor.get_selection().focus,before.focus);
+  editor.root.querySelector('[data-view="html"]').click();assert(!editor.html_view&&!editor.surface.hidden);equal(editor.get_selection().focus,before.focus);
+  editor.set_view('source');editor.set_view('html');assert(!editor.source_view&&editor.html_view);editor.set_view('reading');assert(editor.reading&&!editor.html_view);
+  editor.set_view('html');editor.set_markdown('**updated**');equal(editor.html_output.value,editor.state.html);assert(editor.html_output.value.includes('updated'));
+ }finally{editor.destroy();}
+});
+await test('Right/Left cross heading-paragraph boundaries and no gap DOM remains',async()=>{
+ const source='# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.';
+ for(const mode of ['rich','hybrid']) {
+  const editor=await fixture(source,{mode,elements:{heading:{reveal_markdown:false},highlight:{reveal_markdown:false}}});
+  try {
+   const heading=[...editor.surface.querySelectorAll('h1 [data-text]')].at(-1),paragraph=editor.surface.querySelector('p [data-text]');
+   const end=+heading.dataset.end,start=+paragraph.dataset.start;editor.focus();editor.set_selection(end);
+   editor.surface.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));equal(editor.get_selection().focus,start);
+   editor.surface.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true,cancelable:true}));equal(editor.get_selection().focus,end);
+   assert(!editor.surface.querySelector('.paragraph_separator'));equal(editor.surface.children.length,2);
+   editor.dom_selection().collapse(editor.surface,1);document.dispatchEvent(new Event('selectionchange'));
+   assert(editor.dom_selection().focusNode!==editor.surface,'gap click snaps into content');equal(editor.get_markdown({normalize:false}),source);
+  }finally{editor.destroy();}
+ }
+});
+await test('Delete/Backspace join body paragraphs by deleting the entire blank separator',async()=>{
+ const left='==리치 화면==과 **원본 화면**을 같은',right='문서에 연결했습니다.';
+ const prefix='# 함께 쓰는 문서\n\n',suffix='\n\n| 항목 | 상태 |\n| --- | --- |\n| 공동 편집 | 준비 |\n\n- [ ] 확인할 작업';
+ for(const mode of ['rich','hybrid'])for(const separator of ['\n\n','\n\n\n\n'])for(const backwards of [false,true]) {
+  const source=prefix+left+separator+right+suffix,editor=await fixture(source,{mode,show_paragraph_marks:true});
+  try {
+   editor.focus();editor.set_selection(byte_length(prefix+left+(backwards?separator:'')));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:backwards?'deleteContentBackward':'deleteContentForward',bubbles:true,cancelable:true}));
+   equal(editor.get_markdown({normalize:false}),prefix+left+right+suffix);equal(editor.get_selection().focus,byte_length(prefix+left));
+   await editor.execute_command('undo');equal(editor.get_markdown({normalize:false}),source);
+  }finally{editor.destroy();}
+ }
+});
+await test('Horizontal arrows cross an entire rendered BR, never stopping on its decoration',async()=>{
+ for(const mode of ['rich','hybrid'])for(const marks of [false,true])for(const token of ['<br>','<br/>','<br />','  \n','\\\n']) {
+  const source='앞'+token+'뒤',editor=await fixture(source,{mode,show_paragraph_marks:marks});
+  try {
+   const start=byte_length('앞'),end=byte_length('앞'+token);editor.focus();editor.set_selection(start);
+   editor.surface.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));equal(editor.get_selection().focus,end);
+   const br=editor.surface.querySelector('br[data-break]'),selection=editor.dom_selection();equal(editor.dom_to_source(selection.focusNode,selection.focusOffset),end);assert(!selection.focusNode.parentElement?.closest('.break_mark'));
+   editor.surface.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true,cancelable:true}));equal(editor.get_selection().focus,start);
+   const marker=editor.surface.querySelector('.break_mark');equal(editor.dom_to_source(marker,0),start);equal(editor.get_markdown({normalize:false}),source);
+  }finally{editor.destroy();}
+ }
+ const editor=await fixture('끝<br>',{show_paragraph_marks:true});try{editor.focus();editor.set_selection(byte_length('끝'));editor.surface.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));equal(editor.get_selection().focus,byte_length('끝<br>'));assert(editor.surface.querySelector('br[data-caret]'));}finally{editor.destroy();}
+});
+await test('Shift+Enter exits generated bold closers before inserting BR in rich and hybrid modes',async()=>{
+ for(const mode of ['rich','hybrid']) {
+  const editor=await fixture('',{mode,auto_close:{enabled:true}});
+  try {
+   editor.focus();for(const data of ['*','*','원','본'])editor.type_text(data);
+   equal(editor.get_markdown({normalize:false}),'**원본**');equal(editor.get_selection().focus,byte_length('**원본'));
+   await editor.execute_command('hard_break');equal(editor.get_markdown({normalize:false}),'**원본**<br>');equal(editor.get_selection().focus,byte_length('**원본**<br>'));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'다음',bubbles:true,cancelable:true}));equal(editor.get_markdown({normalize:false}),'**원본**<br>다음');
+  }finally{editor.destroy();}
+ }
+ const editor=await fixture('**원본**',{auto_close:{enabled:true}});try{editor.focus();editor.set_selection(byte_length('**원본'));await editor.execute_command('hard_break');equal(editor.get_markdown({normalize:false}),'**원본<br>**');}finally{editor.destroy();}
 });
 document.querySelector('#summary').textContent = `${results.filter(Boolean).length}/${results.length} passed`;
 document.body.dataset.passed = results.every(Boolean) ? 'true' : 'false';

@@ -28,10 +28,12 @@ pre code { background:none; padding:0; }
 .show_code_line_numbers .code_line { position:relative; counter-increment:code-line; }
 .show_code_line_numbers .code_line::before { content:counter(code-line); position:absolute; width:2em; inset-inline-start:-3em; text-align:end; color:#8a99ad; user-select:none; }
 .show_heading_levels h1::before,.show_heading_levels h2::before,.show_heading_levels h3::before,.show_heading_levels h4::before,.show_heading_levels h5::before,.show_heading_levels h6::before { content:attr(data-level) ' '; font:11px ui-monospace,monospace; color:#8a99ad; user-select:none; }
-.show_paragraph_marks .surface p::after { content:' ↵'; color:#aab6c6; font-size:.8em; user-select:none; pointer-events:none; }
+.show_paragraph_marks .surface [data-paragraph-end]::after { content:' ↵'; color:#aab6c6; font-size:.8em; user-select:none; pointer-events:none; }
 /* Keep the caret placeholder BR: place its paragraph mark on the same line. */
-.show_paragraph_marks .surface p:has(> br:only-child) { position:relative; }
-.show_paragraph_marks .surface p:has(> br:only-child)::after { position:absolute; inset-inline-start:0; top:0; }
+.show_paragraph_marks .surface [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text])) { position:relative; }
+.show_paragraph_marks .surface [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text]))::after { position:absolute; inset-inline-start:0; top:0; }
+.show_paragraph_marks .surface [data-paragraph-end]:has(> br[data-caret]:last-child) { position:relative; }
+.show_paragraph_marks .surface [data-paragraph-end]:has(> br[data-caret]:last-child)::after { position:absolute; inset-inline-start:0; top:auto; bottom:0; }
 .break_mark { display:none; }
 .show_paragraph_marks .break_mark { display:inline-block; position:relative; width:.85em; height:0; pointer-events:none; user-select:none; }
 .show_paragraph_marks .break_mark::before { content:'↓'; position:absolute; inset-inline-start:0; bottom:0; color:#aab6c6; font-size:.8em; }
@@ -90,8 +92,17 @@ dt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }
 /* Hierarchical lists use native list semantics; source coordinates stay on li/spans. */
 .surface ul,.surface ol { padding-inline-start:1.8em; margin-block:.35em; }
 .surface li.list_item { padding-inline-start:0; }
-.surface li.list_item input { margin-inline-start:0; margin-inline-end:.5em; }
+.surface li.list_item input { margin-inline-start:0; margin-inline-end:.25em; }
 
 .sr_only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
 @media (forced-colors: active) { button:focus-visible, .surface:focus-visible, .source:focus-visible { outline:2px solid Highlight; } [data-selected] { outline:2px solid Highlight; } }
+
+/* Coordinate wrappers must not split task checkboxes from their first label. */
+.surface li.list_item > input[data-task] + section { display:inline; }
+.surface li.list_item > input[data-task] + section > p:first-child,
+.surface li.list_item > input[data-task] + p { display:inline; }
+
+.empty_task_caret { display:inline-block; min-width:1px; height:1em; }
+
+.after_paragraph_gap { margin-block-start:1.85em; }

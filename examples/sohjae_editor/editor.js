@@ -13,7 +13,7 @@ const DEFAULTS = {
 // Compare content independently of source coordinates, then patch offsets atomically.
 // This preserves text nodes, native selection and unchanged suffix blocks after insertion.
 function patch_coordinates(old, incoming) {
-  const changes = [], coordinates = ['data-start','data-end','data-task'];
+  const changes = [], coordinates = ['data-start','data-end','data-task','data-separator-end','data-gap-start','data-gap-end'];
   const compare = (a,b) => {
     if(a.nodeType !== b.nodeType || a.nodeName !== b.nodeName)return false;
     if(a.nodeType !== 1)return a.nodeValue === b.nodeValue;
@@ -111,6 +111,7 @@ class MarkdownEditor extends EventTarget {
     this.container = container;
     this.composing = false;
     this.source_view = false;
+    this.html_view = false;
     this.reading = false;
     this.selection = { anchor: 0, focus: 0 };
     this.pairs = [];
@@ -118,9 +119,10 @@ class MarkdownEditor extends EventTarget {
     this.root.innerHTML = `<style>${css}</style><link class="layout_link" rel="stylesheet" disabled>
       <div class="markdown_editor"><header><div class="toolbar" role="toolbar" aria-label="문서 편집 도구"></div>
       <div class="view_bar"><label>편집 방식 <select aria-label="편집 방식"><option value="hybrid">하이브리드</option><option value="rich">리치</option><option value="markdown">Markdown</option></select></label>
-      <button data-view="source" aria-pressed="false">원본</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state"></span><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
+      <button data-view="source" aria-pressed="false">원본</button><button data-view="html" aria-pressed="false">HTML</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state"></span><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
       <div class="surface" contenteditable="true" role="textbox" aria-label="Markdown 문서" aria-describedby="editor_help" aria-multiline="true" spellcheck="false"></div>
       <textarea class="source" aria-label="Markdown 원본" aria-describedby="editor_help" spellcheck="false" hidden></textarea>
+      <textarea class="source html_output" aria-label="렌더링된 HTML" readonly spellcheck="false" hidden></textarea>
       <footer><span class="position"></span><span>Esc · 편집 영역 나가기</span></footer>
       <p id="editor_help" class="sr_only">문서에서 Esc를 누르면 편집 영역을 나갑니다. 도구 모음은 방향키와 Home·End로 이동합니다. 모든 명령은 Control 또는 Command와 Shift와 P로 열 수 있습니다. 표 핸들은 Alt와 방향키로 이동합니다.</p>
       <div class="errors sr_only" role="alert" aria-atomic="true"></div>
@@ -129,6 +131,7 @@ class MarkdownEditor extends EventTarget {
       <input class="file_input" type="file" multiple hidden></div>`;
     this.surface = this.root.querySelector('.surface');
     this.source_input = this.root.querySelector('.source');
+    this.html_output = this.root.querySelector('.html_output');
     this.toolbar = this.root.querySelector('.toolbar');
     this.dialog = this.root.querySelector('dialog');
     const tools = [
@@ -162,6 +165,7 @@ class MarkdownEditor extends EventTarget {
     });
     this.on(this.root.querySelector('select'), 'change', event => this.set_options({ mode: event.target.value }));
     this.root.querySelectorAll('[data-view]').forEach(button => this.on(button, 'click', () => this.set_view(button.dataset.view)));
+    this.on(this.html_output, 'keydown', event => { if (event.key === 'Escape') { event.preventDefault(); this.root.querySelector('[data-view="html"]').focus(); } });
     for(const input of [this.surface,this.source_input])this.on(input,'blur',()=>{this.typing_group=null;});
     this.on(this.source_input,'pointerdown',()=>{this.typing_group=null;});
     this.on(this.surface, 'focus', () => { this.keep_active_syntax = true; this.refresh_syntax(); });
@@ -214,7 +218,10 @@ class MarkdownEditor extends EventTarget {
     this.on(document, 'selectionchange', () => {
       if (this.composing || this.rendering || this.dialog.open) return;
       if (!this.has_focus()) return;
+      const selection = this.dom_selection();
+      const at_gap = selection?.isCollapsed && this.at_paragraph_gap(selection.focusNode, selection.focusOffset);
       this.capture_selection();
+      if (at_gap && !this.dragging) this.restore_selection();
       // Avoid changing DOM during a pointer drag; expose syntax on pointerup instead.
       if (!this.dragging) this.refresh_syntax();
     });
@@ -337,7 +344,7 @@ class MarkdownEditor extends EventTarget {
     this.options = next; this.render();
   }
   destroy() { if (!this.core) return; this.listeners.abort(); this.core.request(1); this.core = null; this.state = null; this.pairs = []; this.root.replaceChildren(); }
-  focus() { this.assert_active(); (this.source_view ? this.source_input : this.surface).focus(); this.core.request(4, '', this.selection.anchor, this.selection.focus); this.restore_selection(); }
+  focus() { this.assert_active(); if (this.html_view) { this.html_output.focus(); return; } (this.source_view ? this.source_input : this.surface).focus(); this.core.request(4, '', this.selection.anchor, this.selection.focus); this.restore_selection(); }
   set_selection(anchor, focus = anchor, finalize = false) {
     this.assert_active();
     this.typing_group = null;
@@ -347,8 +354,9 @@ class MarkdownEditor extends EventTarget {
     this.typing_group = null;
     if (this.composing) return;
     this.capture_selection();
-    if (view === 'source') { this.source_view = !this.source_view; this.reading = false; }
-    else { this.reading = !this.reading; this.source_view = false; }
+    if (view === 'source') { this.source_view = !this.source_view; this.reading = false; this.html_view = false; }
+    else if (view === 'html') { this.html_view = !this.html_view; this.source_view = false; this.reading = false; }
+    else { this.reading = !this.reading; this.source_view = false; this.html_view = false; }
     if(this.core.replica)this.core.source_mode=this.source_view;
     this.render(); this.focus();
   }
@@ -397,11 +405,53 @@ class MarkdownEditor extends EventTarget {
     const scroll = this.surface.scrollTop;
     const template = document.createElement('template'); template.innerHTML = this.state.html;
     if (this.reading) template.content.querySelectorAll('.comment,.front_matter,.reference_definition,[data-kind="comment"]').forEach(element => element.remove());
-    template.content.querySelectorAll('[data-task]').forEach(input => { input.disabled = this.reading || this.options.read_only; });
+    template.content.querySelectorAll('[data-task]').forEach(input => {
+      input.disabled = this.reading || this.options.read_only;
+      // Spacing is visual, not an extra editable text node/caret stop.
+      const gap = input.nextSibling;
+      if (gap?.nodeType === 3 && /^[ \t]*$/u.test(gap.textContent)) gap.remove();
+      const item = input.parentElement;
+      if (!item.querySelector('[data-text]') && !item.querySelector('ul,ol,p,h1,h2,h3,h4,h5,h6,pre')) {
+        item.querySelectorAll('br:not([data-break])').forEach(br => br.remove());
+        const caret = document.createElement('span');
+        caret.dataset.text = '1'; caret.dataset.start = item.dataset.end; caret.dataset.end = item.dataset.end;
+        caret.className = 'empty_task_caret'; item.append(caret);
+      }
+    });
+    template.content.querySelectorAll('br[data-break]:last-child').forEach(br => {
+      const placeholder = document.createElement('br'); placeholder.dataset.caret = '1';
+      br.after(placeholder);
+    });
     template.content.querySelectorAll('br[data-break]').forEach(br => {
       const marker = document.createElement('span');
       marker.className = 'break_mark'; marker.contentEditable = 'false'; marker.setAttribute('aria-hidden', 'true');
       br.before(marker);
+    });
+    // Blank source lines separate blocks; their count must not create extra paragraphs.
+    for (const block of [...template.content.querySelectorAll('section[data-block]')]) {
+      const paragraph = block.querySelector(':scope > p:only-child');
+      const raw = byte_slice(this.state.source, Number(block.dataset.start), Number(block.dataset.end));
+      if (paragraph && !paragraph.textContent && !raw.trim()) block.classList.add('paragraph_separator');
+    }
+    for (const first of [...template.content.querySelectorAll('.paragraph_separator')]) {
+      if (!first.parentNode) continue;
+      let last = first;
+      while (first.nextElementSibling?.classList.contains('paragraph_separator')) {
+        last = first.nextElementSibling; first.dataset.separatorEnd = last.dataset.end; last.remove();
+      }
+      first.dataset.separatorEnd ??= first.dataset.end;
+      if (first.previousElementSibling && first.nextElementSibling) {
+        const next = first.nextElementSibling;
+        next.dataset.gapStart = first.dataset.start; next.dataset.gapEnd = first.dataset.separatorEnd;
+        next.classList.add('after_paragraph_gap'); first.remove();
+      }
+    }
+    // Mark semantic text blocks, not source-coordinate wrappers or nested containers.
+    const blocks = 'p,h1,h2,h3,h4,h5,h6,pre,li,blockquote,dt,dd,summary,figcaption';
+    template.content.querySelectorAll(blocks).forEach(block => {
+      const owner = block.closest('[data-block]');
+      const separator = block.matches('p') && owner?.classList.contains('paragraph_separator');
+      if (!separator && !block.querySelector(blocks + ',ul,ol,dl,table')) block.dataset.paragraphEnd = '1';
     });
     const incoming = [...template.content.children];
     const old_nodes = [...this.surface.children];
@@ -419,7 +469,10 @@ class MarkdownEditor extends EventTarget {
     old_middle.slice(new_middle.length).forEach(node=>node.remove());
     this.source_input.value = this.state.source;
     this.source_input.hidden = !this.source_view;
-    this.surface.hidden = this.source_view;
+    this.surface.hidden = this.source_view || this.html_view;
+    this.html_output.hidden = !this.html_view;
+    if (this.html_output.value !== this.state.html) this.html_output.value = this.state.html;
+    this.root.querySelector('[data-view="html"]').setAttribute('aria-pressed', String(this.html_view));
     this.surface.contentEditable = String(!this.options.read_only && !this.reading);
     this.source_input.readOnly = this.options.read_only;
     this.root.querySelector('select').value = this.options.mode;
@@ -429,7 +482,7 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('[data-draft-discard]').hidden = !this.state.draft;
     this.toolbar.querySelectorAll('button').forEach(button => {
       const command = button.dataset.command;
-      button.disabled = ((this.options.read_only || this.reading) && !['copy_markdown', 'save', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
+      button.disabled = ((this.options.read_only || this.reading || this.html_view) && !['copy_markdown', 'save', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
     });
     this.add_table_handles();
     this.sync_accessibility();
@@ -456,7 +509,7 @@ class MarkdownEditor extends EventTarget {
     return this.options.mode === 'markdown' || this.options.mode === 'hybrid' && ['bold', 'italic', 'strikethrough', 'highlight', 'inline_code', 'link', 'heading', 'list', 'quote'].includes(kind);
   }
   refresh_syntax(restore = true) {
-    if (this.composing || this.dragging || this.source_view || this.reading || (!this.keep_active_syntax && !this.has_focus())) return;
+    if (this.composing || this.dragging || this.source_view || this.html_view || this.reading || (!this.keep_active_syntax && !this.has_focus())) return;
     const focus = this.selection.focus;
     const reveal = [...this.surface.querySelectorAll('[data-kind]')].filter(element => this.should_reveal(element.dataset.kind) && focus >= Number(element.dataset.start) && focus <= Number(element.dataset.end));
     // Restore only if the active syntax region changed; never rebuild on caret movement inside it.
@@ -486,8 +539,13 @@ class MarkdownEditor extends EventTarget {
     }
     this.core.request(4, '', this.selection.anchor, this.selection.focus);
   }
+  at_paragraph_gap(node, offset) {
+    return node?.nodeType === 1 && (node === this.surface || node.matches('section[data-block]'));
+  }
   dom_to_source(node, offset) {
     const element = node.nodeType === 1 ? node : node.parentElement;
+    const decoration = element.closest('.break_mark');
+    if (decoration?.nextElementSibling?.matches('br[data-break]')) return Number(decoration.nextElementSibling.dataset.start);
     const text = element.closest('[data-text]');
     if (text) {
       const range = document.createRange(); range.setStart(text, 0); range.setEnd(node, offset);
@@ -496,6 +554,13 @@ class MarkdownEditor extends EventTarget {
       if (raw === displayed) return start + byte_length(before);
       if (raw.startsWith('\\') && raw.slice(1) === displayed) return start + 1 + byte_length(before);
       return before.length ? end : start;
+    }
+    // Browsers may put a caret in the literal space between a task input
+    // and its coordinate wrapper instead of in the first label text node.
+    if (node.nodeType === 3 && /^[ \t]*$/u.test(node.textContent) && element.matches('li.list_item')
+        && node.previousSibling?.matches?.('input[data-task]')) {
+      const label = node.nextSibling?.querySelector?.('[data-text]');
+      if (label) return Number(label.dataset.start);
     }
     if (node.nodeType === 1) {
       const after = node.childNodes[offset];
@@ -511,7 +576,21 @@ class MarkdownEditor extends EventTarget {
     const owner = element.closest('[data-cell],[data-block]');
     return Number(owner?.dataset.start || 0);
   }
+  visual_position(position) {
+    if (this.source_view || this.options.mode === 'markdown') return position;
+    const gap = [...this.surface.querySelectorAll('[data-gap-start]')].find(block => Number(block.dataset.gapStart) <= position && position <= Number(block.dataset.gapEnd));
+    if (!gap) return position;
+    const next = gap.querySelector('[data-text]');
+    if (next) return Number(next.dataset.start);
+    const previous = [...(gap.previousElementSibling?.querySelectorAll('[data-text]') || [])].at(-1);
+    return previous ? Number(previous.dataset.end) : position;
+  }
   source_to_dom(position) {
+    position = this.visual_position(position);
+    const separator = [...this.surface.querySelectorAll('.paragraph_separator')].find(block => Number(block.dataset.start) <= position && position <= Number(block.dataset.separatorEnd));
+    if (separator && !separator.hasAttribute('data-gap')) return [separator.firstChild, 0];
+    const line_break = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset.end) === position);
+    if (line_break) return [line_break.parentNode, [...line_break.parentNode.childNodes].indexOf(line_break) + 1];
     const spans = [...this.surface.querySelectorAll('[data-text]')];
     let nearest;
     for (const span of spans) {
@@ -538,6 +617,13 @@ class MarkdownEditor extends EventTarget {
     return [this.surface, 0];
   }
   restore_selection() {
+    if (this.html_view) return;
+    if (this.selection.anchor === this.selection.focus) {
+      const position = this.visual_position(this.selection.focus);
+      if (position !== this.selection.focus) {
+        this.selection = {anchor:position,focus:position}; this.state = this.core.request(4, '', position, position);
+      }
+    }
     const { anchor, focus } = this.selection;
     if (this.source_view) {
       this.source_input.setSelectionRange(byte_to_utf16(this.state.source, Math.min(anchor, focus)), byte_to_utf16(this.state.source, Math.max(anchor, focus)), anchor > focus ? 'backward' : 'forward'); return;
@@ -574,6 +660,17 @@ class MarkdownEditor extends EventTarget {
     if (event.inputType.startsWith('delete')) {
       if (this.selection.anchor !== this.selection.focus) return this.replace('');
       const backwards = !event.inputType.includes('Forward');
+      if (this.options.mode !== 'markdown') {
+        const boundary = backwards ? 'end' : 'start';
+        const line_break = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset[boundary]) === this.selection.focus);
+        if (line_break) return this.replace('', Number(line_break.dataset.start), Number(line_break.dataset.end));
+        const entity = [...this.surface.querySelectorAll('[data-text]')].find(span => {
+          const raw = byte_slice(this.state.source, Number(span.dataset.start), Number(span.dataset.end));
+          return Number(span.dataset[boundary]) === this.selection.focus && /^&(?:#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]+);$/.test(raw) && raw !== span.textContent;
+        });
+        if (entity) return this.replace('', Number(entity.dataset.start), Number(entity.dataset.end));
+        if (this.merge_paragraph_boundary(backwards)) return;
+      }
       const pair = this.pairs.find(pair => pair.start === this.selection.focus);
       if (backwards && pair && this.options.auto_close.delete_empty_pair && byte_slice(this.state.source, pair.start - byte_length(pair.open), pair.start) === pair.open) {
         return this.replace('', pair.start - byte_length(pair.open), pair.start + byte_length(pair.close));
@@ -587,6 +684,21 @@ class MarkdownEditor extends EventTarget {
     if (event.inputType.startsWith('format')) {
       const map = { formatBold: 'bold', formatItalic: 'italic', formatStrikeThrough: 'strikethrough' }; if (map[event.inputType]) this.run(map[event.inputType]);
     }
+  }
+  merge_paragraph_boundary(backwards) {
+    for (const next of this.surface.querySelectorAll('[data-gap-start]')) {
+      const previous = next.previousElementSibling;
+      const left = previous?.querySelector(':scope > p'), right = next.querySelector(':scope > p');
+      if (!left || !right) continue; // Do not flatten tables, lists or other block structures.
+      const start = Number(previous.dataset.end), end = Number(next.dataset.start);
+      if (!/^\n(?:[ \t]*\n)+$/u.test(byte_slice(this.state.source,start,end))) continue;
+      const spans = [...(backwards ? right : left).querySelectorAll('[data-text]')];
+      const edge = backwards ? spans[0] : spans.at(-1);
+      const position = this.selection.focus;
+      if (position !== (backwards ? end : start) && (!edge || position !== Number(edge.dataset[backwards ? 'start' : 'end']))) continue;
+      this.replace('',start,end); return true;
+    }
+    return false;
   }
   source_changed() {
     const input = this.source_input, value = input.value;
@@ -604,10 +716,28 @@ class MarkdownEditor extends EventTarget {
     this.set_selection(direction === 'backward' ? f : a, direction === 'backward' ? a : f);
     this.typing_group=group;
   }
+  at_visual_line_start(position) {
+    const [node, offset] = this.source_to_dom(position);
+    const element = node.nodeType === 1 ? node : node.parentElement;
+    const block = element.closest('p,h1,h2,h3,h4,h5,h6,td,th,li') || element.closest('[data-block]') || this.surface;
+    const range = document.createRange(); range.selectNodeContents(block); range.setEnd(node, offset);
+    const last_break = [...block.querySelectorAll('br[data-break]')].findLast(br => Number(br.dataset.end) <= position);
+    if (last_break) range.setStartAfter(last_break);
+    return /^[ \u00a0]*$/u.test(range.toString().split('\n').at(-1));
+  }
   type_text(text) {
     const start = Math.min(this.selection.anchor, this.selection.focus), end = Math.max(this.selection.anchor, this.selection.focus);
     const auto = this.options.auto_close;
     const context = this.active_kind();
+    const empty_task = [...this.surface.querySelectorAll('.empty_task_caret')].find(span => Number(span.dataset.start) === start);
+    if (start === end && !this.source_view && this.options.mode !== 'markdown' && empty_task
+        && /\[[ xX]\]$/u.test(this.line_range().text)) {
+      this.replace(' ' + (text === ' ' ? '&nbsp;' : text)); return;
+    }
+    if (text === ' ' && start === end && !this.source_view && this.options.mode !== 'markdown'
+        && !['code_block', 'inline_code', 'comment', 'front_matter'].includes(context) && this.at_visual_line_start(start)) {
+      this.replace('&nbsp;'); return;
+    }
     const tracked = this.pairs.find(pair => pair.start === start && pair.close.startsWith(text));
     if (auto.enabled && tracked && start === end && ['*', '_'].includes(text) && tracked.open === text && auto.pairs.bold) {
       this.pairs = this.pairs.filter(pair => pair !== tracked);
@@ -659,14 +789,42 @@ class MarkdownEditor extends EventTarget {
     if (this.active_cell()) return this.run('hard_break');
     const line = this.line_range();
     if (this.active_kind() === 'code_block' || this.active_kind() === 'front_matter') return this.replace('\n');
-    const list = line.text.match(/^(\s*)([-+*]|\d+[.)]) (\[[ xX]\] )?/u);
+    const list = line.text.match(/^(\s*)([-+*]|\d+[.)]) (\[[ xX]\](?: |$))?/u);
     if (list) {
       if (line.text.slice(list[0].length).trim() === '') return this.replace('', line.start, line.end);
-      const marker = /^\d/u.test(list[2]) ? `${parseInt(list[2]) + 1}.` : '-';
+      const marker = /^\d/u.test(list[2]) ? `${parseInt(list[2]) + 1}.` : list[2];
+      if (this.selection.anchor === this.selection.focus && this.selection.focus === line.start + byte_length(list[0])) {
+        const prefix = list[0].trimEnd();
+        return this.replace(`${prefix}\n${list[1]}${marker} ${list[3] ? '[ ] ' : ''}`, line.start, this.selection.focus);
+      }
       return this.replace(`\n${list[1]}${marker} ${list[3] ? '[ ] ' : ''}`);
     }
     if (line.text.startsWith('> ')) return this.replace('\n> ');
     this.replace('\n\n');
+  }
+  move_line_break(key) {
+    if (this.source_view || this.html_view || this.reading || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus) return false;
+    const forwards = key === 'ArrowRight';
+    const br = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset[forwards ? 'start' : 'end']) === this.selection.focus);
+    if (!br) return false;
+    this.set_selection(Number(br.dataset[forwards ? 'end' : 'start']));
+    this.refresh_syntax(); return true;
+  }
+  move_block_boundary(key) {
+    if (this.source_view || this.html_view || this.reading || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus || this.active_cell()) return false;
+    const [node] = this.source_to_dom(this.selection.focus);
+    const element = node.nodeType === 1 ? node : node.parentElement;
+    const block = element.closest('p,h1,h2,h3,h4,h5,h6,li,dt,dd');
+    if (!block || block.closest('pre')) return false;
+    const spans = [...block.querySelectorAll('[data-text]')];
+    const edge = key === 'ArrowRight' ? spans.at(-1) : spans[0];
+    if (!edge || Number(edge.dataset[key === 'ArrowRight' ? 'end' : 'start']) !== this.selection.focus) return false;
+    if ([...block.querySelectorAll('br[data-break]')].some(br => key === 'ArrowRight' ? Number(br.dataset.start) >= this.selection.focus : Number(br.dataset.end) <= this.selection.focus)) return false;
+    const all = [...this.surface.querySelectorAll('[data-text]')];
+    const target = all[all.indexOf(edge) + (key === 'ArrowRight' ? 1 : -1)];
+    if (!target) return false;
+    this.set_selection(Number(target.dataset[key === 'ArrowRight' ? 'start' : 'end']));
+    this.refresh_syntax(); return true;
   }
   keydown(event) {
     if (/^(Arrow|Home|End|Page|Escape)/u.test(event.key)) this.typing_group=null;
@@ -686,6 +844,7 @@ class MarkdownEditor extends EventTarget {
       if (this.active_cell()) { event.preventDefault(); this.move_cell(event.shiftKey ? -1 : 1); }
       else if (/^\s*(?:[-+*]|\d+[.)]) /u.test(this.line_range().text)) { event.preventDefault(); this.run(event.shiftKey ? 'outdent' : 'indent'); }
     }
+    if (!event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
     if (!this.source_view && !event.shiftKey && !modifier && event.key.startsWith('Arrow')) this.cell_arrow(event);
   }
   async run(command) {
@@ -698,7 +857,7 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('.errors').textContent = '';
     if (this.composing) return;
     const read_command = ['save', 'open', 'open_link', 'copy_markdown'].includes(command);
-    if ((this.options.read_only || this.reading) && !read_command) return;
+    if ((this.options.read_only || this.reading || this.html_view) && !read_command) return;
     const display_options = { line_numbers: 'show_code_line_numbers', heading_levels: 'show_heading_levels', paragraph_marks: 'show_paragraph_marks' };
     if (display_options[command]) { this.set_options({ [display_options[command]]: !this.options[display_options[command]] }); return; }
     if (command === 'undo' || command === 'redo') {
@@ -737,7 +896,25 @@ class MarkdownEditor extends EventTarget {
       }
       this.focus(); return;
     }
-    if (command === 'hard_break') { this.replace(['code_block', 'comment', 'front_matter'].includes(this.active_kind()) ? '\n' : '<br>'); this.focus(); return; }
+    if (command === 'hard_break') {
+      const literal = ['code_block', 'comment', 'front_matter'].includes(this.active_kind());
+      let position = this.selection.focus;
+      const consumed = new Set();
+      if (!literal && !this.source_view && this.options.mode !== 'markdown' && this.selection.anchor === position) {
+        // Exit only still-tracked generated closers, never arbitrary source syntax.
+        for (;;) {
+          const pair = this.pairs.find(pair => !consumed.has(pair) && pair.start === position
+            && byte_slice(this.state.source, position, position + byte_length(pair.close)) === pair.close);
+          if (!pair) break;
+          consumed.add(pair); position += byte_length(pair.close);
+        }
+      }
+      if (consumed.size) {
+        this.pairs = this.pairs.filter(pair => !consumed.has(pair));
+        this.replace('<br>', position, position);
+      } else this.replace(literal ? '\n' : '<br>');
+      this.focus(); return;
+    }
     if (command === 'link') return this.link_dialog();
     if (command === 'unlink') {
       const link = this.active_link(); if (!link) return;

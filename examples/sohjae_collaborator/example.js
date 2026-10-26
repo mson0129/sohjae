@@ -174,7 +174,7 @@ const DEFAULTS = {
 // Compare content independently of source coordinates, then patch offsets atomically.
 // This preserves text nodes, native selection and unchanged suffix blocks after insertion.
 function patch_coordinates(old, incoming) {
-  const changes = [], coordinates = ['data-start','data-end','data-task'];
+  const changes = [], coordinates = ['data-start','data-end','data-task','data-separator-end','data-gap-start','data-gap-end'];
   const compare = (a,b) => {
     if(a.nodeType !== b.nodeType || a.nodeName !== b.nodeName)return false;
     if(a.nodeType !== 1)return a.nodeValue === b.nodeValue;
@@ -272,6 +272,7 @@ class MarkdownEditor extends EventTarget {
     this.container = container;
     this.composing = false;
     this.source_view = false;
+    this.html_view = false;
     this.reading = false;
     this.selection = { anchor: 0, focus: 0 };
     this.pairs = [];
@@ -279,9 +280,10 @@ class MarkdownEditor extends EventTarget {
     this.root.innerHTML = `<style>${css}</style><link class="layout_link" rel="stylesheet" disabled>
       <div class="markdown_editor"><header><div class="toolbar" role="toolbar" aria-label="문서 편집 도구"></div>
       <div class="view_bar"><label>편집 방식 <select aria-label="편집 방식"><option value="hybrid">하이브리드</option><option value="rich">리치</option><option value="markdown">Markdown</option></select></label>
-      <button data-view="source" aria-pressed="false">원본</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state"></span><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
+      <button data-view="source" aria-pressed="false">원본</button><button data-view="html" aria-pressed="false">HTML</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state"></span><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
       <div class="surface" contenteditable="true" role="textbox" aria-label="Markdown 문서" aria-describedby="editor_help" aria-multiline="true" spellcheck="false"></div>
       <textarea class="source" aria-label="Markdown 원본" aria-describedby="editor_help" spellcheck="false" hidden></textarea>
+      <textarea class="source html_output" aria-label="렌더링된 HTML" readonly spellcheck="false" hidden></textarea>
       <footer><span class="position"></span><span>Esc · 편집 영역 나가기</span></footer>
       <p id="editor_help" class="sr_only">문서에서 Esc를 누르면 편집 영역을 나갑니다. 도구 모음은 방향키와 Home·End로 이동합니다. 모든 명령은 Control 또는 Command와 Shift와 P로 열 수 있습니다. 표 핸들은 Alt와 방향키로 이동합니다.</p>
       <div class="errors sr_only" role="alert" aria-atomic="true"></div>
@@ -290,6 +292,7 @@ class MarkdownEditor extends EventTarget {
       <input class="file_input" type="file" multiple hidden></div>`;
     this.surface = this.root.querySelector('.surface');
     this.source_input = this.root.querySelector('.source');
+    this.html_output = this.root.querySelector('.html_output');
     this.toolbar = this.root.querySelector('.toolbar');
     this.dialog = this.root.querySelector('dialog');
     const tools = [
@@ -323,6 +326,7 @@ class MarkdownEditor extends EventTarget {
     });
     this.on(this.root.querySelector('select'), 'change', event => this.set_options({ mode: event.target.value }));
     this.root.querySelectorAll('[data-view]').forEach(button => this.on(button, 'click', () => this.set_view(button.dataset.view)));
+    this.on(this.html_output, 'keydown', event => { if (event.key === 'Escape') { event.preventDefault(); this.root.querySelector('[data-view="html"]').focus(); } });
     for(const input of [this.surface,this.source_input])this.on(input,'blur',()=>{this.typing_group=null;});
     this.on(this.source_input,'pointerdown',()=>{this.typing_group=null;});
     this.on(this.surface, 'focus', () => { this.keep_active_syntax = true; this.refresh_syntax(); });
@@ -375,7 +379,10 @@ class MarkdownEditor extends EventTarget {
     this.on(document, 'selectionchange', () => {
       if (this.composing || this.rendering || this.dialog.open) return;
       if (!this.has_focus()) return;
+      const selection = this.dom_selection();
+      const at_gap = selection?.isCollapsed && this.at_paragraph_gap(selection.focusNode, selection.focusOffset);
       this.capture_selection();
+      if (at_gap && !this.dragging) this.restore_selection();
       // Avoid changing DOM during a pointer drag; expose syntax on pointerup instead.
       if (!this.dragging) this.refresh_syntax();
     });
@@ -498,7 +505,7 @@ class MarkdownEditor extends EventTarget {
     this.options = next; this.render();
   }
   destroy() { if (!this.core) return; this.listeners.abort(); this.core.request(1); this.core = null; this.state = null; this.pairs = []; this.root.replaceChildren(); }
-  focus() { this.assert_active(); (this.source_view ? this.source_input : this.surface).focus(); this.core.request(4, '', this.selection.anchor, this.selection.focus); this.restore_selection(); }
+  focus() { this.assert_active(); if (this.html_view) { this.html_output.focus(); return; } (this.source_view ? this.source_input : this.surface).focus(); this.core.request(4, '', this.selection.anchor, this.selection.focus); this.restore_selection(); }
   set_selection(anchor, focus = anchor, finalize = false) {
     this.assert_active();
     this.typing_group = null;
@@ -508,8 +515,9 @@ class MarkdownEditor extends EventTarget {
     this.typing_group = null;
     if (this.composing) return;
     this.capture_selection();
-    if (view === 'source') { this.source_view = !this.source_view; this.reading = false; }
-    else { this.reading = !this.reading; this.source_view = false; }
+    if (view === 'source') { this.source_view = !this.source_view; this.reading = false; this.html_view = false; }
+    else if (view === 'html') { this.html_view = !this.html_view; this.source_view = false; this.reading = false; }
+    else { this.reading = !this.reading; this.source_view = false; this.html_view = false; }
     if(this.core.replica)this.core.source_mode=this.source_view;
     this.render(); this.focus();
   }
@@ -558,11 +566,53 @@ class MarkdownEditor extends EventTarget {
     const scroll = this.surface.scrollTop;
     const template = document.createElement('template'); template.innerHTML = this.state.html;
     if (this.reading) template.content.querySelectorAll('.comment,.front_matter,.reference_definition,[data-kind="comment"]').forEach(element => element.remove());
-    template.content.querySelectorAll('[data-task]').forEach(input => { input.disabled = this.reading || this.options.read_only; });
+    template.content.querySelectorAll('[data-task]').forEach(input => {
+      input.disabled = this.reading || this.options.read_only;
+      // Spacing is visual, not an extra editable text node/caret stop.
+      const gap = input.nextSibling;
+      if (gap?.nodeType === 3 && /^[ \t]*$/u.test(gap.textContent)) gap.remove();
+      const item = input.parentElement;
+      if (!item.querySelector('[data-text]') && !item.querySelector('ul,ol,p,h1,h2,h3,h4,h5,h6,pre')) {
+        item.querySelectorAll('br:not([data-break])').forEach(br => br.remove());
+        const caret = document.createElement('span');
+        caret.dataset.text = '1'; caret.dataset.start = item.dataset.end; caret.dataset.end = item.dataset.end;
+        caret.className = 'empty_task_caret'; item.append(caret);
+      }
+    });
+    template.content.querySelectorAll('br[data-break]:last-child').forEach(br => {
+      const placeholder = document.createElement('br'); placeholder.dataset.caret = '1';
+      br.after(placeholder);
+    });
     template.content.querySelectorAll('br[data-break]').forEach(br => {
       const marker = document.createElement('span');
       marker.className = 'break_mark'; marker.contentEditable = 'false'; marker.setAttribute('aria-hidden', 'true');
       br.before(marker);
+    });
+    // Blank source lines separate blocks; their count must not create extra paragraphs.
+    for (const block of [...template.content.querySelectorAll('section[data-block]')]) {
+      const paragraph = block.querySelector(':scope > p:only-child');
+      const raw = byte_slice(this.state.source, Number(block.dataset.start), Number(block.dataset.end));
+      if (paragraph && !paragraph.textContent && !raw.trim()) block.classList.add('paragraph_separator');
+    }
+    for (const first of [...template.content.querySelectorAll('.paragraph_separator')]) {
+      if (!first.parentNode) continue;
+      let last = first;
+      while (first.nextElementSibling?.classList.contains('paragraph_separator')) {
+        last = first.nextElementSibling; first.dataset.separatorEnd = last.dataset.end; last.remove();
+      }
+      first.dataset.separatorEnd ??= first.dataset.end;
+      if (first.previousElementSibling && first.nextElementSibling) {
+        const next = first.nextElementSibling;
+        next.dataset.gapStart = first.dataset.start; next.dataset.gapEnd = first.dataset.separatorEnd;
+        next.classList.add('after_paragraph_gap'); first.remove();
+      }
+    }
+    // Mark semantic text blocks, not source-coordinate wrappers or nested containers.
+    const blocks = 'p,h1,h2,h3,h4,h5,h6,pre,li,blockquote,dt,dd,summary,figcaption';
+    template.content.querySelectorAll(blocks).forEach(block => {
+      const owner = block.closest('[data-block]');
+      const separator = block.matches('p') && owner?.classList.contains('paragraph_separator');
+      if (!separator && !block.querySelector(blocks + ',ul,ol,dl,table')) block.dataset.paragraphEnd = '1';
     });
     const incoming = [...template.content.children];
     const old_nodes = [...this.surface.children];
@@ -580,7 +630,10 @@ class MarkdownEditor extends EventTarget {
     old_middle.slice(new_middle.length).forEach(node=>node.remove());
     this.source_input.value = this.state.source;
     this.source_input.hidden = !this.source_view;
-    this.surface.hidden = this.source_view;
+    this.surface.hidden = this.source_view || this.html_view;
+    this.html_output.hidden = !this.html_view;
+    if (this.html_output.value !== this.state.html) this.html_output.value = this.state.html;
+    this.root.querySelector('[data-view="html"]').setAttribute('aria-pressed', String(this.html_view));
     this.surface.contentEditable = String(!this.options.read_only && !this.reading);
     this.source_input.readOnly = this.options.read_only;
     this.root.querySelector('select').value = this.options.mode;
@@ -590,7 +643,7 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('[data-draft-discard]').hidden = !this.state.draft;
     this.toolbar.querySelectorAll('button').forEach(button => {
       const command = button.dataset.command;
-      button.disabled = ((this.options.read_only || this.reading) && !['copy_markdown', 'save', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
+      button.disabled = ((this.options.read_only || this.reading || this.html_view) && !['copy_markdown', 'save', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
     });
     this.add_table_handles();
     this.sync_accessibility();
@@ -617,7 +670,7 @@ class MarkdownEditor extends EventTarget {
     return this.options.mode === 'markdown' || this.options.mode === 'hybrid' && ['bold', 'italic', 'strikethrough', 'highlight', 'inline_code', 'link', 'heading', 'list', 'quote'].includes(kind);
   }
   refresh_syntax(restore = true) {
-    if (this.composing || this.dragging || this.source_view || this.reading || (!this.keep_active_syntax && !this.has_focus())) return;
+    if (this.composing || this.dragging || this.source_view || this.html_view || this.reading || (!this.keep_active_syntax && !this.has_focus())) return;
     const focus = this.selection.focus;
     const reveal = [...this.surface.querySelectorAll('[data-kind]')].filter(element => this.should_reveal(element.dataset.kind) && focus >= Number(element.dataset.start) && focus <= Number(element.dataset.end));
     // Restore only if the active syntax region changed; never rebuild on caret movement inside it.
@@ -647,8 +700,13 @@ class MarkdownEditor extends EventTarget {
     }
     this.core.request(4, '', this.selection.anchor, this.selection.focus);
   }
+  at_paragraph_gap(node, offset) {
+    return node?.nodeType === 1 && (node === this.surface || node.matches('section[data-block]'));
+  }
   dom_to_source(node, offset) {
     const element = node.nodeType === 1 ? node : node.parentElement;
+    const decoration = element.closest('.break_mark');
+    if (decoration?.nextElementSibling?.matches('br[data-break]')) return Number(decoration.nextElementSibling.dataset.start);
     const text = element.closest('[data-text]');
     if (text) {
       const range = document.createRange(); range.setStart(text, 0); range.setEnd(node, offset);
@@ -657,6 +715,13 @@ class MarkdownEditor extends EventTarget {
       if (raw === displayed) return start + byte_length(before);
       if (raw.startsWith('\\') && raw.slice(1) === displayed) return start + 1 + byte_length(before);
       return before.length ? end : start;
+    }
+    // Browsers may put a caret in the literal space between a task input
+    // and its coordinate wrapper instead of in the first label text node.
+    if (node.nodeType === 3 && /^[ \t]*$/u.test(node.textContent) && element.matches('li.list_item')
+        && node.previousSibling?.matches?.('input[data-task]')) {
+      const label = node.nextSibling?.querySelector?.('[data-text]');
+      if (label) return Number(label.dataset.start);
     }
     if (node.nodeType === 1) {
       const after = node.childNodes[offset];
@@ -672,7 +737,21 @@ class MarkdownEditor extends EventTarget {
     const owner = element.closest('[data-cell],[data-block]');
     return Number(owner?.dataset.start || 0);
   }
+  visual_position(position) {
+    if (this.source_view || this.options.mode === 'markdown') return position;
+    const gap = [...this.surface.querySelectorAll('[data-gap-start]')].find(block => Number(block.dataset.gapStart) <= position && position <= Number(block.dataset.gapEnd));
+    if (!gap) return position;
+    const next = gap.querySelector('[data-text]');
+    if (next) return Number(next.dataset.start);
+    const previous = [...(gap.previousElementSibling?.querySelectorAll('[data-text]') || [])].at(-1);
+    return previous ? Number(previous.dataset.end) : position;
+  }
   source_to_dom(position) {
+    position = this.visual_position(position);
+    const separator = [...this.surface.querySelectorAll('.paragraph_separator')].find(block => Number(block.dataset.start) <= position && position <= Number(block.dataset.separatorEnd));
+    if (separator && !separator.hasAttribute('data-gap')) return [separator.firstChild, 0];
+    const line_break = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset.end) === position);
+    if (line_break) return [line_break.parentNode, [...line_break.parentNode.childNodes].indexOf(line_break) + 1];
     const spans = [...this.surface.querySelectorAll('[data-text]')];
     let nearest;
     for (const span of spans) {
@@ -699,6 +778,13 @@ class MarkdownEditor extends EventTarget {
     return [this.surface, 0];
   }
   restore_selection() {
+    if (this.html_view) return;
+    if (this.selection.anchor === this.selection.focus) {
+      const position = this.visual_position(this.selection.focus);
+      if (position !== this.selection.focus) {
+        this.selection = {anchor:position,focus:position}; this.state = this.core.request(4, '', position, position);
+      }
+    }
     const { anchor, focus } = this.selection;
     if (this.source_view) {
       this.source_input.setSelectionRange(byte_to_utf16(this.state.source, Math.min(anchor, focus)), byte_to_utf16(this.state.source, Math.max(anchor, focus)), anchor > focus ? 'backward' : 'forward'); return;
@@ -735,6 +821,17 @@ class MarkdownEditor extends EventTarget {
     if (event.inputType.startsWith('delete')) {
       if (this.selection.anchor !== this.selection.focus) return this.replace('');
       const backwards = !event.inputType.includes('Forward');
+      if (this.options.mode !== 'markdown') {
+        const boundary = backwards ? 'end' : 'start';
+        const line_break = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset[boundary]) === this.selection.focus);
+        if (line_break) return this.replace('', Number(line_break.dataset.start), Number(line_break.dataset.end));
+        const entity = [...this.surface.querySelectorAll('[data-text]')].find(span => {
+          const raw = byte_slice(this.state.source, Number(span.dataset.start), Number(span.dataset.end));
+          return Number(span.dataset[boundary]) === this.selection.focus && /^&(?:#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]+);$/.test(raw) && raw !== span.textContent;
+        });
+        if (entity) return this.replace('', Number(entity.dataset.start), Number(entity.dataset.end));
+        if (this.merge_paragraph_boundary(backwards)) return;
+      }
       const pair = this.pairs.find(pair => pair.start === this.selection.focus);
       if (backwards && pair && this.options.auto_close.delete_empty_pair && byte_slice(this.state.source, pair.start - byte_length(pair.open), pair.start) === pair.open) {
         return this.replace('', pair.start - byte_length(pair.open), pair.start + byte_length(pair.close));
@@ -748,6 +845,21 @@ class MarkdownEditor extends EventTarget {
     if (event.inputType.startsWith('format')) {
       const map = { formatBold: 'bold', formatItalic: 'italic', formatStrikeThrough: 'strikethrough' }; if (map[event.inputType]) this.run(map[event.inputType]);
     }
+  }
+  merge_paragraph_boundary(backwards) {
+    for (const next of this.surface.querySelectorAll('[data-gap-start]')) {
+      const previous = next.previousElementSibling;
+      const left = previous?.querySelector(':scope > p'), right = next.querySelector(':scope > p');
+      if (!left || !right) continue; // Do not flatten tables, lists or other block structures.
+      const start = Number(previous.dataset.end), end = Number(next.dataset.start);
+      if (!/^\n(?:[ \t]*\n)+$/u.test(byte_slice(this.state.source,start,end))) continue;
+      const spans = [...(backwards ? right : left).querySelectorAll('[data-text]')];
+      const edge = backwards ? spans[0] : spans.at(-1);
+      const position = this.selection.focus;
+      if (position !== (backwards ? end : start) && (!edge || position !== Number(edge.dataset[backwards ? 'start' : 'end']))) continue;
+      this.replace('',start,end); return true;
+    }
+    return false;
   }
   source_changed() {
     const input = this.source_input, value = input.value;
@@ -765,10 +877,28 @@ class MarkdownEditor extends EventTarget {
     this.set_selection(direction === 'backward' ? f : a, direction === 'backward' ? a : f);
     this.typing_group=group;
   }
+  at_visual_line_start(position) {
+    const [node, offset] = this.source_to_dom(position);
+    const element = node.nodeType === 1 ? node : node.parentElement;
+    const block = element.closest('p,h1,h2,h3,h4,h5,h6,td,th,li') || element.closest('[data-block]') || this.surface;
+    const range = document.createRange(); range.selectNodeContents(block); range.setEnd(node, offset);
+    const last_break = [...block.querySelectorAll('br[data-break]')].findLast(br => Number(br.dataset.end) <= position);
+    if (last_break) range.setStartAfter(last_break);
+    return /^[ \u00a0]*$/u.test(range.toString().split('\n').at(-1));
+  }
   type_text(text) {
     const start = Math.min(this.selection.anchor, this.selection.focus), end = Math.max(this.selection.anchor, this.selection.focus);
     const auto = this.options.auto_close;
     const context = this.active_kind();
+    const empty_task = [...this.surface.querySelectorAll('.empty_task_caret')].find(span => Number(span.dataset.start) === start);
+    if (start === end && !this.source_view && this.options.mode !== 'markdown' && empty_task
+        && /\[[ xX]\]$/u.test(this.line_range().text)) {
+      this.replace(' ' + (text === ' ' ? '&nbsp;' : text)); return;
+    }
+    if (text === ' ' && start === end && !this.source_view && this.options.mode !== 'markdown'
+        && !['code_block', 'inline_code', 'comment', 'front_matter'].includes(context) && this.at_visual_line_start(start)) {
+      this.replace('&nbsp;'); return;
+    }
     const tracked = this.pairs.find(pair => pair.start === start && pair.close.startsWith(text));
     if (auto.enabled && tracked && start === end && ['*', '_'].includes(text) && tracked.open === text && auto.pairs.bold) {
       this.pairs = this.pairs.filter(pair => pair !== tracked);
@@ -820,14 +950,42 @@ class MarkdownEditor extends EventTarget {
     if (this.active_cell()) return this.run('hard_break');
     const line = this.line_range();
     if (this.active_kind() === 'code_block' || this.active_kind() === 'front_matter') return this.replace('\n');
-    const list = line.text.match(/^(\s*)([-+*]|\d+[.)]) (\[[ xX]\] )?/u);
+    const list = line.text.match(/^(\s*)([-+*]|\d+[.)]) (\[[ xX]\](?: |$))?/u);
     if (list) {
       if (line.text.slice(list[0].length).trim() === '') return this.replace('', line.start, line.end);
-      const marker = /^\d/u.test(list[2]) ? `${parseInt(list[2]) + 1}.` : '-';
+      const marker = /^\d/u.test(list[2]) ? `${parseInt(list[2]) + 1}.` : list[2];
+      if (this.selection.anchor === this.selection.focus && this.selection.focus === line.start + byte_length(list[0])) {
+        const prefix = list[0].trimEnd();
+        return this.replace(`${prefix}\n${list[1]}${marker} ${list[3] ? '[ ] ' : ''}`, line.start, this.selection.focus);
+      }
       return this.replace(`\n${list[1]}${marker} ${list[3] ? '[ ] ' : ''}`);
     }
     if (line.text.startsWith('> ')) return this.replace('\n> ');
     this.replace('\n\n');
+  }
+  move_line_break(key) {
+    if (this.source_view || this.html_view || this.reading || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus) return false;
+    const forwards = key === 'ArrowRight';
+    const br = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset[forwards ? 'start' : 'end']) === this.selection.focus);
+    if (!br) return false;
+    this.set_selection(Number(br.dataset[forwards ? 'end' : 'start']));
+    this.refresh_syntax(); return true;
+  }
+  move_block_boundary(key) {
+    if (this.source_view || this.html_view || this.reading || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus || this.active_cell()) return false;
+    const [node] = this.source_to_dom(this.selection.focus);
+    const element = node.nodeType === 1 ? node : node.parentElement;
+    const block = element.closest('p,h1,h2,h3,h4,h5,h6,li,dt,dd');
+    if (!block || block.closest('pre')) return false;
+    const spans = [...block.querySelectorAll('[data-text]')];
+    const edge = key === 'ArrowRight' ? spans.at(-1) : spans[0];
+    if (!edge || Number(edge.dataset[key === 'ArrowRight' ? 'end' : 'start']) !== this.selection.focus) return false;
+    if ([...block.querySelectorAll('br[data-break]')].some(br => key === 'ArrowRight' ? Number(br.dataset.start) >= this.selection.focus : Number(br.dataset.end) <= this.selection.focus)) return false;
+    const all = [...this.surface.querySelectorAll('[data-text]')];
+    const target = all[all.indexOf(edge) + (key === 'ArrowRight' ? 1 : -1)];
+    if (!target) return false;
+    this.set_selection(Number(target.dataset[key === 'ArrowRight' ? 'start' : 'end']));
+    this.refresh_syntax(); return true;
   }
   keydown(event) {
     if (/^(Arrow|Home|End|Page|Escape)/u.test(event.key)) this.typing_group=null;
@@ -847,6 +1005,7 @@ class MarkdownEditor extends EventTarget {
       if (this.active_cell()) { event.preventDefault(); this.move_cell(event.shiftKey ? -1 : 1); }
       else if (/^\s*(?:[-+*]|\d+[.)]) /u.test(this.line_range().text)) { event.preventDefault(); this.run(event.shiftKey ? 'outdent' : 'indent'); }
     }
+    if (!event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
     if (!this.source_view && !event.shiftKey && !modifier && event.key.startsWith('Arrow')) this.cell_arrow(event);
   }
   async run(command) {
@@ -859,7 +1018,7 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('.errors').textContent = '';
     if (this.composing) return;
     const read_command = ['save', 'open', 'open_link', 'copy_markdown'].includes(command);
-    if ((this.options.read_only || this.reading) && !read_command) return;
+    if ((this.options.read_only || this.reading || this.html_view) && !read_command) return;
     const display_options = { line_numbers: 'show_code_line_numbers', heading_levels: 'show_heading_levels', paragraph_marks: 'show_paragraph_marks' };
     if (display_options[command]) { this.set_options({ [display_options[command]]: !this.options[display_options[command]] }); return; }
     if (command === 'undo' || command === 'redo') {
@@ -898,7 +1057,25 @@ class MarkdownEditor extends EventTarget {
       }
       this.focus(); return;
     }
-    if (command === 'hard_break') { this.replace(['code_block', 'comment', 'front_matter'].includes(this.active_kind()) ? '\n' : '<br>'); this.focus(); return; }
+    if (command === 'hard_break') {
+      const literal = ['code_block', 'comment', 'front_matter'].includes(this.active_kind());
+      let position = this.selection.focus;
+      const consumed = new Set();
+      if (!literal && !this.source_view && this.options.mode !== 'markdown' && this.selection.anchor === position) {
+        // Exit only still-tracked generated closers, never arbitrary source syntax.
+        for (;;) {
+          const pair = this.pairs.find(pair => !consumed.has(pair) && pair.start === position
+            && byte_slice(this.state.source, position, position + byte_length(pair.close)) === pair.close);
+          if (!pair) break;
+          consumed.add(pair); position += byte_length(pair.close);
+        }
+      }
+      if (consumed.size) {
+        this.pairs = this.pairs.filter(pair => !consumed.has(pair));
+        this.replace('<br>', position, position);
+      } else this.replace(literal ? '\n' : '<br>');
+      this.focus(); return;
+    }
     if (command === 'link') return this.link_dialog();
     if (command === 'unlink') {
       const link = this.active_link(); if (!link) return;
@@ -1697,7 +1874,7 @@ function report(error){status.textContent=error.message;status.dataset.error='tr
 
 (async()=>{
 const {create_editor}=await load('editor.js');
-const wasm_url=await binary('sohjae_editor.wasm');const options={css_text:":host { display:block; color-scheme:light; --body_font_family: system-ui, sans-serif; --body_font_size:16px; --body_line_height:1.85; --content_max_width:850px; --text_color:#242833; --background_color:#fff; }\n* { box-sizing:border-box; }\n[hidden] { display:none !important; }\n.markdown_editor { color:var(--text_color); background:var(--background_color); border:1px solid #dbe0e8; border-radius:14px; overflow:hidden; box-shadow:0 12px 50px #19263808; }\nheader { background:#f8fafc; border-bottom:1px solid #e2e7ef; }\n.toolbar { display:flex; flex-wrap:wrap; gap:3px; padding:12px; }\nbutton,select,input { font:inherit; }\nbutton,select { min-height:34px; border:1px solid transparent; border-radius:5px; background:transparent; color:#344158; padding:5px 8px; cursor:pointer; font-size:12px; }\nbutton:hover,select:hover { background:#e6edf7; }\nbutton:disabled { opacity:.35; cursor:default; }\nbutton[aria-pressed=\"true\"] { color:#144ca5; background:#ddeaff; }\n:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }\n.view_bar { display:flex; align-items:center; gap:8px; padding:8px 14px; border-top:1px solid #e9edf3; font:12px system-ui; }\n.state { margin-inline-start:auto; color:#53657c; }\n.surface,.source { width:100%; min-height:460px; max-height:70dvh; overflow:auto; outline:none; padding:40px max(24px, calc((100% - var(--content_max_width)) / 2)); }\n.surface { font-family:var(--body_font_family); font-size:var(--body_font_size); line-height:var(--body_line_height); overflow-wrap:anywhere; white-space:pre-wrap; caret-color:#2563eb; }\n.source { display:block; resize:vertical; border:0; background:#fcfdff; color:#24344c; font:14px/1.8 ui-monospace,monospace; tab-size:4; }\nsection { min-height:1.85em; }\np { margin:0; min-height:1.85em; }\nh1,h2,h3,h4,h5,h6 { line-height:1.4; font-weight:650; letter-spacing:-.025em; margin:.8em 0 .35em; }\nh1 { font-size:2.1em; } h2 { font-size:1.6em; } h3 { font-size:1.3em; }\nblockquote { border-inline-start:3px solid #b5c8e4; margin:0; padding:3px 16px; color:#52627c; background:#f7faff; }\npre { margin:8px 0; padding:16px; overflow:auto; background:#f3f5f9; border-radius:8px; font:13px/1.7 ui-monospace,monospace; white-space:pre; }\ncode { font: .88em ui-monospace,monospace; background:#edf1f6; border-radius:4px; padding:2px 4px; }\npre code { background:none; padding:0; }\n.show_code_line_numbers pre code { counter-reset:code-line; }\n.show_code_line_numbers pre:has(code) { padding-inline-start:4em; }\n.show_code_line_numbers .code_line { position:relative; counter-increment:code-line; }\n.show_code_line_numbers .code_line::before { content:counter(code-line); position:absolute; width:2em; inset-inline-start:-3em; text-align:end; color:#8a99ad; user-select:none; }\n.show_heading_levels h1::before,.show_heading_levels h2::before,.show_heading_levels h3::before,.show_heading_levels h4::before,.show_heading_levels h5::before,.show_heading_levels h6::before { content:attr(data-level) ' '; font:11px ui-monospace,monospace; color:#8a99ad; user-select:none; }\n.show_paragraph_marks .surface p::after { content:' ↵'; color:#aab6c6; font-size:.8em; user-select:none; pointer-events:none; }\n/* Keep the caret placeholder BR: place its paragraph mark on the same line. */\n.show_paragraph_marks .surface p:has(> br:only-child) { position:relative; }\n.show_paragraph_marks .surface p:has(> br:only-child)::after { position:absolute; inset-inline-start:0; top:0; }\n.break_mark { display:none; }\n.show_paragraph_marks .break_mark { display:inline-block; position:relative; width:.85em; height:0; pointer-events:none; user-select:none; }\n.show_paragraph_marks .break_mark::before { content:'↓'; position:absolute; inset-inline-start:0; bottom:0; color:#aab6c6; font-size:.8em; }\n.comment,.front_matter,[data-kind=\"comment\"] { color:#788391; font-family:ui-monospace,monospace; }\n.syntax { color:#536987; font-family:ui-monospace,monospace; }\n.list_item { position:relative; padding-inline-start:2em; }\n.list_marker { display:inline-block; width:1.8em; margin-inline-start:-1.8em; color:#60718a; user-select:none; }\n.list_item input { margin-inline-start:-1.8em; margin-inline-end:.7em; }\n.table_scroll { overflow-x:auto; margin:12px 0; }\ntable { border-collapse:collapse; min-width:240px; width:100%; white-space:pre-wrap; }\nth,td { border:1px solid #d4ddea; padding:8px 12px; min-width:90px; vertical-align:top; }\nth { background:#f2f5fa; font-weight:600; }\nth,td { position:relative; }\n.table_handle { position:absolute; padding:0; min-height:0; opacity:.15; background:#7189ad; border:0; border-radius:2px; touch-action:none; }\n.table_handle:hover { opacity:.8; background:#396ebd; }\n.row_handle { width:5px; height:18px; inset-inline-start:2px; top:calc(50% - 9px); cursor:row-resize; }\n.column_handle { height:4px; width:22px; top:2px; left:calc(50% - 11px); cursor:col-resize; }\ntd[data-selected],th[data-selected] { background:#dbeaff; outline:1px solid #6e9de4; }\n.align_left { text-align:left; } .align_center { text-align:center; } .align_right { text-align:right; }\na { color:#2463b6; text-decoration-thickness:1px; text-underline-offset:3px; }\nimg { max-width:100%; height:auto; vertical-align:middle; border-radius:5px; }\n.alert_label { font-weight:650; font-size:.86em; color:#2b659f; }\n.alert_warning,.alert_caution { color:#9c4e12; }\n.footnote { font-size:.85em; color:#60718a; }\n.reference_definition,.raw_block { color:#69798d; }\nhr { border:0; border-top:1px solid #d7dfeb; margin:20px 0; }\nfooter { border-top:1px solid #e5eaf0; padding:10px 16px; display:flex; justify-content:space-between; color:#6d7b90; font:11px system-ui; }\n.announce { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }\ndialog { border:1px solid #d5deeb; border-radius:12px; box-shadow:0 24px 90px #12233c30; padding:24px; width:min(440px, 90vw); color:#25334a; font:14px system-ui; }\ndialog::backdrop { background:#182d4b55; }\ndialog h2 { margin:0 0 20px; font-size:20px; }\ndialog label { display:block; margin:12px 0; }\ndialog input,dialog select { display:block; width:100%; border:1px solid #bac8db; border-radius:5px; padding:9px; margin-top:6px; }\n.dialog_actions { display:flex; justify-content:flex-end; gap:8px; margin-top:24px; }\n.dialog_actions button { background:#e7edf5; }\n.dialog_actions button[value=\"apply\"] { background:#215ec6; color:white; }\n@media (max-width:600px) { .toolbar { flex-wrap:nowrap; overflow-x:auto; padding:8px; } .toolbar button { flex-shrink:0; min-width:42px; min-height:42px; } .surface,.source { padding:22px 18px; min-height:55dvh; max-height:65dvh; } .view_bar { flex-wrap:wrap; } footer span:last-child { display:none; } }\nmark { background:#fff09a; color:inherit; border-radius:2px; }\ndt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }\n.syntax_keyword,.syntax_literal { color:#8547a8; } .syntax_string { color:#28682e; }\n.syntax_key { color:#1d5897; } .syntax_number { color:#a15015; } .syntax_comment { color:#69798d; font-style:italic; }\n@media(max-width:600px){button,select{min-height:44px}.toolbar button{min-width:44px;min-height:44px}.source{font-size:16px}.view_bar{gap:6px}.surface,.source{overscroll-behavior:contain}}\n@media(max-width:950px),(pointer:coarse){button,select,.toolbar button{min-height:44px}.toolbar button{min-width:44px}.source{font-size:16px}.list_item input{width:24px;height:24px}}\n\n.table_handle { cursor:grab; min-height:0; }\n.table_handle:active { cursor:grabbing; }\n.table_handle:focus-visible { opacity:1; outline:2px solid #2563eb; }\n[data-drop=\"row-before\"] { box-shadow:inset 0 3px #2563eb; }\n[data-drop=\"row-after\"] { box-shadow:inset 0 -3px #2563eb; }\n[data-drop=\"column-before\"] { box-shadow:inset 3px 0 #2563eb; }\n[data-drop=\"column-after\"] { box-shadow:inset -3px 0 #2563eb; }\n\n.row_handle { width:10px; height:24px; top:calc(50% - 12px); inset-inline-start:0; }\n.column_handle { height:8px; }\n\n/* Hierarchical lists use native list semantics; source coordinates stay on li/spans. */\n.surface ul,.surface ol { padding-inline-start:1.8em; margin-block:.35em; }\n.surface li.list_item { padding-inline-start:0; }\n.surface li.list_item input { margin-inline-start:0; margin-inline-end:.5em; }\n\n.sr_only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }\n@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }\n@media (forced-colors: active) { button:focus-visible, .surface:focus-visible, .source:focus-visible { outline:2px solid Highlight; } [data-selected] { outline:2px solid Highlight; } }\n",mode:"rich",wasm_url};
+const wasm_url=await binary('sohjae_editor.wasm');const options={css_text:":host { display:block; color-scheme:light; --body_font_family: system-ui, sans-serif; --body_font_size:16px; --body_line_height:1.85; --content_max_width:850px; --text_color:#242833; --background_color:#fff; }\n* { box-sizing:border-box; }\n[hidden] { display:none !important; }\n.markdown_editor { color:var(--text_color); background:var(--background_color); border:1px solid #dbe0e8; border-radius:14px; overflow:hidden; box-shadow:0 12px 50px #19263808; }\nheader { background:#f8fafc; border-bottom:1px solid #e2e7ef; }\n.toolbar { display:flex; flex-wrap:wrap; gap:3px; padding:12px; }\nbutton,select,input { font:inherit; }\nbutton,select { min-height:34px; border:1px solid transparent; border-radius:5px; background:transparent; color:#344158; padding:5px 8px; cursor:pointer; font-size:12px; }\nbutton:hover,select:hover { background:#e6edf7; }\nbutton:disabled { opacity:.35; cursor:default; }\nbutton[aria-pressed=\"true\"] { color:#144ca5; background:#ddeaff; }\n:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }\n.view_bar { display:flex; align-items:center; gap:8px; padding:8px 14px; border-top:1px solid #e9edf3; font:12px system-ui; }\n.state { margin-inline-start:auto; color:#53657c; }\n.surface,.source { width:100%; min-height:460px; max-height:70dvh; overflow:auto; outline:none; padding:40px max(24px, calc((100% - var(--content_max_width)) / 2)); }\n.surface { font-family:var(--body_font_family); font-size:var(--body_font_size); line-height:var(--body_line_height); overflow-wrap:anywhere; white-space:pre-wrap; caret-color:#2563eb; }\n.source { display:block; resize:vertical; border:0; background:#fcfdff; color:#24344c; font:14px/1.8 ui-monospace,monospace; tab-size:4; }\nsection { min-height:1.85em; }\np { margin:0; min-height:1.85em; }\nh1,h2,h3,h4,h5,h6 { line-height:1.4; font-weight:650; letter-spacing:-.025em; margin:.8em 0 .35em; }\nh1 { font-size:2.1em; } h2 { font-size:1.6em; } h3 { font-size:1.3em; }\nblockquote { border-inline-start:3px solid #b5c8e4; margin:0; padding:3px 16px; color:#52627c; background:#f7faff; }\npre { margin:8px 0; padding:16px; overflow:auto; background:#f3f5f9; border-radius:8px; font:13px/1.7 ui-monospace,monospace; white-space:pre; }\ncode { font: .88em ui-monospace,monospace; background:#edf1f6; border-radius:4px; padding:2px 4px; }\npre code { background:none; padding:0; }\n.show_code_line_numbers pre code { counter-reset:code-line; }\n.show_code_line_numbers pre:has(code) { padding-inline-start:4em; }\n.show_code_line_numbers .code_line { position:relative; counter-increment:code-line; }\n.show_code_line_numbers .code_line::before { content:counter(code-line); position:absolute; width:2em; inset-inline-start:-3em; text-align:end; color:#8a99ad; user-select:none; }\n.show_heading_levels h1::before,.show_heading_levels h2::before,.show_heading_levels h3::before,.show_heading_levels h4::before,.show_heading_levels h5::before,.show_heading_levels h6::before { content:attr(data-level) ' '; font:11px ui-monospace,monospace; color:#8a99ad; user-select:none; }\n.show_paragraph_marks .surface [data-paragraph-end]::after { content:' ↵'; color:#aab6c6; font-size:.8em; user-select:none; pointer-events:none; }\n/* Keep the caret placeholder BR: place its paragraph mark on the same line. */\n.show_paragraph_marks .surface [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text])) { position:relative; }\n.show_paragraph_marks .surface [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text]))::after { position:absolute; inset-inline-start:0; top:0; }\n.show_paragraph_marks .surface [data-paragraph-end]:has(> br[data-caret]:last-child) { position:relative; }\n.show_paragraph_marks .surface [data-paragraph-end]:has(> br[data-caret]:last-child)::after { position:absolute; inset-inline-start:0; top:auto; bottom:0; }\n.break_mark { display:none; }\n.show_paragraph_marks .break_mark { display:inline-block; position:relative; width:.85em; height:0; pointer-events:none; user-select:none; }\n.show_paragraph_marks .break_mark::before { content:'↓'; position:absolute; inset-inline-start:0; bottom:0; color:#aab6c6; font-size:.8em; }\n.comment,.front_matter,[data-kind=\"comment\"] { color:#788391; font-family:ui-monospace,monospace; }\n.syntax { color:#536987; font-family:ui-monospace,monospace; }\n.list_item { position:relative; padding-inline-start:2em; }\n.list_marker { display:inline-block; width:1.8em; margin-inline-start:-1.8em; color:#60718a; user-select:none; }\n.list_item input { margin-inline-start:-1.8em; margin-inline-end:.7em; }\n.table_scroll { overflow-x:auto; margin:12px 0; }\ntable { border-collapse:collapse; min-width:240px; width:100%; white-space:pre-wrap; }\nth,td { border:1px solid #d4ddea; padding:8px 12px; min-width:90px; vertical-align:top; }\nth { background:#f2f5fa; font-weight:600; }\nth,td { position:relative; }\n.table_handle { position:absolute; padding:0; min-height:0; opacity:.15; background:#7189ad; border:0; border-radius:2px; touch-action:none; }\n.table_handle:hover { opacity:.8; background:#396ebd; }\n.row_handle { width:5px; height:18px; inset-inline-start:2px; top:calc(50% - 9px); cursor:row-resize; }\n.column_handle { height:4px; width:22px; top:2px; left:calc(50% - 11px); cursor:col-resize; }\ntd[data-selected],th[data-selected] { background:#dbeaff; outline:1px solid #6e9de4; }\n.align_left { text-align:left; } .align_center { text-align:center; } .align_right { text-align:right; }\na { color:#2463b6; text-decoration-thickness:1px; text-underline-offset:3px; }\nimg { max-width:100%; height:auto; vertical-align:middle; border-radius:5px; }\n.alert_label { font-weight:650; font-size:.86em; color:#2b659f; }\n.alert_warning,.alert_caution { color:#9c4e12; }\n.footnote { font-size:.85em; color:#60718a; }\n.reference_definition,.raw_block { color:#69798d; }\nhr { border:0; border-top:1px solid #d7dfeb; margin:20px 0; }\nfooter { border-top:1px solid #e5eaf0; padding:10px 16px; display:flex; justify-content:space-between; color:#6d7b90; font:11px system-ui; }\n.announce { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }\ndialog { border:1px solid #d5deeb; border-radius:12px; box-shadow:0 24px 90px #12233c30; padding:24px; width:min(440px, 90vw); color:#25334a; font:14px system-ui; }\ndialog::backdrop { background:#182d4b55; }\ndialog h2 { margin:0 0 20px; font-size:20px; }\ndialog label { display:block; margin:12px 0; }\ndialog input,dialog select { display:block; width:100%; border:1px solid #bac8db; border-radius:5px; padding:9px; margin-top:6px; }\n.dialog_actions { display:flex; justify-content:flex-end; gap:8px; margin-top:24px; }\n.dialog_actions button { background:#e7edf5; }\n.dialog_actions button[value=\"apply\"] { background:#215ec6; color:white; }\n@media (max-width:600px) { .toolbar { flex-wrap:nowrap; overflow-x:auto; padding:8px; } .toolbar button { flex-shrink:0; min-width:42px; min-height:42px; } .surface,.source { padding:22px 18px; min-height:55dvh; max-height:65dvh; } .view_bar { flex-wrap:wrap; } footer span:last-child { display:none; } }\nmark { background:#fff09a; color:inherit; border-radius:2px; }\ndt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }\n.syntax_keyword,.syntax_literal { color:#8547a8; } .syntax_string { color:#28682e; }\n.syntax_key { color:#1d5897; } .syntax_number { color:#a15015; } .syntax_comment { color:#69798d; font-style:italic; }\n@media(max-width:600px){button,select{min-height:44px}.toolbar button{min-width:44px;min-height:44px}.source{font-size:16px}.view_bar{gap:6px}.surface,.source{overscroll-behavior:contain}}\n@media(max-width:950px),(pointer:coarse){button,select,.toolbar button{min-height:44px}.toolbar button{min-width:44px}.source{font-size:16px}.list_item input{width:24px;height:24px}}\n\n.table_handle { cursor:grab; min-height:0; }\n.table_handle:active { cursor:grabbing; }\n.table_handle:focus-visible { opacity:1; outline:2px solid #2563eb; }\n[data-drop=\"row-before\"] { box-shadow:inset 0 3px #2563eb; }\n[data-drop=\"row-after\"] { box-shadow:inset 0 -3px #2563eb; }\n[data-drop=\"column-before\"] { box-shadow:inset 3px 0 #2563eb; }\n[data-drop=\"column-after\"] { box-shadow:inset -3px 0 #2563eb; }\n\n.row_handle { width:10px; height:24px; top:calc(50% - 12px); inset-inline-start:0; }\n.column_handle { height:8px; }\n\n/* Hierarchical lists use native list semantics; source coordinates stay on li/spans. */\n.surface ul,.surface ol { padding-inline-start:1.8em; margin-block:.35em; }\n.surface li.list_item { padding-inline-start:0; }\n.surface li.list_item input { margin-inline-start:0; margin-inline-end:.25em; }\n\n.sr_only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }\n@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }\n@media (forced-colors: active) { button:focus-visible, .surface:focus-visible, .source:focus-visible { outline:2px solid Highlight; } [data-selected] { outline:2px solid Highlight; } }\n\n/* Coordinate wrappers must not split task checkboxes from their first label. */\n.surface li.list_item > input[data-task] + section { display:inline; }\n.surface li.list_item > input[data-task] + section > p:first-child,\n.surface li.list_item > input[data-task] + p { display:inline; }\n\n.empty_task_caret { display:inline-block; min-width:1px; height:1em; }\n\n.after_paragraph_gap { margin-block-start:1.85em; }\n",mode:"rich",wasm_url};
 let x=await create_editor(document.querySelector('#left'),{...options,markdown:"# 한글 Markdown 예제😀\n\n**굵게**, *기울임*, ==하이라이트==를 확인하세요.\n\n- [x] WASM으로 렌더링\n- [ ] 내용을 직접 편집\n\n| 항목 | 상태 |\n| --- | :---: |\n| 표 편집 | 준비 |\n| 한글 입력 | 준비 |\n"}),y,a,b,connection;
 const button=document.querySelector('#connect');button.disabled=false;status.textContent='일반 편집기 준비 완료 · 협업 시작을 누르세요';
 button.onclick=async()=>{
