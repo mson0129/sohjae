@@ -2005,10 +2005,8 @@ fn normalize_inline_depth(raw: &str, depth: usize) -> String {
     out
 }
 
-#[cfg(feature = "renderer")]
 mod viewer;
 
-#[cfg(feature = "renderer")]
 pub fn render_viewer(source: &str) -> String {
     viewer::clean(&render(source, true), source)
 }

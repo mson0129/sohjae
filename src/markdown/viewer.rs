@@ -34,11 +34,7 @@ pub(super) fn clean(html: &str, source: &str) -> String {
             if let Some(at) = stack.iter().rposition(|(open, _)| open == name) {
                 let (_, omit) = stack.remove(at);
                 if !omit {
-                    out.push_str(if name == "strong" {
-                        "</b>"
-                    } else {
-                        &html[cursor..=end]
-                    });
+                    out.push_str(&html[cursor..=end]);
                 }
             } else {
                 out.push_str(&html[cursor..=end]);
@@ -47,11 +43,12 @@ pub(super) fn clean(html: &str, source: &str) -> String {
             let name_end = tag.find([' ', '/', '\n']).unwrap_or(tag.len());
             let name = &tag[..name_end];
             let omit = name == "section" && tag.contains(" data-block=\"1\"")
+                || name == "div" && tag.contains(" class=\"table_scroll\"")
                 || name == "span"
                     && (tag.contains(" data-text=\"1\"") || tag.contains(" data-kind=\"image\""));
             if !omit {
                 out.push('<');
-                out.push_str(if name == "strong" { "b" } else { name });
+                out.push_str(name);
                 let mut attrs = &tag[name_end..];
                 while !attrs.is_empty() {
                     let trimmed = attrs.trim_start();

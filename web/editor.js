@@ -1,3 +1,4 @@
+import { pretty_html } from './html.js';
 import { load_core, byte_length, byte_slice, utf16_to_byte, byte_to_utf16 } from './core.js';
 import { html_to_markdown, safe_url, read_file, file_markdown } from './clipboard.js';
 
@@ -471,7 +472,11 @@ class MarkdownEditor extends EventTarget {
     this.source_input.hidden = !this.source_view;
     this.surface.hidden = this.source_view || this.html_view;
     this.html_output.hidden = !this.html_view;
-    if (this.html_output.value !== this.state.html) this.html_output.value = this.state.html;
+    if (this.html_view && this.html_source !== this.state.source) {
+      const input = this.html_output, {selectionStart, selectionEnd, scrollTop, scrollLeft} = input;
+      input.value = pretty_html(this.core.request(13)); this.html_source = this.state.source;
+      input.setSelectionRange(selectionStart, selectionEnd); input.scrollTop = scrollTop; input.scrollLeft = scrollLeft;
+    }
     this.root.querySelector('[data-view="html"]').setAttribute('aria-pressed', String(this.html_view));
     this.surface.contentEditable = String(!this.options.read_only && !this.reading);
     this.source_input.readOnly = this.options.read_only;
@@ -662,7 +667,8 @@ class MarkdownEditor extends EventTarget {
       const backwards = !event.inputType.includes('Forward');
       if (this.options.mode !== 'markdown') {
         const boundary = backwards ? 'end' : 'start';
-        const line_break = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset[boundary]) === this.selection.focus);
+        const edge = this.inline_edge(this.selection.focus, backwards);
+        const line_break = [...this.editing_markup().querySelectorAll('br[data-break]')].find(br => Number(br.dataset[boundary]) === edge);
         if (line_break) return this.replace('', Number(line_break.dataset.start), Number(line_break.dataset.end));
         const entity = [...this.surface.querySelectorAll('[data-text]')].find(span => {
           const raw = byte_slice(this.state.source, Number(span.dataset.start), Number(span.dataset.end));
@@ -675,6 +681,7 @@ class MarkdownEditor extends EventTarget {
       if (backwards && pair && this.options.auto_close.delete_empty_pair && byte_slice(this.state.source, pair.start - byte_length(pair.open), pair.start) === pair.open) {
         return this.replace('', pair.start - byte_length(pair.open), pair.start + byte_length(pair.close));
       }
+      if (this.delete_displayed_character(backwards)) return;
       const [start, end] = grapheme_range(this.state.source, this.selection.focus, backwards);
       return this.replace('', start, end);
     }
@@ -686,19 +693,44 @@ class MarkdownEditor extends EventTarget {
     }
   }
   merge_paragraph_boundary(backwards) {
-    for (const next of this.surface.querySelectorAll('[data-gap-start]')) {
-      const previous = next.previousElementSibling;
-      const left = previous?.querySelector(':scope > p'), right = next.querySelector(':scope > p');
-      if (!left || !right) continue; // Do not flatten tables, lists or other block structures.
-      const start = Number(previous.dataset.end), end = Number(next.dataset.start);
-      if (!/^\n(?:[ \t]*\n)+$/u.test(byte_slice(this.state.source,start,end))) continue;
-      const spans = [...(backwards ? right : left).querySelectorAll('[data-text]')];
-      const edge = backwards ? spans[0] : spans.at(-1);
-      const position = this.selection.focus;
-      if (position !== (backwards ? end : start) && (!edge || position !== Number(edge.dataset[backwards ? 'start' : 'end']))) continue;
-      this.replace('',start,end); return true;
+    const caret = this.text_caret();
+    if (!caret || !(backwards ? caret.at_start : caret.at_end)) return false;
+    const blocks = this.text_blocks(), index = blocks.indexOf(caret.block);
+    const left = backwards ? blocks[index - 1] : caret.block, right = backwards ? caret.block : blocks[index + 1];
+    if (!left || !right || right.localName !== 'p') return false;
+    const start = Number(left.parentElement.dataset.end), end = Number(right.parentElement.dataset.start);
+    if (!/^(?:[ \t]*\n)+$/u.test(byte_slice(this.state.source, start, end))) return false;
+    this.replace('', start, end, start); return true;
+  }
+  delete_displayed_character(backwards) {
+    const caret = this.text_caret();
+    if (!caret) return false;
+    // A rendered block edge cannot delete hidden Markdown punctuation.
+    if (backwards ? caret.at_start : caret.at_end) return true;
+    const position = this.selection.focus;
+    const span = backwards ? caret.spans.filter(span => Number(span.dataset.start) < position).at(-1)
+      : caret.spans.find(span => Number(span.dataset.end) > position);
+    if (!span) return true;
+    const from = Number(span.dataset.start), to = Number(span.dataset.end);
+    const raw = byte_slice(this.state.source, from, to), displayed = span.textContent;
+    let start = from, end = to;
+    if (raw === displayed || raw.startsWith('\\') && raw.slice(1) === displayed) {
+      const escape = raw === displayed ? 0 : 1;
+      const offset = Math.max(0, Math.min(byte_length(displayed), position - from - escape));
+      const range = grapheme_range(displayed, offset, backwards);
+      start = from + escape + range[0]; end = from + escape + range[1];
+      if (escape && start === from + 1) start = from;
     }
-    return false;
+    // Remove an emptied inline construct as a unit (including nested delimiters).
+    for (const element of caret.block.querySelectorAll('[data-kind]')) {
+      if (!['bold','italic','strikethrough','highlight','link','inline_code'].includes(element.dataset.kind)) continue;
+      if (element.querySelector('img,br,input')) continue;
+      const texts = [...element.querySelectorAll('[data-text]')];
+      if (texts.length && Number(texts[0].dataset.start) >= start && Number(texts.at(-1).dataset.end) <= end) {
+        start = Math.min(start, Number(element.dataset.start)); end = Math.max(end, Number(element.dataset.end));
+      }
+    }
+    this.replace('', start, end, start); return true;
   }
   source_changed() {
     const input = this.source_input, value = input.value;
@@ -785,26 +817,51 @@ class MarkdownEditor extends EventTarget {
     const end = next < 0 ? source.length : next;
     return { start: utf16_to_byte(source, start), end: utf16_to_byte(source, end), text: source.slice(start, end) };
   }
-  inline_opening_position() {
+  editing_markup() {
+    // Commands use parser coordinates, never syntax-revealed or decorated live DOM.
+    if (this.editing_html !== this.state.html) {
+      const template = document.createElement('template'); template.innerHTML = this.state.html;
+      this.editing_tree = template.content; this.editing_html = this.state.html;
+    }
+    return this.editing_tree;
+  }
+  inline_edge(position, backwards) {
+    let edge = position;
+    for (const element of this.editing_markup().querySelectorAll('[data-kind]')) {
+      if (!['bold','italic','strikethrough','highlight','link','inline_code'].includes(element.dataset.kind)) continue;
+      const spans = [...element.querySelectorAll('[data-text]')], text = backwards ? spans[0] : spans.at(-1);
+      if (text && Number(text.dataset[backwards ? 'start' : 'end']) === position) {
+        const raw = Number(element.dataset[backwards ? 'start' : 'end']);
+        edge = backwards ? Math.min(edge, raw) : Math.max(edge, raw);
+      }
+    }
+    return edge;
+  }
+  text_blocks() {
+    return [...this.editing_markup().querySelectorAll('section[data-block] > p,section[data-block] > h1,section[data-block] > h2,section[data-block] > h3,section[data-block] > h4,section[data-block] > h5,section[data-block] > h6')]
+      .filter(block => !block.closest('li,blockquote,td,th,pre') && block.querySelector('[data-text]'));
+  }
+  text_caret() {
+    if (this.source_view || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus) return null;
     const focus = this.selection.focus;
-    if (this.source_view || this.options.mode === 'markdown' || this.selection.anchor !== focus) return focus;
-    let position = focus;
-    let markup = this.surface;
-    if (this.surface.querySelector('[data-revealed]')) {
-      const template = document.createElement('template'); template.innerHTML = this.state.html; markup = template.content;
-    }
-    for (const element of markup.querySelectorAll('[data-kind]')) {
-      if (!['bold','italic','strikethrough','highlight','link'].includes(element.dataset.kind)) continue;
-      const first = element.querySelector('[data-text]');
-      if (first && Number(first.dataset.start) === focus) position = Math.min(position, Number(element.dataset.start));
-    }
-    return position;
+    const block = this.text_blocks().find(block => Number(block.parentElement.dataset.start) <= focus && focus <= Number(block.parentElement.dataset.end));
+    if (!block) return null;
+    const spans = [...block.querySelectorAll('[data-text]')], first = spans[0], last = spans.at(-1);
+    const start = Number(block.parentElement.dataset.start), end = Number(block.parentElement.dataset.end);
+    const visible = [...block.querySelectorAll('[data-text],br,img,input')];
+    return { block, spans, start, end,
+      at_start: focus === start || visible[0] === first && (focus === Number(first.dataset.start) || focus === this.inline_edge(Number(first.dataset.start), true)),
+      at_end: focus === end || visible.at(-1) === last && (focus === Number(last.dataset.end) || focus === this.inline_edge(Number(last.dataset.end), false)) };
+  }
+  inline_opening_position() {
+    return this.source_view || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus
+      ? this.selection.focus : this.inline_edge(this.selection.focus, true);
   }
   enter() {
     if (this.active_cell()) return this.run('hard_break');
     const line = this.line_range();
-    const opening = this.inline_opening_position();
-    if (opening < this.selection.focus && opening === line.start) return this.replace('&nbsp;\n\n', opening, opening, opening);
+    const caret = this.text_caret();
+    if (caret?.at_start) return this.replace('&nbsp;\n\n', caret.start, caret.start, caret.start);
     if (this.active_kind() === 'code_block' || this.active_kind() === 'front_matter') return this.replace('\n');
     const list = line.text.match(/^(\s*)([-+*]|\d+[.)]) (\[[ xX]\](?: |$))?/u);
     if (list) {
@@ -817,15 +874,14 @@ class MarkdownEditor extends EventTarget {
       return this.replace(`\n${list[1]}${marker} ${list[3] ? '[ ] ' : ''}`);
     }
     if (line.text.startsWith('> ')) return this.replace('\n> ');
-    if (!this.source_view && this.options.mode !== 'markdown' && this.selection.anchor === this.selection.focus
-        && this.selection.focus === line.end && [...this.surface.querySelectorAll('section[data-block] > p')].some(p =>
-          !p.closest('li,blockquote,td,th') && Number(p.parentElement.dataset.end) === this.selection.focus)) {
-      const start = this.selection.focus;
+    if (caret?.at_end) {
+      const start = caret.end;
       const remaining = byte_slice(this.state.source, start, byte_length(this.state.source));
       const gap = remaining.match(/^(?:[ \t]*\n)+/u)?.[0] || '';
-      const following = remaining.slice(gap.length).length > 0;
-      return this.replace('\n\n&nbsp;' + (following ? '\n\n' : ''), start, start + byte_length(gap), start + 2);
+      return this.replace('\n\n&nbsp;' + (remaining.slice(gap.length) ? '\n\n' : ''), start, start + byte_length(gap), start + 2);
     }
+    const opening = this.inline_opening_position();
+    if (opening < this.selection.focus) return this.replace('\n\n', opening, opening);
     this.replace('\n\n');
   }
   move_line_break(key) {
@@ -838,6 +894,16 @@ class MarkdownEditor extends EventTarget {
   }
   move_block_boundary(key) {
     if (this.source_view || this.html_view || this.reading || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus || this.active_cell()) return false;
+    const caret = this.text_caret();
+    if (caret) {
+      if (!(key === 'ArrowRight' ? caret.at_end : caret.at_start)) return false;
+      const edge = key === 'ArrowRight' ? caret.spans.at(-1) : caret.spans[0];
+      if ([...caret.block.querySelectorAll('br[data-break]')].some(br => key === 'ArrowRight' ? Number(br.dataset.start) >= Number(edge.dataset.end) : Number(br.dataset.end) <= Number(edge.dataset.start))) return false;
+      const all = [...this.editing_markup().querySelectorAll('[data-text]')];
+      const target = all[all.indexOf(edge) + (key === 'ArrowRight' ? 1 : -1)];
+      if (!target) return false;
+      this.set_selection(Number(target.dataset[key === 'ArrowRight' ? 'start' : 'end'])); this.refresh_syntax(); return true;
+    }
     const [node] = this.source_to_dom(this.selection.focus);
     const element = node.nodeType === 1 ? node : node.parentElement;
     const block = element.closest('p,h1,h2,h3,h4,h5,h6,li,dt,dd');
@@ -925,8 +991,9 @@ class MarkdownEditor extends EventTarget {
     if (command === 'hard_break') {
       const literal = ['code_block', 'comment', 'front_matter'].includes(this.active_kind());
       let position = this.inline_opening_position();
-      if (!literal && position < this.selection.focus && position === this.line_range().start) {
-        this.replace('<br>\n', position, position, byte_length('<br>\n')); this.focus(); return;
+      if (!literal && position < this.selection.focus) {
+        const text = position === this.line_range().start ? '<br>\n' : '<br>';
+        this.replace(text, position, position, position + byte_length(text)); this.focus(); return;
       }
       const consumed = new Set();
       if (!literal && !this.source_view && this.options.mode !== 'markdown' && this.selection.anchor === position) {

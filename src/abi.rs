@@ -189,6 +189,13 @@ fn execute(
             );
             return Ok(());
         }
+        13 => {
+            put_string(
+                &mut runtime.output,
+                &markdown::render_viewer(&session.editor.document().plain_text()),
+            );
+            return Ok(());
+        }
         9 => {
             session.saved = session.editor.document().plain_text();
         }

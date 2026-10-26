@@ -487,11 +487,11 @@ await test('HTML view is a read-only renderer output after Source and preserves 
   const buttons=[...editor.root.querySelectorAll('[data-view]')].map(button=>button.textContent);equal(buttons.join(','),'원본,HTML,읽기');
   editor.set_selection(byte_length('# 제목\n\n**'),byte_length('# 제목\n\n**본문'));const before=editor.get_selection();
   editor.root.querySelector('[data-view="html"]').click();assert(editor.html_view&&editor.html_output.readOnly&&!editor.html_output.hidden);assert(editor.surface.hidden&&editor.source_input.hidden);
-  equal(editor.html_output.value,editor.state.html);assert(editor.html_output.value.includes('<h1'));assert(!editor.html_output.value.includes('data-paragraph-end'),'not decorated live DOM');
+  equal(editor.html_output.value,'<h1>제목</h1>\n<p><strong>본문</strong></p>');assert(editor.html_output.value.includes('<h1'));assert(!editor.html_output.value.includes('data-paragraph-end'),'not decorated live DOM');
   await editor.execute_command('bold');equal(editor.get_markdown({normalize:false}),source);equal(editor.get_selection().anchor,before.anchor);equal(editor.get_selection().focus,before.focus);
   editor.root.querySelector('[data-view="html"]').click();assert(!editor.html_view&&!editor.surface.hidden);equal(editor.get_selection().focus,before.focus);
   editor.set_view('source');editor.set_view('html');assert(!editor.source_view&&editor.html_view);editor.set_view('reading');assert(editor.reading&&!editor.html_view);
-  editor.set_view('html');editor.set_markdown('**updated**');equal(editor.html_output.value,editor.state.html);assert(editor.html_output.value.includes('updated'));
+  editor.set_view('html');editor.set_markdown('**updated**');equal(editor.html_output.value,'<p><strong>updated</strong></p>');
  }finally{editor.destroy();}
 });
 await test('Right/Left cross heading-paragraph boundaries and no gap DOM remains',async()=>{
@@ -575,6 +575,66 @@ await test('Enter at a rich paragraph end inserts a persistent editable paragrap
  }
  const last=await fixture(text);try{last.focus();last.set_selection(byte_length(text));last.enter();equal(last.state.source,text+'\n\n&nbsp;');}finally{last.destroy();}
  const raw=await fixture(text+'\n\n- 항목');try{raw.set_view('source');raw.set_selection(byte_length(text));raw.enter();equal(raw.state.source,text+'\n\n\n\n- 항목');}finally{raw.destroy();}
+});
+await test('Semantic inline boundaries preserve formatting across paragraph deletion and breaks',async()=>{
+ const formats=[['**','**'],['__','__'],['*','*'],['~~','~~'],['==','=='],['[','](https://example.com)'],['`','`'],['***','***']];
+ for(const mode of ['rich','hybrid'])for(const [open,close] of formats){
+  const formatted=open+'한😀'+close,source='앞 문단\n\n'+formatted,editor=await fixture(source,{mode});
+  try{
+   editor.focus();editor.set_selection(byte_length('앞 문단\n\n'+open));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));
+   equal(editor.state.source,'앞 문단'+formatted);await editor.execute_command('undo');equal(editor.state.source,source);
+   editor.set_selection(byte_length('앞 문단'));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));equal(editor.state.source,'앞 문단'+formatted);
+   editor.set_markdown(formatted);editor.focus();editor.set_selection(byte_length(open));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));equal(editor.state.source,formatted);
+   editor.enter();equal(editor.state.source,'&nbsp;\n\n'+formatted);await editor.execute_command('undo');editor.set_selection(byte_length(open));
+   await editor.execute_command('hard_break');equal(editor.state.source,'<br>\n'+formatted);
+   editor.set_markdown('앞 '+formatted);editor.focus();editor.set_selection(byte_length('앞 '+open));
+   await editor.execute_command('hard_break');equal(editor.state.source,'앞 <br>'+formatted);
+   editor.set_markdown('앞 '+formatted);editor.focus();editor.set_selection(byte_length('앞 '+open));editor.enter();equal(editor.state.source,'앞 \n\n'+formatted);
+   editor.set_markdown('앞 '+formatted);editor.focus();editor.set_selection(byte_length('앞 '+open));
+   editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));equal(editor.state.source,'앞'+formatted);
+  }finally{editor.destroy();}
+ }
+});
+await test('Heading end Enter creates a paragraph before the following text and preserves title formatting',async()=>{
+ for(const mode of ['rich','hybrid'])for(const title of ['# 제목','## **한😀**','### ==제목=='])for(const gap of ['\n','\n\n','\n\n\n\n']){
+  const editor=await fixture(title+gap+'기존 문단',{mode});
+  try{editor.focus();editor.set_selection(byte_length(title));editor.enter();equal(editor.state.source,title+'\n\n&nbsp;\n\n기존 문단');equal(editor.selection.focus,byte_length(title)+2);
+   const [node]=editor.source_to_dom(editor.selection.focus);equal(node.textContent,'\u00a0');
+   await editor.execute_command('undo');equal(editor.state.source,title+gap+'기존 문단');
+  }finally{editor.destroy();}
+ }
+});
+await test('Visible deletion skips inline closers and removes empty constructs atomically',async()=>{
+ for(const mode of ['rich','hybrid']){
+  const editor=await fixture('**한글**끝',{mode});try{editor.focus();editor.set_selection(byte_length('**한글'));editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentForward',bubbles:true,cancelable:true}));equal(editor.state.source,'**한글**');
+   editor.set_markdown('앞 ==😀== 뒤');editor.focus();editor.set_selection(byte_length('앞 ==😀'));editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));equal(editor.state.source,'앞  뒤');
+  }finally{editor.destroy();}
+ }
+});
+await test('Visible deletion retains Unicode graphemes and escaped-text atomicity',async()=>{
+ for(const grapheme of ['한','é','👨‍👩‍👧‍👦','🇰🇷','👍🏽']){
+  const editor=await fixture('a'+grapheme+'b');try{editor.focus();editor.set_selection(byte_length('a'+grapheme));editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));equal(editor.state.source,'ab');}finally{editor.destroy();}
+ }
+ const editor=await fixture('a\\*b');try{editor.focus();editor.set_selection(3);editor.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));equal(editor.state.source,'ab');}finally{editor.destroy();}
+});
+await test('HTML view removes editor wrappers, hides source-only blocks and formats semantic output safely',async()=>{
+ const source='---\ntitle: hidden\n---\n\n# 제목\n\n**굵게**, *기울임*, ==강조==, ~~취소선~~\n\n- [x] 작업\n\n```text\n  <x>\n    한글\n```\n\n<!-- 숨김 -->',editor=await fixture(source);
+ try{editor.focus();editor.set_selection(0);const before=editor.get_selection();editor.set_view('html');const html=editor.html_output.value;
+  assert(!/data-(?:start|end|kind|block|text|task)|contenteditable|<section/u.test(html),html);
+  assert(!html.includes('hidden')&&!html.includes('숨김'));assert(html.includes('<strong>굵게</strong>'));assert(!html.includes('<b>'));
+  assert(html.includes('\n  <li'));assert(html.includes('disabled'));const parsed=document.createElement('template');parsed.innerHTML=html;equal(parsed.content.querySelector('pre code').textContent,'  <x>\n    한글\n');
+  equal(editor.get_selection().focus,before.focus);equal(editor.get_markdown({normalize:false}),source);
+  editor.set_view('html');assert(editor.surface.querySelector('[data-text]'),'editing coordinates were lost');
+ }finally{editor.destroy();}
+});
+await test('Pure HTML view emits tables without scroll wrappers while editing retains scrolling',async()=>{
+ const editor=await fixture('| A | B |\n| --- | --- |\n| x | y |');
+ try{assert(editor.surface.querySelector('.table_scroll'));editor.set_view('html');assert(editor.html_output.value.startsWith('<table '));assert(!editor.html_output.value.includes('table_scroll'));assert(editor.html_output.value.includes('\n  <tr>'));
+  editor.set_view('html');assert(editor.surface.querySelector('.table_scroll'));}
+ finally{editor.destroy();}
 });
 document.querySelector('#summary').textContent = `${results.filter(Boolean).length}/${results.length} passed`;
 document.body.dataset.passed = results.every(Boolean) ? 'true' : 'false';

@@ -94,7 +94,7 @@ class SharedEditorCore extends EventTarget {
       }
       return this.snapshot;
     }
-    if (op === 8) return this.renderer.request(8);
+    if (op === 8 || op === 13) return this.renderer.request(op);
     if (op === 4 || op === 11) { this.selection = {anchor:start,focus:end}; this.refresh_selection(); this.remember(); if(op===11&&this.undo_selections.length)this.undo_selections.at(-1).after=this.bookmark_pair(); return this.snapshot; }
     if (op === 9) { if (!this.draft) this.saved = this.snapshot.source; return this.refresh(); }
     if (op === 2) return this.replace(0,byte_length(this.snapshot.source),text);

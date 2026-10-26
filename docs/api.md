@@ -70,10 +70,11 @@ export: `abi_version()`, `reserve_input(length)`, `dispatch(op, handle, revision
 | 10 | 자동 변환 undo: 이스케이프 원문으로 교체, redo에 변환 상태 기록 |
 | 11 | 명령의 최종 선택 지정(redo 복원 위치 포함) |
 | 12 | 인접 로컬 history 병합(문서·revision 불변) |
+| 13 | 현재 문서의 순수 읽기용 HTML 문자열(좌표 요소 제거, 문서·선택·history 불변) |
 
 변경·선택·불러오기·저장 기준 변경은 현재 revision과 일치해야 한다. 새 문서를 불러와도 revision과 노드 ID를 되돌리지 않는다.
 
-snapshot: handle(u32), revision(u64), anchor(u32), focus(u32), flags(u32), 문자열 3개(source, 안전한 HTML, layout 이름) 순. flags bit 0/1/2는 can_undo/can_redo/dirty다. op 4/11/12는 문자열 없는 24바이트 헤더만 반환해 커서 이동 시 재렌더링을 피한다. op 8은 문자열 하나, op 1은 빈 응답이다.
+snapshot: handle(u32), revision(u64), anchor(u32), focus(u32), flags(u32), 문자열 3개(source, 안전한 HTML, layout 이름) 순. flags bit 0/1/2는 can_undo/can_redo/dirty다. op 4/11/12는 문자열 없는 24바이트 헤더만 반환해 커서 이동 시 재렌더링을 피한다. op 8/13은 문자열 하나, op 1은 빈 응답이다.
 
 오류 status: 1(입력), 2(handle), 3(편집 거절), 4(미지원 op). 오류 응답은 메시지 문자열 하나다. panic을 오류 프로토콜로 사용하지 않는다. `unsafe` 포인터 역참조는 구현에 없다.
 
@@ -102,3 +103,7 @@ SDK의 `editor.js` 옆에 `editor.d.ts`를 제공한다. `Editor`, `EditorOption
 알 수 없는 명령과 잘못된 타입의 명령은 문서를 변경하지 않고 TypeError로 reject한다. `run()`은 동일 오류를 `error` 이벤트로 전달한다. 설정 키 바인딩도 문서화한 명령만 허용한다. `get_markdown()`의 normalize는 boolean만 허용한다.
 
 `execute_command('open')`의 Promise는 파일 선택 UI 요청까지만 나타낸다. 실제 파일 읽기 실패는 `error` 이벤트다. 파일 읽기 완료 전에 revision이 바뀌면 새 문서를 보호하기 위해 가져오기를 거절하며, 종료된 편집기에 도착한 읽기 결과는 무시한다. `link`, `table_tools` 등의 대화상자와 `attachment`도 사용자 입력 완료를 기다리는 Promise가 아니다.
+
+### HTML 보기 출력
+
+HTML 보기는 op13의 순수 읽기용 HTML을 내장 포매터로 들여쓰기하여 읽기 전용으로 표시한다. 원본/선택/history를 변경하지 않으며 커서 좌표용 section/span과 편집 속성을 포함하지 않는다. 인라인 태그 사이 공백과 pre/code 내용은 보존하고, 블록 자식으로 구성된 컨테이너는 두 칸 들여쓰기를 사용한다. 잘못 닫힌 원문 HTML이나 혼합 콘텐츠는 의미 변경을 피하기 위해 해당 내용을 그대로 유지한다. 외부 포매팅 패키지는 사용하지 않는다.

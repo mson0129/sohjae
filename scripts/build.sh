@@ -20,6 +20,7 @@ if command -v node >/dev/null 2>&1; then
   node --check web/sohjae.js
   node --check web/sohjae-renderer.js
   node scripts/check_renderer.mjs
+  node scripts/check_html.mjs
   node scripts/check_api_contracts.mjs
   node scripts/check_collab_contracts.mjs
   if command -v tsc >/dev/null 2>&1; then

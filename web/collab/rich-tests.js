@@ -285,7 +285,7 @@ await test('Read-only HTML view updates on remote changes without editing the do
  try {
   connection=await connect_local_pair(f.a,f.b);f.x.set_view('html');assert(f.x.html_output.readOnly);
   f.y.set_selection(byte_length(f.y.state.source));f.y.replace(' remote');await until(()=>f.x.state.source===f.y.state.source);
-  assert(f.x.html_view&&!f.x.html_output.hidden);assert(f.x.html_output.value===f.x.state.html&&f.x.html_output.value.includes('remote'));
+  assert(f.x.html_view&&!f.x.html_output.hidden);assert(f.x.html_output.value==='<h1>Shared remote</h1>');assert(!f.x.html_output.value.includes('data-start'));
   const source=f.x.state.source;await f.x.execute_command('paragraph');assert(f.x.state.source===source);
   f.x.set_view('html');assert(!f.x.html_view&&!f.x.surface.hidden);
  }finally{connection?.close();f.close();}
@@ -335,6 +335,18 @@ await test('Shared Enter inserts an editable NBSP paragraph before a task list',
   await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source===text+'\n\n&nbsp;\n\n- [x] WASM으로 렌더링');
   assert(f.x.selection.focus===byte_length(text)+2);
   await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source===source);
+ }finally{connection?.close();f.close();}
+});
+await test('Shared semantic boundaries preserve inline formats and insert paragraphs below headings',async()=>{
+ for(const [open,close] of [['**','**'],['==','=='],['~~','~~'],['[','](https://example.com)']]){
+  const source='앞 문단\n\n'+open+'한😀'+close,f=await fixture(source);let connection;
+  try{connection=await connect_local_pair(f.a,f.b);f.x.set_options({mode:'hybrid'});f.x.focus();f.x.set_selection(byte_length('앞 문단\n\n'+open));
+   f.x.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='앞 문단'+open+'한😀'+close);
+   await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source===source);
+  }finally{connection?.close();f.close();}
+ }
+ const f=await fixture('# 제목\n\n기존 문단');let connection;
+ try{connection=await connect_local_pair(f.a,f.b);f.x.focus();f.x.set_selection(byte_length('# 제목'));f.x.enter();await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='# 제목\n\n&nbsp;\n\n기존 문단');
  }finally{connection?.close();f.close();}
 });
 document.querySelector('#summary').textContent=`${passed} passed / ${failed} failed`;

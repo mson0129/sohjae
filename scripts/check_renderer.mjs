@@ -11,10 +11,12 @@ const instance = await WebAssembly.instantiate(module, {}), e = instance.exports
 const renderer = new Renderer(e);
 const fixtures = JSON.parse(await readFile(new URL('../web/gfm-results.json', import.meta.url), 'utf8'));
 // Compare semantic content after removing editor-only wrappers and attributes.
-const semantic = html => html.replace(/<\/?(?:section|span)\b[^>]*>/g, '').replace(/\s(?:data-[\w-]+|contenteditable|id)="[^"]*"/g, '').replace(/<strong>/g, '<b>').replace(/<\/strong>/g, '</b>').replace(/<[^>]+>/g, tag => tag.replace(/\s+/g, ' ').replace(/\s+>/g, '>'));
+const semantic = html => html.replace(/<div class="table_scroll"[^>]*>(<table[\s\S]*?<\/table>)<\/div>/g, '$1').replace(/<\/?(?:section|span)\b[^>]*>/g, '').replace(/\s(?:data-[\w-]+|contenteditable|id)="[^"]*"/g, '').replace(/<[^>]+>/g, tag => tag.replace(/\s+/g, ' ').replace(/\s+>/g, '>'));
 for (const fixture of fixtures) assert.equal(semantic(renderer.render(fixture.markdown)), semantic(fixture.actual_html), `GFM renderer parity ${fixture.example}`);
-assert.equal(renderer.render('# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.'), '<h1>함께 쓰는 문서</h1><p><mark>리치 화면</mark>과 <b>원본 화면</b>을 같은 문서에 연결했습니다.</p>');
+assert.equal(renderer.render('# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.'), '<h1>함께 쓰는 문서</h1><p><mark>리치 화면</mark>과 <strong>원본 화면</strong>을 같은 문서에 연결했습니다.</p>');
 assert.doesNotMatch(renderer.render('> **인용**\n\n- [x] 완료\n\n![그림](image.png)'), /data-(?:start|end|block|text|kind|task)|contenteditable|<section/);
+const tableHTML=renderer.render('| A | B |\n| --- | --- |\n| x | y |');
+assert.match(tableHTML,/^<table\b/);assert.doesNotMatch(tableHTML,/table_scroll|<div/);assert.match(tableHTML,/<th\b/);assert.match(tableHTML,/<td\b/);
 assert.match(renderer.render('# Heading {#custom}\n\n[Go](#custom)'), /id="custom"/);
 assert.match(renderer.render('# Heading\n\n[Go](#heading)'), /id="heading"/);
 assert.equal(renderer.render('한😀\r\n\r\n==강조=='), renderer.render('한😀\n\n==강조=='));
@@ -33,5 +35,5 @@ assert.match(renderer.render('반복😀 '.repeat(30000)), /반복😀/);
 assert.throws(() => renderer.render(null), TypeError);
 renderer.destroy(); renderer.destroy(); assert.throws(() => renderer.render('x'), /destroyed/);
 const loaded = await create_renderer({ wasm_url: `data:application/wasm;base64,${bytes.toString('base64')}` });
-assert.match(loaded.render('**뷰어**'), /<b/); loaded.destroy();
+assert.match(loaded.render('**뷰어**'), /<strong/); loaded.destroy();
 console.log(`Renderer: ${fixtures.length} GFM semantic outputs preserved; Unicode, safety, read-only, ABI limits, recovery, memory growth, loader and lifecycle passed. WASM ${bytes.length} bytes; editor ${(await readFile(new URL('../web/sohjae_editor.wasm', import.meta.url))).length} bytes.`);

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {pretty_html} from '../web/html.js';
+assert.equal(pretty_html('<h1>제목</h1><p><strong>굵게</strong>, <em>기울임</em>, <mark>강조</mark></p>'),'<h1>제목</h1>\n<p><strong>굵게</strong>, <em>기울임</em>, <mark>강조</mark></p>');
+assert.equal(pretty_html('<ul><li>첫째</li><li>둘째</li></ul>'),'<ul>\n  <li>첫째</li>\n  <li>둘째</li>\n</ul>');
+assert.equal(pretty_html('<table><tbody><tr><td>A</td><td>B</td></tr></tbody></table>'),'<table>\n  <tbody>\n    <tr>\n      <td>A</td>\n      <td>B</td>\n    </tr>\n  </tbody>\n</table>');
+const pre='<pre><code>  한글\n\n    &lt;x&gt;\n</code></pre>';
+assert.equal(pretty_html('<blockquote>'+pre+'</blockquote>'),'<blockquote>\n  '+pre+'\n</blockquote>');
+for(const html of ['<p>a <strong>b</strong> c&nbsp;&amp;</p>','<p><a href="?x=>&amp;y=1">링크</a><br>다음</p>','<div>text<ul><li>item</li></ul>tail</div>','<div>unclosed','',pre])assert.equal(pretty_html(html),html);
+const nested='<div><p>문단</p><ul><li>목록</li></ul></div>';
+assert.equal(pretty_html(pretty_html(nested)),pretty_html(nested));
+assert.throws(()=>pretty_html(null),TypeError);
+console.log('HTML formatting: block indentation, inline whitespace, entities, pre/code bytes, quoted attributes, void tags, mixed content, malformed fallback and idempotence passed.');

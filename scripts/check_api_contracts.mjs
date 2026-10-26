@@ -11,7 +11,7 @@ const re = await instantiate('sohjae_render');
 assert.throws(() => new Renderer({ ...re, renderer_abi_version: () => 99 }), /Unsupported/);
 const url = `data:application/wasm;base64,${(await bytes('sohjae_render')).toString('base64')}`;
 const first = await create_renderer({ wasm_url: url }), second = await create_renderer({ wasm_url: url });
-first.destroy(); assert.match(second.render('**independent**'), /<b/); second.destroy();
+first.destroy(); assert.match(second.render('**independent**'), /<strong/); second.destroy();
 const ee = await instantiate('sohjae_editor');
 assert.throws(() => new Core({ ...ee, abi_version: () => 99 }), /Unsupported/);
 const core = new Core(ee); core.request(0, '한😀');
@@ -19,6 +19,7 @@ for (const offset of [-1, 0.5, NaN, Infinity, 2 ** 32, 1]) {
   assert.throws(() => core.request(3, 'bad', offset, offset));
   assert.equal(core.request(7).source, '한😀');
 }
+const beforeHTML=core.request(7);assert.equal(core.request(13),'<p>한😀</p>');assert.deepEqual(core.request(7),beforeHTML);
 core.request(1);
 const ce = await instantiate('sohjae_collaborator');
 const expected = JSON.parse(await readFile(new URL('../spec/api/scv2-schema1.json', import.meta.url)));

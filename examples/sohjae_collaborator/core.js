@@ -43,7 +43,7 @@ export class Core {
     const string = () => { const length = u32(); const text = decoder.decode(output.subarray(offset, offset + length)); offset += length; return text; };
     if (status) throw new Error(`Core error ${status}: ${string()}`);
     if (op === 1) { this.handle = 0; return; }
-    if (op === 8) return string();
+    if (op === 8 || op === 13) return string();
     this.handle = u32();
     this.revision = view.getBigUint64(offset, true); offset += 8;
     const anchor = u32(), focus = u32(), flags = u32();
