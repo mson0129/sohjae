@@ -28,7 +28,13 @@ pre code { background:none; padding:0; }
 .show_code_line_numbers .code_line { position:relative; counter-increment:code-line; }
 .show_code_line_numbers .code_line::before { content:counter(code-line); position:absolute; width:2em; inset-inline-start:-3em; text-align:end; color:#8a99ad; user-select:none; }
 .show_heading_levels h1::before,.show_heading_levels h2::before,.show_heading_levels h3::before,.show_heading_levels h4::before,.show_heading_levels h5::before,.show_heading_levels h6::before { content:attr(data-level) ' '; font:11px ui-monospace,monospace; color:#8a99ad; user-select:none; }
-.show_paragraph_marks p::after { content:' ¶'; color:#aab6c6; font-size:.8em; user-select:none; }
+.show_paragraph_marks .surface p::after { content:' ↵'; color:#aab6c6; font-size:.8em; user-select:none; pointer-events:none; }
+/* Keep the caret placeholder BR: place its paragraph mark on the same line. */
+.show_paragraph_marks .surface p:has(> br:only-child) { position:relative; }
+.show_paragraph_marks .surface p:has(> br:only-child)::after { position:absolute; inset-inline-start:0; top:0; }
+.break_mark { display:none; }
+.show_paragraph_marks .break_mark { display:inline-block; position:relative; width:.85em; height:0; pointer-events:none; user-select:none; }
+.show_paragraph_marks .break_mark::before { content:'↓'; position:absolute; inset-inline-start:0; bottom:0; color:#aab6c6; font-size:.8em; }
 .comment,.front_matter,[data-kind="comment"] { color:#788391; font-family:ui-monospace,monospace; }
 .syntax { color:#536987; font-family:ui-monospace,monospace; }
 .list_item { position:relative; padding-inline-start:2em; }

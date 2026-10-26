@@ -319,6 +319,25 @@ await test('Accessibility toolbar has one Tab stop, arrow navigation, named dial
  editor.report(new Error('검사 오류'));equal(editor.root.querySelector('[role="alert"]').textContent,'검사 오류');
  }finally{editor.destroy();}
 });
+await test('Paragraph and hard-break marks preserve empty-line height and source selection', async () => {
+ const source='첫 문단\n\n\n다음 줄<br>마지막 줄';
+ const editor=await fixture(source,{show_paragraph_marks:false});
+ try {
+  const empty=[...editor.surface.querySelectorAll('p')].find(p=>p.matches(':has(> br:only-child)'));assert(empty,'empty paragraph fixture');
+  const height=empty.getBoundingClientRect().height;
+  editor.set_options({show_paragraph_marks:true});
+  const current=[...editor.surface.querySelectorAll('p')].find(p=>p.matches(':has(> br:only-child)'));
+  equal(current.getBoundingClientRect().height,height);
+  equal(getComputedStyle(current,'::after').position,'absolute');
+  assert(getComputedStyle(current,'::after').content.includes('↵'),'paragraph arrow');
+  const marker=editor.surface.querySelector('.break_mark');assert(marker,'hard-break decoration');
+  assert(getComputedStyle(marker,'::before').content.includes('↓'),'line arrow');
+  equal(marker.getAttribute('aria-hidden'),'true');
+  equal(editor.get_markdown({normalize:false}),source);
+  editor.set_selection(0,3);editor.replace('새');assert(editor.get_markdown({normalize:false}).startsWith('새 문단'),'selection survives decoration');
+  editor.set_options({show_paragraph_marks:false});equal(getComputedStyle(editor.surface.querySelector('.break_mark')).display,'none');
+ }finally{editor.destroy();}
+});
 document.querySelector('#summary').textContent = `${results.filter(Boolean).length}/${results.length} passed`;
 document.body.dataset.passed = results.every(Boolean) ? 'true' : 'false';
 const environment = document.createElement('p'); environment.textContent = navigator.userAgent; environment.id = 'environment'; document.querySelector('#summary').after(environment);

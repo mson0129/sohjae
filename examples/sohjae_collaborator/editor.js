@@ -137,7 +137,7 @@ class MarkdownEditor extends EventTarget {
       ['paragraph', 'P', '일반 문단'], ['bold', 'B', '굵게'], ['italic', 'I', '기울임'], ['strikethrough', 'S̶', '취소선'], ['highlight', '형광', '하이라이트'],
       ['inline_code', '<>', '인라인 코드'], ['code_block', '{ }', '코드 블록'], ['quote', '❞', '인용문'],
       ['list', '•', '목록'], ['ordered_list', '1.', '순서 목록'], ['task', '☑', '작업 목록'],
-      ['indent', '→', '들여쓰기'], ['outdent', '←', '내어쓰기'], ['hard_break', '↵', '줄바꿈'],
+      ['indent', '→', '들여쓰기'], ['outdent', '←', '내어쓰기'], ['hard_break', '↓', '줄바꿈'],
       ['link', '↗', '링크 추가·수정'], ['unlink', '⊘', '링크 제거'], ['open_link', '열기', '링크 열기'],
       ['table', '▦', '표 삽입'], ['table_tools', '표 도구', '표 행·열 편집'], ['attachment', '＋파일', '파일·이미지 첨부'],
       ['footnote', '각주', '각주 삽입'], ['alert', '알림', '알림 블록'], ['details', '접기', '접기 영역'],
@@ -398,6 +398,11 @@ class MarkdownEditor extends EventTarget {
     const template = document.createElement('template'); template.innerHTML = this.state.html;
     if (this.reading) template.content.querySelectorAll('.comment,.front_matter,.reference_definition,[data-kind="comment"]').forEach(element => element.remove());
     template.content.querySelectorAll('[data-task]').forEach(input => { input.disabled = this.reading || this.options.read_only; });
+    template.content.querySelectorAll('br[data-break]').forEach(br => {
+      const marker = document.createElement('span');
+      marker.className = 'break_mark'; marker.contentEditable = 'false'; marker.setAttribute('aria-hidden', 'true');
+      br.before(marker);
+    });
     const incoming = [...template.content.children];
     const old_nodes = [...this.surface.children];
     let prefix=0,suffix=0;

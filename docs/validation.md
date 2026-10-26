@@ -108,3 +108,7 @@ Rust 70개(안정 ID 이동·동시 이동/삽입/삭제 수렴·잘못된/비�
 ### Optional classic collaboration and renderer constructors
 
 The classic entry contract harness passes 20 tests, including constructor readiness/cancellation, form integration, absence of collaboration runtime requests in ordinary editors, plugin replica synchronization and ownership, transport teardown, and div renderer update/destroy/reinitialization. Strict TypeScript checks and full package build pass. GFM audit remains 585/672 with the existing 87 documented policy mismatches; no parser changes in this update.
+
+### 줄·문단 바꿈 표시 보정 (2026-10-26)
+
+줄 바꿈 표시와 도구 모음 기호는 ↓, 문단 끝 표시는 ↵로 통일했다. 빈 문단의 caret placeholder BR은 유지하면서 문단 기호를 같은 행에 배치하여 표시 토글로 행 높이가 늘어나지 않게 했다. 줄 바꿈 장식은 원문 텍스트를 추가하지 않으며 aria-hidden으로 보조 기술에서 제외한다. 단일 사용자 브라우저 검사 41개와 공유 리치·원본 검사 22개가 통과했고 예제 자산을 다시 생성·검증했다.
