@@ -547,6 +547,35 @@ await test('Shift+Enter exits generated bold closers before inserting BR in rich
  }
  const editor=await fixture('**원본**',{auto_close:{enabled:true}});try{editor.focus();editor.set_selection(byte_length('**원본'));await editor.execute_command('hard_break');equal(editor.get_markdown({normalize:false}),'**원본<br>**');}finally{editor.destroy();}
 });
+await test('Breaks before rich inline formatting preserve opening delimiters',async()=>{
+ for(const mode of ['rich','hybrid'])for(const hard of [false,true]) {
+  const editor=await fixture('**굵게**',{mode});
+  try {
+   editor.focus();editor.set_selection(2);
+   if(hard)await editor.execute_command('hard_break');else editor.enter();
+   equal(editor.state.source,hard?'<br>\n**굵게**':'&nbsp;\n\n**굵게**');
+   assert(editor.state.html.includes('<strong'),'bold was broken');
+   if(hard){equal(editor.selection.focus,5);assert(!editor.state.html.includes('>\n</span>'),'BR newline became a second visual break');}
+   await editor.execute_command('undo');equal(editor.state.source,'**굵게**');
+  }finally{editor.destroy();}
+ }
+ const source=await fixture('**굵게**');try{source.set_view('source');source.set_selection(2);source.enter();equal(source.state.source,'**\n\n굵게**');}finally{source.destroy();}
+});
+await test('Enter at a rich paragraph end inserts a persistent editable paragraph before a list',async()=>{
+ const text='**굵게**, *기울임*, ==하이라이트==를 확인하세요.';
+ for(const mode of ['rich','hybrid'])for(const gap of ['\n\n','\n\n\n\n']) {
+  const source=text+gap+'- [x] WASM으로 렌더링',editor=await fixture(source,{mode});
+  try{editor.focus();editor.set_selection(byte_length(text));editor.enter();
+   equal(editor.state.source,text+'\n\n&nbsp;\n\n- [x] WASM으로 렌더링');
+   equal(editor.selection.focus,byte_length(text)+2);
+   const [node]=editor.source_to_dom(editor.selection.focus);equal(node.textContent,'\u00a0');
+   await editor.execute_command('undo');equal(editor.state.source,source);
+   await editor.execute_command('redo');assert(editor.state.source.includes('\n\n&nbsp;\n\n'));
+  }finally{editor.destroy();}
+ }
+ const last=await fixture(text);try{last.focus();last.set_selection(byte_length(text));last.enter();equal(last.state.source,text+'\n\n&nbsp;');}finally{last.destroy();}
+ const raw=await fixture(text+'\n\n- 항목');try{raw.set_view('source');raw.set_selection(byte_length(text));raw.enter();equal(raw.state.source,text+'\n\n\n\n- 항목');}finally{raw.destroy();}
+});
 document.querySelector('#summary').textContent = `${results.filter(Boolean).length}/${results.length} passed`;
 document.body.dataset.passed = results.every(Boolean) ? 'true' : 'false';
 const environment = document.createElement('p'); environment.textContent = navigator.userAgent; environment.id = 'environment'; document.querySelector('#summary').after(environment);

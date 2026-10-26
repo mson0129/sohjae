@@ -946,9 +946,26 @@ class MarkdownEditor extends EventTarget {
     const end = next < 0 ? source.length : next;
     return { start: utf16_to_byte(source, start), end: utf16_to_byte(source, end), text: source.slice(start, end) };
   }
+  inline_opening_position() {
+    const focus = this.selection.focus;
+    if (this.source_view || this.options.mode === 'markdown' || this.selection.anchor !== focus) return focus;
+    let position = focus;
+    let markup = this.surface;
+    if (this.surface.querySelector('[data-revealed]')) {
+      const template = document.createElement('template'); template.innerHTML = this.state.html; markup = template.content;
+    }
+    for (const element of markup.querySelectorAll('[data-kind]')) {
+      if (!['bold','italic','strikethrough','highlight','link'].includes(element.dataset.kind)) continue;
+      const first = element.querySelector('[data-text]');
+      if (first && Number(first.dataset.start) === focus) position = Math.min(position, Number(element.dataset.start));
+    }
+    return position;
+  }
   enter() {
     if (this.active_cell()) return this.run('hard_break');
     const line = this.line_range();
+    const opening = this.inline_opening_position();
+    if (opening < this.selection.focus && opening === line.start) return this.replace('&nbsp;\n\n', opening, opening, opening);
     if (this.active_kind() === 'code_block' || this.active_kind() === 'front_matter') return this.replace('\n');
     const list = line.text.match(/^(\s*)([-+*]|\d+[.)]) (\[[ xX]\](?: |$))?/u);
     if (list) {
@@ -961,6 +978,15 @@ class MarkdownEditor extends EventTarget {
       return this.replace(`\n${list[1]}${marker} ${list[3] ? '[ ] ' : ''}`);
     }
     if (line.text.startsWith('> ')) return this.replace('\n> ');
+    if (!this.source_view && this.options.mode !== 'markdown' && this.selection.anchor === this.selection.focus
+        && this.selection.focus === line.end && [...this.surface.querySelectorAll('section[data-block] > p')].some(p =>
+          !p.closest('li,blockquote,td,th') && Number(p.parentElement.dataset.end) === this.selection.focus)) {
+      const start = this.selection.focus;
+      const remaining = byte_slice(this.state.source, start, byte_length(this.state.source));
+      const gap = remaining.match(/^(?:[ \t]*\n)+/u)?.[0] || '';
+      const following = remaining.slice(gap.length).length > 0;
+      return this.replace('\n\n&nbsp;' + (following ? '\n\n' : ''), start, start + byte_length(gap), start + 2);
+    }
     this.replace('\n\n');
   }
   move_line_break(key) {
@@ -1059,7 +1085,10 @@ class MarkdownEditor extends EventTarget {
     }
     if (command === 'hard_break') {
       const literal = ['code_block', 'comment', 'front_matter'].includes(this.active_kind());
-      let position = this.selection.focus;
+      let position = this.inline_opening_position();
+      if (!literal && position < this.selection.focus && position === this.line_range().start) {
+        this.replace('<br>\n', position, position, byte_length('<br>\n')); this.focus(); return;
+      }
       const consumed = new Set();
       if (!literal && !this.source_view && this.options.mode !== 'markdown' && this.selection.anchor === position) {
         // Exit only still-tracked generated closers, never arbitrary source syntax.

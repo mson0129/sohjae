@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {CollaborativeReplica, CollaborationError, create_replica} from '../web/collab/core.js';
-import {WebRTCTransport, TransportError} from '../web/collab/webrtc.js';
+import {WebRTCTransport, TransportError, connect_local_pair} from '../web/collab/webrtc.js';
 const wasm=await WebAssembly.compile(await readFile(new URL('../web/sohjae_collaborator.wasm',import.meta.url)));
 const document_id='00000000000000000000000000000011', actor=n=>n.toString(16).padStart(32,'0');
 const replica=async(n=99,document=document_id)=>new CollaborativeReplica((await WebAssembly.instantiate(wasm,{})).exports,document,actor(n));
@@ -131,5 +131,21 @@ await test('Queue quota, failed initial export and failed hello are terminal wit
  try{await queued.transport.receive(JSON.stringify(hello(queued.a)));queued.channel.bufferedAmount=512*1024;const bytes=new Uint8Array(16*1024*1024);queued.transport.send_update(bytes);queued.transport.send_update(bytes);assert.equal(error.code,'RESOURCE_LIMIT');assert(queued.transport.closed);assert.equal(queued.transport.queued_bytes,0);}finally{queued.transport.close();queued.a.destroy();}
  const exported=await connected();let ready=0;exported.transport.addEventListener('ready',()=>ready++);exported.transport.addEventListener('error',event=>error=event.detail);exported.a.export_state=()=>{throw new CollaborationError('ResourceLimit','too large');};await incoming(exported.channel,JSON.stringify(hello(exported.a)));assert.equal(error.code,'SYNC_FAILED');assert.equal(ready,0);assert(exported.transport.closed);exported.a.destroy();
  const a=await replica(),channel=new Channel();channel.send=()=>{throw new Error('hello failed');};const transport=new WebRTCTransport(a,channel,{authorize_peer:()=>true});error=await new Promise(resolve=>transport.addEventListener('error',event=>resolve(event.detail),{once:true}));assert.equal(error.code,'CHANNEL_ERROR');assert(transport.closed);a.destroy();
+});
+await test('Local RTC helper forwards end-of-candidates and closes failed ICE peers',async()=>{
+ const original=globalThis.RTCPeerConnection,peers=[],a=await replica(71),b=await replica(72);
+ class Peer {
+  constructor(config){this.config=config;this.iceConnectionState='new';this.candidates=[];peers.push(this);}
+  createDataChannel(){const channel=new Channel();channel.readyState='connecting';return channel;}
+  async createOffer(){return {type:'offer',sdp:''};} async createAnswer(){return {type:'answer',sdp:''};}
+  async setLocalDescription(sdp){this.localDescription=sdp;this.onicecandidate({candidate:null});}
+  async setRemoteDescription(sdp){this.remoteDescription=sdp;if(sdp.type==='answer')queueMicrotask(()=>{this.iceConnectionState='failed';this.oniceconnectionstatechange();});}
+  async addIceCandidate(candidate){this.candidates.push(candidate);}
+  close(){this.closed=true;}
+ }
+ try{globalThis.RTCPeerConnection=Peer;
+  await assert.rejects(connect_local_pair(a,b,{ice_servers:[{urls:'stun:example.test'}]}),error=>error.code==='ICE_CONNECTION_FAILED'&&error.message.includes('failed'));
+  assert(peers.every(peer=>peer.closed));assert(peers.every(peer=>peer.candidates.includes(null)));assert.equal(peers[0].config.iceServers[0].urls,'stun:example.test');
+ }finally{globalThis.RTCPeerConnection=original;a.destroy();b.destroy();}
 });
 console.log(`Collaboration contracts: ${passed}/${passed} passed.`);

@@ -317,5 +317,25 @@ await test('Generated bold closer is kept before shared Shift+Enter BR',async()=
   await f.x.execute_command('undo');await until(()=>f.y.state.source===f.x.state.source);assert(f.x.state.source==='**원본**');
  }finally{connection?.close();f.close();}
 });
+await test('Shared breaks before formatted text keep delimiters intact',async()=>{
+ for(const hard of [false,true]) {
+  const f=await fixture('**굵게**');let connection;
+  try{connection=await connect_local_pair(f.a,f.b);f.x.focus();f.x.set_selection(2);
+   if(hard)await f.x.execute_command('hard_break');else f.x.enter();
+   await until(()=>f.x.state.source===f.y.state.source);
+   assert(f.x.state.source===(hard?'<br>\n**굵게**':'&nbsp;\n\n**굵게**'));
+   await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source==='**굵게**');
+  }finally{connection?.close();f.close();}
+ }
+});
+await test('Shared Enter inserts an editable NBSP paragraph before a task list',async()=>{
+ const text='**굵게**, *기울임*, ==하이라이트==를 확인하세요.',source=text+'\n\n- [x] WASM으로 렌더링';
+ const f=await fixture(source);let connection;
+ try{connection=await connect_local_pair(f.a,f.b);f.x.focus();f.x.set_selection(byte_length(text));f.x.enter();
+  await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source===text+'\n\n&nbsp;\n\n- [x] WASM으로 렌더링');
+  assert(f.x.selection.focus===byte_length(text)+2);
+  await f.x.execute_command('undo');await until(()=>f.x.state.source===f.y.state.source);assert(f.x.state.source===source);
+ }finally{connection?.close();f.close();}
+});
 document.querySelector('#summary').textContent=`${passed} passed / ${failed} failed`;
 document.body.dataset.passed=failed?'false':'true';

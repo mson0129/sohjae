@@ -59,3 +59,7 @@ IME 조합 중 원격 상태 수신과 조합 DOM 렌더링을 분리해야 한�
 ## 투영 통합 구현
 
 `src/collab/projection.rs`가 Markdown 좌표↔문서/셀 scope를 매핑하고 문자·표 복합 조작을 원자적으로 적용한다. `web/collab/editor_core.js`를 통해 기존 리치·원본 UI에 연결했다. 단순한 전체 원본 덮어쓰기를 기본 공유 편집 명령으로 쓰지 않는다. 미완성 표와 원격 충돌 초안은 별도로 보존한다. 구체적인 지원 경계는 collaboration_api.md를 따른다.
+
+### 데모 ICE 서버 설정
+
+협업 데모의 `STUN / TURN 설정`에서 RTCIceServer 배열(JSON)을 지정할 수 있다. 기본값은 `[{"urls":"stun:stun.l.google.com:19302"}]`이며 Google 공개 STUN에 연결한다. 네트워크가 직접 연결을 차단하면 운영자가 제공하는 TURN 서버의 urls·username·credential을 입력한다. 인증 정보는 브라우저 메모리의 설정란에만 두며 데모는 저장하지 않는다. SDK `connect_local_pair`의 기본 `ice_servers`는 기존처럼 빈 배열이다. ICE 실패/시간 초과 메시지에는 양쪽 ICE 상태가 포함된다.

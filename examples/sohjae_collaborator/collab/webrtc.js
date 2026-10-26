@@ -138,7 +138,7 @@ export async function connect_local_pair(a, b, { ice_servers = [], timeout_ms = 
   let closed = false, timer;
   const close = () => { if (closed) return; closed = true; clearTimeout(timer); transports.forEach(transport => transport.close()); left.close(); right.close(); };
   const ice = (target, pending) => event => {
-    if (!event.candidate || closed) return;
+    if (closed) return;
     if (!target.remoteDescription) pending.push(event.candidate);
     else target.addIceCandidate(event.candidate).catch(error => { if (!closed) reject_ready(error); });
   };
@@ -146,11 +146,18 @@ export async function connect_local_pair(a, b, { ice_servers = [], timeout_ms = 
   const ready = new Promise((resolve, reject) => { resolve_ready = resolve; reject_ready = reject; });
   // Capture early rejection while SDP awaits are still in progress.
   ready.catch(() => {});
-  timer = setTimeout(() => reject_ready(new Error('WebRTC connection timeout')), timeout_ms);
+  const connection_error = reason => {
+    const error = new Error(`${reason} (ICE: ${left.iceConnectionState}/${right.iceConnectionState}). Check STUN/TURN configuration and network access.`);
+    error.code = 'ICE_CONNECTION_FAILED'; return error;
+  };
+  timer = setTimeout(() => { reject_ready(connection_error('WebRTC connection timeout')); close(); }, timeout_ms);
+  for (const peer of [left, right]) peer.oniceconnectionstatechange = () => {
+    if (!closed && peer.iceConnectionState === 'failed') { reject_ready(connection_error('WebRTC ICE failed')); close(); }
+  };
   const attach = (replica, channel, expected_actor) => {
     const transport = new WebRTCTransport(replica, channel, { authorize_peer: hello => hello.actor_id === expected_actor });
     transports.push(transport);
-    transport.addEventListener('close', () => { reject_ready(new Error('WebRTC channel closed')); close(); });
+    transport.addEventListener('close', () => { reject_ready(connection_error('WebRTC channel closed')); close(); });
     transport.addEventListener('error', event => { reject_ready(event.detail); close(); });
     transport.addEventListener('ready', () => { if (transports.length === 2 && transports.every(item => item.ready)) resolve_ready(); });
   };

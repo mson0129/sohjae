@@ -127,6 +127,8 @@ pub fn parse(source: &str) -> Vec<Block> {
             end = lines[index].end;
             BlockKind::Html
         } else if indentation(line.text).0 <= 3
+            // BR is an inline editing break even when alone on its source line.
+            && !matches!(line.text.trim().to_ascii_lowercase().as_str(), "<br>" | "<br/>" | "<br />")
             && html_tag(line.text.trim())
                 .is_some_and(|(length, _)| length == line.text.trim().len())
             && !blocks.last().is_some_and(|b: &Block| {
@@ -1209,6 +1211,9 @@ fn inline_context(
             continue;
         }
         if let Some((length, html)) = html_tag(tail) {
+            // A formatting newline following BR does not create a second visual break.
+            let length =
+                length + usize::from(html == "<br>" && tail.as_bytes().get(length) == Some(&b'\n'));
             if html == "<br>" {
                 let _ = write!(
                     out,
