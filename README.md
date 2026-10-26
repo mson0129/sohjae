@@ -6,6 +6,8 @@ An embeddable Markdown editor and renderer built with Rust/WASM, the Rust standa
 
 Renderer and single-user editor public APIs follow the [API v1 stability and compatibility policy](docs/api-stability.md). Collaboration follows the [API v2 and protocol stability contract](docs/collaboration-protocol.md), with explicit protocol/schema checks before document exchange.
 
+Try the [live demos](https://mson0129.github.io/sohjae/): renderer, editor and same-page collaboration.
+
 ## Quick start
 
 Serve the editor SDK folder and load one script. CSS, WASM, and internal modules load automatically relative to that script.

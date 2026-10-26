@@ -37,3 +37,9 @@ example.js와 companion은 scripts/build_examples.py로 생성한다. SDK 수정
 ## 스크립트 하나로 초기화
 
 `sohjae_editor/quick-start.html`은 `sohjae.js` 하나와 `new Sohjae({ selector: "#editor" })`로 초기화하는 HTTP 예제다. `python3 scripts/serve_examples.py --port 8081` 실행 후 <http://127.0.0.1:8081/sohjae_editor/quick-start.html>을 연다. 기존 각 폴더의 index.html은 직접 파일 열기용 self-contained 예제를 유지한다.
+
+## GitHub Pages
+
+공개 데모: https://mson0129.github.io/sohjae/
+
+`.github/workflows/pages.yml`이 main 푸시 또는 수동 실행 시 예제 자산을 검증하고 `examples/`만 GitHub Pages에 배포한다. Rust 빌드는 배포 단계에서 실행하지 않으므로 SDK 변경 후에는 먼저 예제를 다시 생성해 커밋한다. Pages 배포 소스는 GitHub Actions로 설정한다.

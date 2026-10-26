@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Try Sohjae, a Rust and WebAssembly Markdown renderer, editor and collaborative editor.">
+<title>Sohjae · Markdown demos</title>
+<style>
+:root{color-scheme:light dark;font:17px/1.65 system-ui,sans-serif;background:#f6f7fb;color:#19243a}*{box-sizing:border-box}body{margin:0}main{max-width:1080px;margin:auto;padding:80px 24px}header{max-width:760px;margin-bottom:40px}.label{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#4560a0}h1{font-size:clamp(36px,6vw,60px);line-height:1.1;letter-spacing:-.04em;margin:16px 0 24px}h2{font-size:24px;margin:0 0 12px}p{margin:0 0 20px;color:#4d5c75}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}article{background:white;border:1px solid #dce2ed;border-radius:16px;padding:28px;display:flex;flex-direction:column}article p{flex:1}.button{display:inline-block;align-self:flex-start;border-radius:8px;background:#3154cb;color:white;padding:10px 17px;text-decoration:none;font-weight:600}a{color:#3154cb}a:focus-visible{outline:3px solid #e59300;outline-offset:4px}.secondary{font-size:14px;margin-top:12px}footer{margin-top:36px;font-size:14px}footer a{margin-right:20px}.note{margin-top:28px;font-size:14px}code{font-size:.85em}@media(prefers-color-scheme:dark){:root{background:#111827;color:#edf2ff}article{background:#1b263b;border-color:#33415b}p{color:#bac7dd}a{color:#a5baff}.button{color:white}}
+</style>
+</head>
+<body><main>
+<header><span class="label">Rust · WebAssembly · Markdown</span><h1>Write it. Render it.<br>Make it yours.</h1><p>Explore Sohjae’s standalone Markdown renderer, rich editor and optional collaboration module. Each demo runs in your browser.</p></header>
+<section class="cards" aria-label="Choose a demo">
+<article><h2>Renderer</h2><p>Turn Markdown into HTML with the lightweight renderer WASM. Try headings, tables and extended syntax.</p><a class="button" href="./sohjae_renderer/">Open renderer</a><a class="secondary" href="./sohjae_renderer/renderer-quick-start.html">Div constructor example</a></article>
+<article><h2>Editor</h2><p>Edit Markdown with rich, hybrid and source views. Explore formatting, tables and the shared editing interface.</p><a class="button" href="./sohjae_editor/">Open editor</a><a class="secondary" href="./sohjae_editor/quick-start.html">Single-script constructor example</a></article>
+<article><h2>Collaboration</h2><p>Start two editors on this page, synchronize changes over WebRTC, then disconnect and reconnect.</p><a class="button" href="./sohjae_collaborator/">Open collaboration demo</a><a class="secondary" href="./sohjae_collaborator/quick-start.html">Collaboration plugin example</a></article>
+</section>
+<p class="note">The collaboration demo connects two participants in one page. Cross-device collaboration requires your own signaling, authentication and ICE server configuration.</p>
+<footer><a href="https://github.com/mson0129/sohjae">Source code</a><a href="https://github.com/mson0129/sohjae/wiki">Documentation</a><span>MIT licensed</span></footer>
+</main></body></html>
