@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {CollaborativeReplica, CollaborationError, create_replica} from '../web/collab/core.js';
+import {connect_demo_pair} from '../web/collab/demo-connection.js';
 import {WebRTCTransport, TransportError, connect_local_pair} from '../web/collab/webrtc.js';
 const wasm=await WebAssembly.compile(await readFile(new URL('../web/sohjae_collaborator.wasm',import.meta.url)));
 const document_id='00000000000000000000000000000011', actor=n=>n.toString(16).padStart(32,'0');
@@ -147,5 +148,19 @@ await test('Local RTC helper forwards end-of-candidates and closes failed ICE pe
   await assert.rejects(connect_local_pair(a,b,{ice_servers:[{urls:'stun:example.test'}]}),error=>error.code==='ICE_CONNECTION_FAILED'&&error.message.includes('failed'));
   assert(peers.every(peer=>peer.closed));assert(peers.every(peer=>peer.candidates.includes(null)));assert.equal(peers[0].config.iceServers[0].urls,'stun:example.test');
  }finally{globalThis.RTCPeerConnection=original;a.destroy();b.destroy();}
+});
+await test('Serverless demo uses framed replicas, merges offline edits and releases channels',async()=>{
+ const a=await replica(81),b=await replica(82),original=globalThis.RTCPeerConnection;let connection;
+ const until=async predicate=>{const end=Date.now()+3000;while(!predicate()){if(Date.now()>end)throw new Error('demo sync timeout');await new Promise(resolve=>setTimeout(resolve,5));}};
+ try{globalThis.RTCPeerConnection=class{constructor(){throw new Error('Same-page mode must not use ICE');}};
+  a.replace_text(0,0,'start');connection=await connect_demo_pair(a,b);assert.equal(connection.mode,'same-page');assert.equal(connection.peer_connections.length,0);await until(()=>b.snapshot.text===a.snapshot.text);
+  a.replace_text(5,5,' 한글');await until(()=>b.snapshot.text===a.snapshot.text);
+  b.replace_text(0,0,'😀');await until(()=>b.snapshot.text===a.snapshot.text);
+  const large='x'.repeat(50000);a.replace_text(0,0,large);await until(()=>b.snapshot.text===a.snapshot.text);
+  connection.close();connection.close();assert(connection.transports.every(t=>t.closed));
+  a.replace_text(0,0,'A');b.replace_text(0,0,'B');assert.notEqual(a.snapshot.text,b.snapshot.text);
+  connection=await connect_demo_pair(a,b);await until(()=>b.snapshot.text===a.snapshot.text);assert(a.snapshot.text.includes('A')&&a.snapshot.text.includes('B'));
+  a.destroy();assert(connection.transports.every(t=>t.closed));
+ }finally{connection?.close();a.destroy();b.destroy();globalThis.RTCPeerConnection=original;}
 });
 console.log(`Collaboration contracts: ${passed}/${passed} passed.`);

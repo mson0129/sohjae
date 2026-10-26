@@ -68,12 +68,12 @@ button.onclick=async()=>{
    window.example_replicas=[a,b];window.example_editors=[x,y];
   }
   if(connection){connection.close();connection=null;status.textContent='연결 끊김 · 양쪽에서 독립 편집 후 다시 연결하세요';button.textContent='다시 연결';}
-  else {const {connect_local_pair}=await load('collab/webrtc.js');connection=await connect_local_pair(a,b,{ice_servers:JSON.parse(document.querySelector('#ice_servers').value)});status.textContent='WebRTC 연결됨 · 양쪽 편집 내용이 동기화됩니다';button.textContent='연결 끊기';}
+  else {const {connect_demo_pair}=await load('collab/demo-connection.js');const mode=document.querySelector('#connection_mode').value;connection=await connect_demo_pair(a,b,{mode,ice_servers:mode==='webrtc'?JSON.parse(document.querySelector('#ice_servers').value):[]});delete status.dataset.error;status.textContent=connection.mode==='webrtc'?'WebRTC 연결됨 · 양쪽 편집 내용이 동기화됩니다':'같은 페이지 연결됨 · 서버 없이 동기화됩니다 (WebRTC 아님)';button.textContent='연결 끊기';}
  }catch(error){report(error);button.textContent=a?'다시 연결':'협업 시작';}
- finally{button.disabled=false;}
+ finally{button.disabled=false;document.querySelector('#connection_mode').disabled=!!connection;}
 };
 window.addEventListener('pagehide',()=>{connection?.close();x?.destroy();y?.destroy();a?.destroy();b?.destroy();});'''.replace('SETTINGS',settings).replace('INITIAL',json.dumps(initial,ensure_ascii=False))
-examples=[('sohjae_renderer','Markdown 렌더러',['renderer.js'],renderer_entry,['sohjae_render.wasm'],'<div class="columns"><section><h2>Markdown 원문</h2><textarea id="source" aria-label="Markdown 원문"></textarea></section><section><h2>렌더링 결과</h2><div id="preview" class="sohjae_viewer"></div></section></div>'),('sohjae_editor','Markdown 에디터',editor_modules,editor_entry,['sohjae_editor.wasm'],'<div id="editor"></div>'),('sohjae_collaborator','Markdown 협업 에디터',editor_modules+['collab/core.js','collab/editor_core.js','collab/webrtc.js'],collab_entry,['sohjae_editor.wasm','sohjae_collaborator.wasm'],'<p><button id="connect" disabled>협업 시작</button></p><details><summary>STUN / TURN 설정</summary><label>ICE 서버 (JSON)<textarea id="ice_servers" rows="3">[{&quot;urls&quot;:&quot;stun:stun.l.google.com:19302&quot;}]</textarea></label><p>기본값은 Google 공개 STUN입니다. 연결이 차단되는 네트워크에서는 사용 중인 TURN 서버의 urls·username·credential을 입력하세요.</p></details><div class="columns"><section><h2>참가자 A · 리치 편집</h2><div id="left"></div></section><section id="right_panel" hidden><h2>참가자 B · 원본 편집</h2><div id="right"></div></section></div>')]
+examples=[('sohjae_renderer','Markdown 렌더러',['renderer.js'],renderer_entry,['sohjae_render.wasm'],'<div class="columns"><section><h2>Markdown 원문</h2><textarea id="source" aria-label="Markdown 원문"></textarea></section><section><h2>렌더링 결과</h2><div id="preview" class="sohjae_viewer"></div></section></div>'),('sohjae_editor','Markdown 에디터',editor_modules,editor_entry,['sohjae_editor.wasm'],'<div id="editor"></div>'),('sohjae_collaborator','Markdown 협업 에디터',editor_modules+['collab/core.js','collab/editor_core.js','collab/webrtc.js','collab/demo-connection.js'],collab_entry,['sohjae_editor.wasm','sohjae_collaborator.wasm'],'<p><label>연결 방식 <select id="connection_mode"><option value="same-page">같은 페이지 · 서버 불필요</option><option value="webrtc">WebRTC · STUN/TURN</option></select></label></p><p>같은 페이지 모드는 이 페이지의 두 편집기만 연결합니다. WebRTC 모드는 실제 RTCDataChannel을 검증하며, 다른 기기 연결에는 별도 시그널링 서버가 필요합니다.</p><p><button id="connect" disabled>협업 시작</button></p><details><summary>STUN / TURN 설정</summary><label>ICE 서버 (JSON)<textarea id="ice_servers" rows="3">[{&quot;urls&quot;:&quot;stun:stun.l.google.com:19302&quot;}]</textarea></label><p>기본값은 Google 공개 STUN입니다. 연결이 차단되는 네트워크에서는 사용 중인 TURN 서버의 urls·username·credential을 입력하세요.</p></details><div class="columns"><section><h2>참가자 A · 리치 편집</h2><div id="left"></div></section><section id="right_panel" hidden><h2>참가자 B · 원본 편집</h2><div id="right"></div></section></div>')]
 for name,title,modules,entry,wasms,content in examples:
     folder=root/'examples'/name;folder.mkdir(parents=True,exist_ok=True)
     styles=common+('\n'+(web/'renderer.css').read_text() if name=='sohjae_renderer' else '')
@@ -94,7 +94,7 @@ for asset in ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','editor.d
 
 for folder_name, assets in [
     ('sohjae_renderer', ['sohjae-renderer.js','sohjae-renderer.d.ts','renderer-quick-start.html','renderer.js','renderer.css']),
-    ('sohjae_collaborator', ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','editor.d.ts','core.js','clipboard.js','editor.css','collab/core.js','collab/core.d.ts','collab/editor_core.js','collab/webrtc.js','collab/webrtc.d.ts'])
+    ('sohjae_collaborator', ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','editor.d.ts','core.js','clipboard.js','editor.css','collab/core.js','collab/core.d.ts','collab/editor_core.js','collab/webrtc.js','collab/webrtc.d.ts','collab/demo-connection.js'])
 ]:
     for asset in assets:
         destination=root/'examples'/folder_name/asset
