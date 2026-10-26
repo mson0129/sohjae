@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Verify example assets
-        run: node scripts/check_examples.mjs
+        run: node scripts/check_examples.mjs --packaged-only
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

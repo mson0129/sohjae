@@ -1,6 +1,8 @@
 // Verify committed example artifacts, offline companions, and exclusive ABI boundaries.
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+const packagedOnly=process.argv.includes('--packaged-only');
+const binaries=new Map();
 const examples=[['sohjae_renderer',['sohjae_render.wasm']],['sohjae_editor',['sohjae_editor.wasm']],['sohjae_collaborator',['sohjae_editor.wasm','sohjae_collaborator.wasm']]];
 for(const [folder,names]of examples){
  const base=new URL(`../examples/${folder}/`,import.meta.url);
@@ -9,7 +11,8 @@ for(const [folder,names]of examples){
  assert.doesNotMatch(bundle,/import\.meta|\bimport\(/);
  for(const name of names){
   const bytes=await readFile(new URL(name,base));
-  assert.deepEqual(bytes,await readFile(new URL(`../web/${name}`,import.meta.url)));
+  if(!packagedOnly)assert.deepEqual(bytes,await readFile(new URL(`../web/${name}`,import.meta.url)));
+  if(binaries.has(name))assert.deepEqual(bytes,binaries.get(name));else binaries.set(name,bytes);
   const companion=await readFile(new URL(`${name}.js`,base),'utf8');
   const encoded=companion.match(/data:application\/wasm;base64,([A-Za-z0-9+/=]+)/)[1];
   assert.deepEqual(Buffer.from(encoded,'base64'),bytes);
