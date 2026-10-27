@@ -12,7 +12,7 @@ button[aria-pressed="true"] { color:#144ca5; background:#ddeaff; }
 :focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
 .view_bar { display:flex; align-items:center; gap:8px; padding:8px 14px; border-top:1px solid #e9edf3; font:12px system-ui; }
 .state { margin-inline-start:auto; color:#53657c; }
-.surface,.source { width:100%; min-height:460px; max-height:70dvh; overflow:auto; outline:none; padding:40px max(24px, calc((100% - var(--content_max_width)) / 2)); }
+.surface,.source { width:100%; min-height:460px; max-height:70dvh; overflow:auto; outline:none; padding:40px max(56px, calc((100% - var(--content_max_width)) / 2)); }
 .surface { font-family:var(--body_font_family); font-size:var(--body_font_size); line-height:var(--body_line_height); overflow-wrap:anywhere; white-space:pre-wrap; caret-color:#2563eb; }
 .source { display:block; resize:vertical; border:0; background:#fcfdff; color:#24344c; font:14px/1.8 ui-monospace,monospace; tab-size:4; }
 section { min-height:1.85em; }
@@ -30,8 +30,8 @@ pre code { background:none; padding:0; }
 .show_heading_levels h1::before,.show_heading_levels h2::before,.show_heading_levels h3::before,.show_heading_levels h4::before,.show_heading_levels h5::before,.show_heading_levels h6::before { content:attr(data-level) ' '; font:11px ui-monospace,monospace; color:#8a99ad; user-select:none; }
 .show_paragraph_marks .surface [data-paragraph-end]::after { content:' ↵'; color:#aab6c6; font-size:.8em; user-select:none; pointer-events:none; }
 /* Keep the caret placeholder BR: place its paragraph mark on the same line. */
-.show_paragraph_marks .surface [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text])) { position:relative; }
-.show_paragraph_marks .surface [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text]))::after { position:absolute; inset-inline-start:0; top:0; }
+.show_paragraph_marks .surface:not(.native_rich) [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text])) { position:relative; }
+.show_paragraph_marks .surface:not(.native_rich) [data-paragraph-end]:has(> br:not([data-break]):last-child):not(:has([data-text]))::after { position:absolute; inset-inline-start:0; top:0; }
 .show_paragraph_marks .surface [data-paragraph-end]:has(> br[data-caret]:last-child) { position:relative; }
 .show_paragraph_marks .surface [data-paragraph-end]:has(> br[data-caret]:last-child)::after { position:absolute; inset-inline-start:0; top:auto; bottom:0; }
 .break_mark { display:none; }
@@ -70,7 +70,7 @@ dialog input,dialog select { display:block; width:100%; border:1px solid #bac8db
 .dialog_actions { display:flex; justify-content:flex-end; gap:8px; margin-top:24px; }
 .dialog_actions button { background:#e7edf5; }
 .dialog_actions button[value="apply"] { background:#215ec6; color:white; }
-@media (max-width:600px) { .toolbar { flex-wrap:nowrap; overflow-x:auto; padding:8px; } .toolbar button { flex-shrink:0; min-width:42px; min-height:42px; } .surface,.source { padding:22px 18px; min-height:55dvh; max-height:65dvh; } .view_bar { flex-wrap:wrap; } footer span:last-child { display:none; } }
+@media (max-width:600px) { .toolbar { flex-wrap:nowrap; overflow-x:auto; padding:8px; } .toolbar button { flex-shrink:0; min-width:42px; min-height:42px; } .surface,.source { padding:22px 40px; min-height:55dvh; max-height:65dvh; } .view_bar { flex-wrap:wrap; } footer span:last-child { display:none; } }
 mark { background:#fff09a; color:inherit; border-radius:2px; }
 dt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }
 .syntax_keyword,.syntax_literal { color:#8547a8; } .syntax_string { color:#28682e; }
@@ -112,3 +112,35 @@ dt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }
 .surface.native_rich > p { margin-block:.8em; }
 .surface.native_rich pre { white-space:pre; }
 .surface.native_rich li > p:first-child { display:inline; }
+/* Row controls live outside contenteditable and never enter exported HTML. */
+.markdown_editor { position:relative; }
+.row_grip { position:absolute; width:24px; height:28px; min-height:0; padding:0; border:0; color:#8a929e; background:transparent; font:24px/28px system-ui; cursor:grab; touch-action:none; user-select:none; z-index:4; }
+.row_grip:hover,.row_grip:focus-visible { background:#edf1f6; color:#48576b; }
+.row_grip.dragging { cursor:grabbing; }
+.block_switcher { position:absolute; width:30px; min-height:28px; height:28px; padding:0; font:12px system-ui; background:#f4f6fa; color:#657389; z-index:5; cursor:pointer; }
+.block_switcher:focus { width:145px; }
+/* Styled source: every source byte stays present; syntax never disappears. */
+.surface.styled_markdown { white-space:normal; }
+.markdown_line { white-space:pre-wrap; min-height:1.85em; line-height:1.85; }
+.markdown_eol { display:none; }
+.markdown_line[data-level] { font-weight:650; line-height:1.4; min-height:1.4em; margin:.65em 0 .25em; }
+.markdown_line[data-level="h1"] { font-size:2.1em; }
+.markdown_line[data-level="h2"] { font-size:1.6em; }
+.markdown_line[data-level="h3"] { font-size:1.3em; }
+.markdown_line[data-level="h4"] { font-size:1.15em; }
+.markdown_line[data-level="h5"] { font-size:1em; }
+.markdown_line[data-level="h6"] { font-size:.9em; }
+.md_bold { font-weight:700; } .md_italic { font-style:italic; }
+.md_strikethrough { text-decoration:line-through; }
+.md_highlight { background:#fff0a2; }
+.md_inline_code,.md_code_block,.md_table { font-family:ui-monospace,monospace; }
+.md_inline_code { background:#edf1f6; border-radius:3px; }
+.md_link { text-decoration:underline; }
+.md_quote { color:#788391; }
+.md_delimiter { color:#a4a9b0; font-weight:400; text-decoration:none; background:transparent; }
+
+.show_paragraph_marks .native_rich [data-paragraph-end]:has(> br[data-rich-placeholder]) { position:relative; }
+.show_paragraph_marks .native_rich [data-paragraph-end]:has(> br[data-rich-placeholder])::after { position:absolute; inset-inline-start:0; top:0; }
+.show_paragraph_marks .native_rich li[data-paragraph-end]::after { margin-inline-start:.25em; }
+/* Revealed list source already includes its own bullet/number. */
+.surface li[data-revealed] { list-style:none; }

@@ -39,7 +39,7 @@ Open [renderer](http://127.0.0.1:8081/sohjae_renderer/index.html), [editor](http
 ## Features
 
 - Rich, hybrid, and Markdown modes, a full-source view, and per-element syntax visibility.
-- Highlighting (`==text==`), definition lists, custom heading IDs, and basic code highlighting. Superscript and subscript extensions are excluded.
+- Highlighting (`==text==`), definition lists, custom heading IDs, and basic code highlighting. Subscript (`H~2~O`) and superscript (`X^2^`) extensions are supported.
 - Formatting tools, undo/redo, Korean IME composition handling, and UTF-8/UTF-16 selection mapping.
 - Table navigation, row/column insertion and removal, alignment, multiple selection, and drag handles for reordering rows and columns.
 - Conversion of supported HTML paste structures, Base64 image/file embedding, and downloads.

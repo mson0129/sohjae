@@ -37,7 +37,7 @@ Abre el [renderizador](http://127.0.0.1:8081/sohjae_renderer/index.html), el [ed
 ## Funciones
 
 - Modos de texto enriquecido, híbrido y Markdown, vista completa del código fuente y visibilidad de sintaxis por elemento.
-- Resaltado (`==texto==`), listas de definiciones, identificadores de encabezado personalizados y resaltado básico de código. Se excluyen las extensiones de superíndice y subíndice.
+- Resaltado (`==texto==`), listas de definiciones, identificadores de encabezado personalizados y resaltado básico de código. Se admiten subíndices (`H~2~O`) y superíndices (`X^2^`).
 - Herramientas de formato, deshacer/rehacer, gestión de composición con IME coreano y correspondencia de selección UTF-8/UTF-16.
 - Navegación por tablas, inserción y eliminación de filas y columnas, alineación, selección múltiple y controles de arrastre para reordenarlas.
 - Conversión de estructuras HTML compatibles al pegar, imágenes y archivos incrustados en Base64 y descargas.

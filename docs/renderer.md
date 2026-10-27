@@ -35,7 +35,7 @@ node scripts/check_renderer.mjs
 
 공통 파서의 읽기용 결과에서 편집 좌표용 section·텍스트 span·이미지 래퍼와 편집 메타데이터 및 table_scroll div를 제거한 HTML을 반환한다. 굵게 강조는 `<strong>`, 하이라이트는 `<mark>`로 출력한다. 일반 제목의 자동 ID는 생략하며 명시한 제목 ID와 문서 내부 링크가 참조하는 ID는 유지한다. 코드 색상·언어 정보, 표 정렬, 각주와 알림 등 의미나 표시 기능에 필요한 요소는 보존하며 체크박스는 disabled다. 편집 UI, contenteditable 호스트, 커서 및 undo 상태를 만들지 않는다. 허용 HTML/속성/URL 정책도 편집기와 동일하며 임의 원본 HTML을 직접 삽입하지 않는다. 외부 이미지·링크는 호스트 정책으로 추가 제어할 수 있다.
 
-문법 지원 범위는 기존 파서와 동일하다. 하이라이트·표·각주 등은 지원하지만 Markdown 위/아래 첨자는 제외한다. 현재 672개 구조 비교 중 585개 일치·87개 불일치다. 87개는 렌더러의 확장 또는 정책상 차이로 전체 GFM과의 차이가 있다. 렌더러 분리 검사는 편집 전용 래퍼·속성과 강조 태그 차이를 제외한 672개 출력의 의미가 기존 읽기 렌더링과 같은지 확인하며, GFM 672개 합격을 뜻하지 않는다.
+문법 지원 범위는 기존 파서와 동일하다. 하이라이트·표·각주 등은 지원하지만 Markdown 아래첨자(`~text~`)·위첨자(`^text^`)도 지원한다. 현재 672개 구조 비교 중 585개 일치·87개 불일치다. 87개는 렌더러의 확장 또는 정책상 차이로 전체 GFM과의 차이가 있다. 렌더러 분리 검사는 편집 전용 래퍼·속성과 강조 태그 차이를 제외한 672개 출력의 의미가 기존 읽기 렌더링과 같은지 확인하며, GFM 672개 합격을 뜻하지 않는다.
 
 ## 렌더러 ABI v1
 
@@ -58,3 +58,7 @@ Cargo 기본 feature는 editor다. renderer는 `--no-default-features --features
 Load `sohjae-renderer.js`, then call `new SeojaeRenderer({ selector: '#preview' })` to render the matched div's `textContent` as Markdown. `SohjaeRenderer` is an alias. Await `renderer.ready` before calling `render(markdown)` or `get_markdown()`. `destroy()` restores the latest Markdown text. CSS and renderer WASM load automatically beside the entry script; editor and collaboration modules are not loaded. See [quick start](quick-start.md).
 
 표의 구분자 위 머리글은 `table > thead > tr > th`, 아래 데이터는 `table > tbody > tr > td`로 출력한다. 데이터 행이 없는 경우에도 빈 tbody를 유지한다. 편집기 좌표용 출력·HTML 보기·독립 렌더러 모두 같은 공통 표 생성 경로를 사용한다.
+
+블록 요소 사이에는 개행 문자 `\n`을 삽입한다. 연속 제목은 `</h1>\n<h2>`와 같이 출력하며 인라인 요소 사이와 pre 내부의 원문 공백·개행은 변경하지 않는다.
+
+블록 요소가 다른 블록 요소 안에 중첩되면 깊이마다 공백 4칸으로 들여쓴다. 인라인 내용만 있는 블록의 여는 태그·내용·닫는 태그는 같은 줄에 유지하고, pre 내부는 재정렬하지 않는다.

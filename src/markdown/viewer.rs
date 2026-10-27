@@ -111,5 +111,104 @@ pub(super) fn clean(html: &str, source: &str) -> String {
         }
         cursor = end + 1;
     }
+    separate_blocks(&out)
+}
+
+// Keep block boundaries readable without changing inline runs or preformatted text.
+fn separate_blocks(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut cursor = 0;
+    let mut blocks: Vec<(String, bool)> = Vec::new();
+    let mut pre = false;
+    while cursor < html.len() {
+        if html.as_bytes()[cursor] != b'<' {
+            let end = html[cursor..].find('<').map_or(html.len(), |n| cursor + n);
+            let text = &html[cursor..end];
+            out.push_str(text);
+            cursor = end;
+            continue;
+        }
+        let mut end = cursor + 1;
+        let mut quote = None;
+        while end < html.len() {
+            let byte = html.as_bytes()[end];
+            if let Some(q) = quote {
+                if byte == q {
+                    quote = None;
+                }
+            } else if byte == b'"' || byte == b'\'' {
+                quote = Some(byte);
+            } else if byte == b'>' {
+                break;
+            }
+            end += 1;
+        }
+        if end == html.len() {
+            out.push_str(&html[cursor..]);
+            break;
+        }
+        let tag = &html[cursor + 1..end];
+        let name = tag
+            .trim_start_matches('/')
+            .split([' ', '/', '\n'])
+            .next()
+            .unwrap_or("");
+        let block = matches!(
+            name,
+            "p" | "h1"
+                | "h2"
+                | "h3"
+                | "h4"
+                | "h5"
+                | "h6"
+                | "table"
+                | "thead"
+                | "tbody"
+                | "tfoot"
+                | "tr"
+                | "th"
+                | "td"
+                | "ul"
+                | "ol"
+                | "li"
+                | "blockquote"
+                | "pre"
+                | "hr"
+                | "div"
+                | "dl"
+                | "dt"
+                | "dd"
+                | "details"
+                | "summary"
+        );
+        let closing = tag.starts_with('/');
+        if block && (!pre || name == "pre" && closing) {
+            let child_blocks = if closing {
+                blocks.pop().is_some_and(|(_, children)| children)
+            } else {
+                if let Some((_, children)) = blocks.last_mut() {
+                    *children = true;
+                }
+                false
+            };
+            if !closing || child_blocks {
+                while out.ends_with([' ', '\t', '\n', '\r']) {
+                    out.pop();
+                }
+                if !out.is_empty() {
+                    out.push('\n');
+                }
+                out.push_str(&"    ".repeat(blocks.len()));
+            }
+            if !closing && name != "hr" && !tag.ends_with('/') {
+                blocks.push((name.to_owned(), false));
+            }
+        }
+        out.push_str(&html[cursor..=end]);
+        if name == "pre" {
+            pre = !closing;
+        }
+        cursor = end + 1;
+    }
     out
 }

@@ -72,10 +72,17 @@ class SharedEditorCore extends EventTarget {
     try { caret = this.replica.projected_anchor(caret_start,'after'); } catch { /* source delimiters may be a local draft */ }
     try {
       if (this.draft?.version !== undefined && this.draft.version !== this.replica.snapshot.operation_count) throw new Error('ProjectionDraft');
+      const previous_steps=this.draft?.steps||[];
       const args = this.draft ? diff(this.draft.base,source) : [start,end,text];
       this.mutate(() => (this.source_mode||this.draft ? this.replica.replace_markdown(...args) : this.replica.replace_projected_text(...args))); this.draft = null;
       const offset = caret ? this.replica.resolve_projected_anchor(caret) : Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown));
       this.selection = {anchor:offset,focus:offset};
+      // A valid table may normalize a deleted optional pipe straight back in.
+      // Source editing must retain the user's exact spelling as a local draft.
+      if(this.source_mode&&source!==this.replica.snapshot.markdown){
+        this.draft={base:this.replica.snapshot.markdown,source,version:this.replica.snapshot.operation_count,steps:this.replica.snapshot.operation_count===before_count?[...previous_steps,before]:[]};
+        this.selection={anchor:start+byte_length(text),focus:start+byte_length(text)};
+      }
     } catch(error) {
       if (!error.message.includes('ProjectionDraft')) throw error;
       this.draft ??= {base:this.replica.snapshot.markdown,source:before,version:this.replica.snapshot.operation_count,steps:[]};

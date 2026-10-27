@@ -1,5 +1,5 @@
 // Clipboard HTML is parsed in an inert document and converted to Markdown, never inserted.
-const text_escape = text => text.replace(/([\\`*_\[\]~=])/gu, '\\$1');
+const text_escape = text => text.replace(/([\\`*_\[\]~^=])/gu, '\\$1');
 const label_escape = text => text.replace(/[\[\]\\]/gu, '\\$&');
 export function safe_url(url, image = false) {
   if (/[\u0000-\u0020\\]/u.test(url) || url.startsWith('//')) return false;
@@ -43,7 +43,9 @@ export function html_to_markdown(html) {
     if (tag === 'dt') return body + '\n';
     if (tag === 'dd') return ': ' + body.trim().replaceAll('\n', '\n    ') + '\n';
     if (tag === 'dl') return '\n' + body + '\n';
-    if (['sub', 'sup', 'ins'].includes(tag)) body = `<${tag}>${body}</${tag}>`;
+    if (tag === 'sub') body = `~${body}~`;
+    if (tag === 'sup') body = `^${body}^`;
+    if (tag === 'ins') body = `<ins>${body}</ins>`;
     if (/^h[1-6]$/u.test(tag)) return `${'#'.repeat(Number(tag[1]))} ${body.trim()}\n\n`;
     if (tag === 'blockquote') return body.trim().split('\n').map(line => `> ${line}`).join('\n') + '\n\n';
     if (tag === 'li') {

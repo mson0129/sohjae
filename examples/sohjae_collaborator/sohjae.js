@@ -170,6 +170,8 @@
     replace(...args) { return this.#active().replace(...args); }
     set_options(...args) { return this.#active().set_options(...args); }
     get_options(...args) { return this.#active().get_options(...args); }
+    save_local(...args) { return this.#active().save_local(...args); }
+    load_local(...args) { return this.#active().load_local(...args); }
     mark_saved(...args) { return this.#active().mark_saved(...args); }
     get_pending_draft(...args) { return this.#active().get_pending_draft(...args); }
     discard_pending_draft(...args) { return this.#active().discard_pending_draft(...args); }

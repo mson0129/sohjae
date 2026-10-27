@@ -1287,7 +1287,18 @@ fn inline_context(
             continue;
         }
         let mut matched = false;
-        for (marker, tag, kind) in [("~~", "del", "strikethrough"), ("==", "mark", "highlight")] {
+        for (marker, tag, kind) in [
+            ("~~", "del", "strikethrough"),
+            ("==", "mark", "highlight"),
+            ("~", "sub", "subscript"),
+            ("^", "sup", "superscript"),
+        ] {
+            if marker.len() == 1
+                && (tail.as_bytes().get(1) == marker.as_bytes().first()
+                    || source[..index].ends_with(marker))
+            {
+                continue;
+            }
             if marker == "==" && (tail.starts_with("===") || source[..index].ends_with('=')) {
                 continue;
             }
@@ -1303,7 +1314,9 @@ fn inline_context(
                 {
                     continue;
                 }
-                if let Some(close) = if marker == "==" {
+                if let Some(close) = if marker.len() == 1 {
+                    find_script_close(body, marker)
+                } else if marker == "==" {
                     find_highlight_close(body)
                 } else {
                     find_emphasis_close(body, marker)
@@ -1481,7 +1494,7 @@ fn inline_context(
         let mut stop = index + tail.chars().next().unwrap().len_utf8();
         while stop < end
             && !source[stop..].chars().next().unwrap().is_whitespace()
-            && !"\\`*_~=[!<:&".contains(source[stop..].chars().next().unwrap())
+            && !"\\`*_~^=[!<:&".contains(source[stop..].chars().next().unwrap())
             && !source[stop..end].starts_with("https://")
             && !source[stop..end].starts_with("http://")
             && !source[stop..end].starts_with("www.")
@@ -1589,6 +1602,19 @@ fn footnote_number(source: &str, name: &str) -> Option<usize> {
         .iter()
         .position(|value| value == name)
         .map(|index| index + 1)
+}
+
+// Single-marker scripts never consume a double tilde strike delimiter or code span.
+fn find_script_close(body: &str, marker: &str) -> Option<usize> {
+    let close = find_outside_code(body, marker)?;
+    if close == 0
+        || body[..close].contains(['\n', '\r'])
+        || body[close + 1..].starts_with(marker)
+        || body[..close].ends_with(marker)
+    {
+        return None;
+    }
+    Some(close)
 }
 
 fn find_highlight_close(body: &str) -> Option<usize> {

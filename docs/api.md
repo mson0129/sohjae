@@ -107,3 +107,7 @@ SDK의 `editor.js` 옆에 `editor.d.ts`를 제공한다. `Editor`, `EditorOption
 ### HTML 보기 출력
 
 HTML 보기는 op13의 순수 읽기용 HTML을 내장 포매터로 들여쓰기하여 읽기 전용으로 표시한다. 원본/선택/history를 변경하지 않으며 커서 좌표용 section/span과 편집 속성을 포함하지 않는다. 인라인 태그 사이 공백과 pre/code 내용은 보존하고, 블록 자식으로 구성된 컨테이너는 두 칸 들여쓰기를 사용한다. 잘못 닫힌 원문 HTML이나 혼합 콘텐츠는 의미 변경을 피하기 위해 해당 내용을 그대로 유지한다. 외부 포매팅 패키지는 사용하지 않는다.
+
+편집 모드 동작 변경과 생성자 문법별 노출 옵션은 [편집 모드](editing-modes.md)를 참고한다. `hybrid`는 커서 진입 노출, `markdown`은 항상 보이는 스타일 적용 원문이다.
+
+`save_local()` / `load_local()`과 `local_storage: { key, auto_save }` 생성자 옵션은 [브라우저 저장](local-storage.md)을 참고한다.

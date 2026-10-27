@@ -11,12 +11,12 @@ const instance = await WebAssembly.instantiate(module, {}), e = instance.exports
 const renderer = new Renderer(e);
 const fixtures = JSON.parse(await readFile(new URL('../web/gfm-results.json', import.meta.url), 'utf8'));
 // Compare semantic content after removing editor-only wrappers and attributes.
-const semantic = html => html.replace(/<div class="table_scroll"[^>]*>(<table[\s\S]*?<\/table>)<\/div>/g, '$1').replace(/<\/?(?:section|span)\b[^>]*>/g, '').replace(/\s(?:data-[\w-]+|contenteditable|id)="[^"]*"/g, '').replace(/<[^>]+>/g, tag => tag.replace(/\s+/g, ' ').replace(/\s+>/g, '>'));
+const semantic = html => html.replace(/<div class="table_scroll"[^>]*>(<table[\s\S]*?<\/table>)<\/div>/g, '$1').replace(/<\/?(?:section|span)\b[^>]*>/g, '').replace(/\s(?:data-[\w-]+|contenteditable|id)="[^"]*"/g, '').replace(/<[^>]+>/g, tag => tag.replace(/\s+/g, ' ').replace(/\s+>/g, '>')).replace(/\n[ \t]*(?=<\/?(?:p|h[1-6]|table|thead|tbody|tfoot|tr|th|td|ul|ol|li|blockquote|pre|hr|div|dl|dt|dd|details|summary)\b)/g, '');
 for (const fixture of fixtures) assert.equal(semantic(renderer.render(fixture.markdown)), semantic(fixture.actual_html), `GFM renderer parity ${fixture.example}`);
-assert.equal(renderer.render('# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.'), '<h1>함께 쓰는 문서</h1><p><mark>리치 화면</mark>과 <strong>원본 화면</strong>을 같은 문서에 연결했습니다.</p>');
+assert.equal(renderer.render('# 함께 쓰는 문서\n\n==리치 화면==과 **원본 화면**을 같은 문서에 연결했습니다.'), '<h1>함께 쓰는 문서</h1>\n<p><mark>리치 화면</mark>과 <strong>원본 화면</strong>을 같은 문서에 연결했습니다.</p>');
 assert.doesNotMatch(renderer.render('> **인용**\n\n- [x] 완료\n\n![그림](image.png)'), /data-(?:start|end|block|text|kind|task)|contenteditable|<section/);
 const tableHTML=renderer.render('| A | B |\n| --- | --- |\n| x | y |');
-assert.match(tableHTML,/^<table\b/);assert.doesNotMatch(tableHTML,/table_scroll|<div/);assert.match(tableHTML,/<thead><tr><th\b/);assert.match(tableHTML,/<\/thead><tbody><tr><td\b/);assert.match(tableHTML,/<\/tbody><\/table>$/);
+assert.match(tableHTML,/^<table\b/);assert.doesNotMatch(tableHTML,/table_scroll|<div/);assert.match(tableHTML,/<thead>\n\s*<tr>\n\s*<th\b/);assert.match(tableHTML,/<\/thead>\n\s*<tbody>\n\s*<tr>\n\s*<td\b/);assert.match(tableHTML,/<\/tbody>\n<\/table>$/);
 assert.match(renderer.render('# Heading {#custom}\n\n[Go](#custom)'), /id="custom"/);
 assert.match(renderer.render('# Heading\n\n[Go](#heading)'), /id="heading"/);
 assert.equal(renderer.render('한😀\r\n\r\n==강조=='), renderer.render('한😀\n\n==강조=='));
@@ -33,6 +33,16 @@ assert.equal(e.renderer_render(), 1);
 assert.match(renderer.render('# 복구'), /복구/);
 assert.match(renderer.render('반복😀 '.repeat(30000)), /반복😀/);
 assert.throws(() => renderer.render(null), TypeError);
+assert.equal(renderer.render('# 제목 1\n\n## 제목 2\n\n###### 제목 6'), '<h1>제목 1</h1>\n<h2>제목 2</h2>\n<h6>제목 6</h6>');
+assert.equal(renderer.render('**굵게**와 *기울임*'), '<p><strong>굵게</strong>와 <em>기울임</em></p>');
+
+assert.equal(renderer.render('- 상위\n    - 하위'), '<ul>\n    <li class="list_item">상위\n        <ul>\n            <li class="list_item">하위</li>\n        </ul>\n    </li>\n</ul>');
+assert.equal(renderer.render('> 인용'), '<blockquote>\n    <p>인용</p>\n</blockquote>');
+assert.equal(renderer.render('H~2~O X^2^ ~~削除~~'), '<p>H<sub>2</sub>O X<sup>2</sup> <del>削除</del></p>');
+assert.equal(renderer.render('`H~2~O X^2^`'), '<p><code>H~2~O X^2^</code></p>');
+assert.equal(renderer.render(String.raw`H\~2\~O X\^2\^`), '<p>H~2~O X^2^</p>');
+assert.equal(renderer.render('~한글😀~ ^**강조**^'), '<p><sub>한글😀</sub> <sup><strong>강조</strong></sup></p>');
+assert.match(renderer.render('각주[^n]\n\n[^n]: 내용'), /<sup><a id="ref-n"/);
 renderer.destroy(); renderer.destroy(); assert.throws(() => renderer.render('x'), /destroyed/);
 const loaded = await create_renderer({ wasm_url: `data:application/wasm;base64,${bytes.toString('base64')}` });
 assert.match(loaded.render('**뷰어**'), /<strong/); loaded.destroy();
