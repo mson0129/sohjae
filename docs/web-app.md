@@ -64,3 +64,21 @@ The document library footer controls have been removed. Download is available in
 ## Printing
 
 Browser printing uses `@media print` to output only a semantic copy of the active document. `beforeprint` refreshes that copy from the current source, including edits in full, split, source or reading layouts; `afterprint` clears the temporary copy. The workspace, sidebar, toolbar, outline, notices, dialogs and splash are excluded. Printing does not switch layouts or change source/history. Scroll height limits are removed, tables can repeat their headers, and code wraps to fit the page. All application/reading themes print on white paper with dark text.
+
+The document library's **＋ → 업로드하기** opens a multi-file `.md` picker. Selected files use the same import path as drag-and-drop and are added at root without replacing same-name documents. Repeated selection of the same file is supported.
+
+## Offline use
+
+An initial online visit downloads the application shell, editor/renderer modules, styles and all three WASM files into a versioned Service Worker cache. After that download completes, the splash, workspace, editing, rendering and browser-local saving/restoration work without a network connection. The splash says **오프라인에서도 사용 가능** and its button says **편집 시작하기 >**. The workspace displays no offline-readiness banner.
+
+This requires HTTPS (GitHub Pages) or localhost. External document images and linked websites are not precached. Browser data removal also removes the offline cache. Documents continue to use the existing LocalStorage workspace and same-browser synchronization.
+
+Build generation records SHA-256 hashes for every runtime asset; installation rejects incomplete or mismatched deployments. Updated workers wait until existing app tabs close before activating, so an open session does not mix SDK/WASM versions. Visit online again to receive updates. `node scripts/check_examples.mjs --packaged-only` verifies the published cache manifest against the packaged files.
+
+## Document library search
+
+The sidebar search matches document names and Markdown source text across all folders, including collapsed folders. Matching is case-insensitive and uses a literal substring. Results show the document name, folder path and a short source excerpt with a highlighted match. Clicking a result (or pressing Enter in search) opens the document; Escape or the clear button restores the existing folder tree without changing folder expansion. Search text is local to the current page and is not saved or broadcast. Searches run locally and also work offline. Results refresh after document edits and incoming workspace updates.
+
+## Export all documents
+
+**＋ → 전체 문서 내보내기** downloads `sohjae-documents-YYYY-MM-DD.zip`. The ZIP uses STORE (method 0, no compression), UTF-8 filenames, and preserves document source, folder hierarchy and empty folders. The active editor's current source is captured first. Duplicate sibling filenames receive numbered suffixes; path separators and unsafe filename characters are replaced so entries stay inside their intended folders. This export contains Markdown documents, not browser preferences, CRDT history or downloaded copies of linked images. It works locally/offline with no external ZIP library. ZIP32 limits are checked before downloading. Run `node scripts/check_export_zip.mjs` for archive format and data-preservation checks.
