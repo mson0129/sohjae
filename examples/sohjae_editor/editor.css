@@ -144,3 +144,20 @@ dt { font-weight:650; } dd { margin-inline-start:1.5em; margin-block:4px 10px; }
 .show_paragraph_marks .native_rich li[data-paragraph-end]::after { margin-inline-start:.25em; }
 /* Revealed list source already includes its own bullet/number. */
 .surface li[data-revealed] { list-style:none; }
+
+.source_revealed { white-space:pre-wrap; }
+.source_revealed .markdown_line { font-family:inherit; }
+
+/* One fixed gap per document block, independent of heading size or block type.
+   Source-only blank separators must not add another margin on top of this gap. */
+.surface:not(.styled_markdown) > section[data-block] {
+  display:flow-root;
+  margin-block:0;
+}
+.surface:not(.styled_markdown) > section[data-block] + section[data-block] {
+  margin-block-start:16px;
+}
+.surface:not(.styled_markdown) > section[data-block] > :is(h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,dl,hr,div,details,table),
+.surface:not(.styled_markdown) > section[data-block] > .table_scroll {
+  margin-block:0;
+}

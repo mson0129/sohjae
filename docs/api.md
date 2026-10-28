@@ -111,3 +111,5 @@ HTML 보기는 op13의 순수 읽기용 HTML을 내장 포매터로 들여쓰기
 편집 모드 동작 변경과 생성자 문법별 노출 옵션은 [편집 모드](editing-modes.md)를 참고한다. `hybrid`는 커서 진입 노출, `markdown`은 항상 보이는 스타일 적용 원문이다.
 
 `save_local()` / `load_local()`과 `local_storage: { key, auto_save }` 생성자 옵션은 [브라우저 저장](local-storage.md)을 참고한다.
+
+SessionStorage 임시 저장 옵션과 API는 [현재 탭의 임시 저장](session-storage.md)을 참고하세요.

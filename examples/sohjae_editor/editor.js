@@ -1,13 +1,13 @@
-import { RichDOM } from './rich-dom.js';
 import { pretty_html } from './html.js';
 import { load_core, byte_length, byte_slice, utf16_to_byte, byte_to_utf16 } from './core.js';
 import { html_to_markdown, safe_url, read_file, file_markdown } from './clipboard.js';
 
-const COMMANDS = new Set(['undo', 'redo', ...Array.from({length:6}, (_,i)=>`heading_${i+1}`), 'paragraph', 'bold', 'italic', 'strikethrough', 'highlight', 'subscript', 'superscript', 'inline_code', 'code_block', 'quote', 'list', 'ordered_list', 'task', 'indent', 'outdent', 'hard_break', 'link', 'unlink', 'open_link', 'table', 'table_tools', 'attachment', 'footnote', 'alert', 'details', 'comment', 'line_numbers', 'heading_levels', 'paragraph_marks', 'copy_markdown', 'open', 'save', 'save_local', 'load_local']);
+const COMMANDS = new Set(['undo', 'redo', ...Array.from({length:6}, (_,i)=>`heading_${i+1}`), 'paragraph', 'bold', 'italic', 'strikethrough', 'highlight', 'subscript', 'superscript', 'inline_code', 'code_block', 'quote', 'list', 'ordered_list', 'task', 'indent', 'outdent', 'hard_break', 'link', 'unlink', 'open_link', 'table', 'table_tools', 'attachment', 'footnote', 'alert', 'details', 'comment', 'line_numbers', 'heading_levels', 'paragraph_marks', 'copy_markdown', 'open', 'save', 'save_local', 'load_local', 'save_session', 'load_session', 'clear_session']);
 const is_record = value => value !== null && typeof value === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(value));
 const initializing = new WeakSet();
 const DEFAULTS = {
   local_storage: { key: null, auto_save: false },
+  session_storage: { key: null, auto_save: false },
   mode: 'rich', elements: {}, read_only: false, announce_changes: false, show_code_line_numbers: false, show_heading_levels: false, show_paragraph_marks: false,
   auto_close: { enabled: true, pairs: { bold: true, italic: true, strikethrough: true, highlight: true, inline_code: true, link_brackets: true, html_comment: true }, wrap_selection: true, skip_closing: true, delete_empty_pair: true },
   attachments: { enabled: true, storage: 'embedded', max_file_size: 4 * 1024 * 1024, max_total_size: 16 * 1024 * 1024 },
@@ -51,7 +51,7 @@ function validate_options(options) {
     if (config.css_url) new URL(config.css_url, document.baseURI);
   }
   for (const command of Object.values(options.keybindings)) if (typeof command !== 'string' || !COMMANDS.has(command)) throw new TypeError('Unknown keybinding command');
-  if(!is_record(options.local_storage)||typeof options.local_storage.auto_save!=='boolean'||!(options.local_storage.key===null||typeof options.local_storage.key==='string'&&options.local_storage.key.trim()))throw new TypeError('local_storage requires a nonempty key or null and boolean auto_save');
+  for(const name of ['local_storage','session_storage']){const config=options[name];if(!is_record(config)||typeof config.auto_save!=='boolean'||!(config.key===null||typeof config.key==='string'&&config.key.trim()))throw new TypeError(name+' requires a nonempty key or null and boolean auto_save');}
   for (const [element, config] of Object.entries(options.elements)) if (typeof config?.reveal_markdown !== 'boolean') throw new TypeError(`elements.${element}.reveal_markdown must be boolean`);
   for (const key of ['enabled', 'wrap_selection', 'skip_closing', 'delete_empty_pair']) if (typeof options.auto_close[key] !== 'boolean') throw new TypeError(`auto_close.${key} must be boolean`);
   for (const [key, value] of Object.entries(options.auto_close.pairs)) if (typeof value !== 'boolean') throw new TypeError(`auto_close.pairs.${key} must be boolean`);
@@ -136,7 +136,6 @@ class MarkdownEditor extends EventTarget {
     this.surface = this.root.querySelector('.surface');
     this.source_input = this.root.querySelector('.source');
     this.html_output = this.root.querySelector('.html_output');
-    this.native_rich = new RichDOM(this);
     this.toolbar = this.root.querySelector('.toolbar');
     this.dialog = this.root.querySelector('dialog');
     const tools = [
@@ -149,7 +148,7 @@ class MarkdownEditor extends EventTarget {
       ['link', '↗', '링크 추가·수정'], ['unlink', '⊘', '링크 제거'], ['open_link', '열기', '링크 열기'],
       ['table', '▦', '표 삽입'], ['table_tools', '표 도구', '표 행·열 편집'], ['attachment', '＋파일', '파일·이미지 첨부'],
       ['footnote', '각주', '각주 삽입'], ['alert', '알림', '알림 블록'], ['details', '접기', '접기 영역'],
-      ['comment', '<!-- -->', '주석'], ['line_numbers', '줄 번호', '코드 줄 번호 표시'], ['heading_levels', '제목 단계', '제목 단계 표시'], ['paragraph_marks', '문단 표시', '문단 기호 표시'], ['copy_markdown', 'MD 복사', 'Markdown 복사'], ['open', '불러오기', 'Markdown 불러오기'], ['save', '저장', 'Markdown 저장'], ['save_local', '브라우저 저장', '브라우저에 Markdown 저장'], ['load_local', '브라우저 불러오기', '브라우저에서 Markdown 불러오기'],
+      ['comment', '<!-- -->', '주석'], ['line_numbers', '줄 번호', '코드 줄 번호 표시'], ['heading_levels', '제목 단계', '제목 단계 표시'], ['paragraph_marks', '문단 표시', '문단 기호 표시'], ['copy_markdown', 'MD 복사', 'Markdown 복사'], ['open', '불러오기', 'Markdown 불러오기'], ['save', '저장', 'Markdown 저장'], ['save_local', '브라우저 저장', '브라우저에 Markdown 저장'], ['load_local', '브라우저 불러오기', '브라우저에서 Markdown 불러오기'], ['save_session','임시 저장','현재 탭에 Markdown 임시 저장'], ['load_session','임시 복원','현재 탭의 Markdown 임시 저장 복원'],
     ];
     tools.forEach(([command, label, title]) => {
       const button = document.createElement('button'); button.type = 'button'; button.dataset.command = command;
@@ -177,7 +176,7 @@ class MarkdownEditor extends EventTarget {
     this.on(this.surface, 'beforeinput', event => this.input_event(event, () => this.before_input(event)));
     this.on(this.surface, 'compositionstart', () => {
       this.typing_group = null;
-      this.capture_selection(); this.composing = true; this.composition_selection = { ...this.selection };
+      this.capture_selection(); this.begin_source_session(Math.min(this.selection.anchor,this.selection.focus),Math.max(this.selection.anchor,this.selection.focus)); this.composing = true; this.composition_selection = { ...this.selection };
       this.composition_visible = this.surface.textContent;
       this.core.begin_composition?.(Math.min(this.selection.anchor,this.selection.focus),Math.max(this.selection.anchor,this.selection.focus));
     });
@@ -310,7 +309,7 @@ class MarkdownEditor extends EventTarget {
       const previous = this.state.source;
       this.state = this.core.snapshot; this.selection = { anchor:this.state.anchor, focus:this.state.focus };
       this.map_dialog_from_sources(previous,this.state.source); this.pairs = []; this.auto_transform = null; this.cell_selection = null;
-      this.render(); this.emit_change('remote');
+      this.render(); if(previous!==this.state.source)this.emit_change('remote');
     });
   }
   on(target, name, listener) { target.addEventListener(name, listener, { signal: this.listeners.signal }); }
@@ -329,19 +328,28 @@ class MarkdownEditor extends EventTarget {
     const source=this.core.discard_draft?.(); if(source===undefined)return null;
     this.last_source_draft=source;this.state=this.core.snapshot;this.selection={anchor:this.state.anchor,focus:this.state.focus};this.render();return source;
   }
-  local_storage_key() { return this.options.local_storage.key ?? `sohjae:${location.pathname}:${this.container.id||'document'}`; }
-  save_local() {
+  storage_key(name) { return this.options[name].key ?? `sohjae:${location.pathname}:${this.container.id||'document'}`; }
+  local_storage_key() { return this.storage_key('local_storage'); }
+  session_storage_key() { return this.storage_key('session_storage'); }
+  save_browser_storage(name) {
     this.assert_active();if(this.composing)throw new Error('한글 조합을 마친 뒤 저장해 주세요.');
     const record={version:1,markdown:this.get_pending_draft()??this.get_markdown({normalize:false}),saved_at:new Date().toISOString()};
-    window.localStorage.setItem(this.local_storage_key(),JSON.stringify(record));
-    this.root.querySelector('.state').textContent='브라우저 저장됨';return record;
+    const storage=name==='session_storage'?window.sessionStorage:window.localStorage;
+    storage.setItem(this.storage_key(name),JSON.stringify(record));
+    this.root.querySelector('.state').textContent=name==='session_storage'?'임시 저장됨':'브라우저 저장됨';return record;
   }
-  load_local() {
+  load_browser_storage(name) {
     this.assert_active();if(this.options.read_only||this.reading||this.composing)throw new Error('편집 가능한 상태에서 불러와 주세요.');
-    const value=window.localStorage.getItem(this.local_storage_key());if(value===null)return false;
+    const storage=name==='session_storage'?window.sessionStorage:window.localStorage;
+    const value=storage.getItem(this.storage_key(name));if(value===null)return false;
     const record=JSON.parse(value);if(!record||record.version!==1||typeof record.markdown!=='string')throw new Error('지원하지 않는 브라우저 저장 데이터입니다.');
     this.replace(record.markdown,0,byte_length(this.state.source),0);this.focus();return true;
   }
+  save_local() { return this.save_browser_storage('local_storage'); }
+  load_local() { return this.load_browser_storage('local_storage'); }
+  save_session() { return this.save_browser_storage('session_storage'); }
+  load_session() { return this.load_browser_storage('session_storage'); }
+  clear_session() { this.assert_active();window.sessionStorage.removeItem(this.session_storage_key()); }
   mark_saved() { this.assert_active(); this.state = this.core.request(9); this.render(); }
   get_options() { this.assert_active(); return merge({}, this.options); }
   set_markdown(source) {
@@ -389,6 +397,12 @@ class MarkdownEditor extends EventTarget {
     start ??= Math.min(this.selection.anchor, this.selection.focus);
     end ??= Math.max(this.selection.anchor, this.selection.focus);
     const size = byte_length(text);
+    this.begin_source_session(start,end);
+    if(this.source_edit_session){
+      const session=this.source_edit_session;
+      if(start>=session.start&&end<=session.end)session.end+=size-(end-start);
+      else this.source_edit_session=null;
+    }
     if (caret !== undefined && !this.core.replica) {
       const result = byte_slice(before.source, 0, start) + text + byte_slice(before.source, end);
       if (!Number.isInteger(caret) || caret < 0 || caret > byte_length(result)) throw new RangeError('Invalid UTF-8 caret');
@@ -400,7 +414,10 @@ class MarkdownEditor extends EventTarget {
     const now = performance.now(), context = `${this.source_view}:${this.active_kind()}`;
     const previous = this.typing_group;
     const join = eligible && previous && previous.kind === kind && previous.revision === before.revision && previous.focus === this.selection.focus && previous.context === context && now - previous.time <= 750;
-    this.state = this.core.request(3, text, start, end);
+    const previous_source_mode=this.core.source_mode;
+    if(this.core.replica)this.core.source_mode=this.editing_mode()==='markdown';
+    try{this.state = this.core.request(3, text, start, end);}
+    finally{if(this.core.replica)this.core.source_mode=previous_source_mode;}
     if (join && before.revision !== this.state.revision) this.state = this.core.request(12);
     this.typing_group = eligible && !this.state.draft && before.revision !== this.state.revision ? { kind, context, time:now, revision:this.state.revision, focus:this.state.focus } : null;
     const linear=byte_slice(before.source,0,start)+text+byte_slice(before.source,end)===this.state.source;
@@ -409,26 +426,25 @@ class MarkdownEditor extends EventTarget {
     if(!linear)this.pairs=[];
     this.selection = { anchor: this.state.anchor, focus: this.state.focus };
     if (caret !== undefined && (!this.core.replica || linear)) { this.state = this.core.request(11, '', caret, caret); this.selection = { anchor: caret, focus: caret }; }
+    this.source_exit_caret=this.pending_source_exit?this.selection.focus:null;this.pending_source_exit=false;
     this.render();
     if (this.pending_options) { const pending = this.pending_options; this.pending_options = null; this.set_options(pending); }
     if (before.revision !== this.state.revision) this.emit_change();
   }
   emit_change(origin = 'local') {
-    if(this.options.local_storage.auto_save&&!this.composing)try{this.save_local();}catch(error){this.report(error);}
+    for(const name of ['local_storage','session_storage'])if(this.options[name].auto_save&&!this.composing)try{this.save_browser_storage(name);}catch(error){this.report(error);}
     this.dispatchEvent(new CustomEvent('change', { detail: { revision: this.state.revision, dirty: this.state.dirty, origin, shared: !this.state.draft } }));
     const announce = this.root.querySelector('.announce');
     if (this.options.announce_changes && announce) announce.textContent = '문서가 변경되었습니다.';
   }
   render() {
     if(this.core?.replica)this.core.source_mode=this.source_view||this.options.mode==='markdown';
-    if (this.composing || this.native_rich?.transaction) return;
+    if (this.composing) return;
     this.rendering = true;
     const focused = this.has_focus();
     const scroll = this.surface.scrollTop;
     const template = document.createElement('template'); template.innerHTML = this.state.html;
-    if (this.options.mode === 'rich') {
-      this.native_rich.fill(template);
-    } else if (this.options.mode === 'markdown' && !this.reading) {
+    if (this.options.mode === 'markdown' && !this.reading) {
       this.render_markdown_source(template.content);
     } else {
     if (this.reading) template.content.querySelectorAll('.comment,.front_matter,.reference_definition,[data-kind="comment"]').forEach(element => element.remove());
@@ -491,6 +507,13 @@ class MarkdownEditor extends EventTarget {
         next.classList.add('after_paragraph_gap'); first.remove();
       }
     }
+    if(this.options.mode==='hybrid'&&this.source_exit_caret===this.selection.focus){
+      const at=this.selection.focus;
+      for(const node of [...template.content.children])if(node.classList.contains('paragraph_separator')&&+node.dataset.start<=at&&at<=+(node.dataset.separatorEnd||node.dataset.end))node.remove();
+      const block=document.createElement('section');block.dataset.block='1';block.dataset.start=at;block.dataset.end=at;
+      const p=document.createElement('p'),span=document.createElement('span');span.dataset.text='1';span.dataset.start=at;span.dataset.end=at;span.append(document.createTextNode(''));p.append(span);const br=document.createElement('br');br.dataset.caret='1';p.append(br);block.append(p);
+      const next=[...template.content.children].find(node=>+node.dataset.start>at);template.content.insertBefore(block,next||null);
+    }
     // Mark semantic text blocks, not source-coordinate wrappers or nested containers.
     const blocks = 'p,h1,h2,h3,h4,h5,h6,pre,li,blockquote,dt,dd,summary,figcaption';
     template.content.querySelectorAll(blocks).forEach(block => {
@@ -523,7 +546,7 @@ class MarkdownEditor extends EventTarget {
       input.setSelectionRange(selectionStart, selectionEnd); input.scrollTop = scrollTop; input.scrollLeft = scrollLeft;
     }
     this.root.querySelector('[data-view="html"]').setAttribute('aria-pressed', String(this.html_view));
-    this.surface.classList.toggle('native_rich',this.options.mode==='rich');
+    this.surface.classList.remove('native_rich');
     this.surface.classList.toggle('styled_markdown',this.options.mode==='markdown'&&!this.reading);
     this.surface.contentEditable = String(!this.options.read_only && !this.reading);
     this.source_input.readOnly = this.options.read_only;
@@ -534,7 +557,7 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('[data-draft-discard]').hidden = !this.state.draft;
     this.toolbar.querySelectorAll('button').forEach(button => {
       const command = button.dataset.command;
-      button.disabled = ((this.options.read_only || this.reading || this.html_view) && !['copy_markdown', 'save', 'save_local', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
+      button.disabled = ((this.options.read_only || this.reading || this.html_view) && !['copy_markdown', 'save', 'save_local', 'save_session', 'clear_session', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
     });
     this.add_table_handles();
     this.add_block_switcher();
@@ -558,6 +581,9 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('.markdown_editor').dataset.layout = name || 'default';
   }
   render_markdown_source(markup) {
+    this.surface.replaceChildren(this.markdown_source_fragment(markup));
+  }
+  markdown_source_fragment(markup, rangeStart=0, rangeEnd=byte_length(this.state.source)) {
     const ranges=[];
     const code=[...markup.querySelectorAll('pre[data-kind="code_block"]')].map(node=>[+node.dataset.start,+node.dataset.end]);
     for(const node of markup.querySelectorAll('[data-kind]')){
@@ -570,8 +596,8 @@ class MarkdownEditor extends EventTarget {
       }
     }
     const headings=[...markup.querySelectorAll('h1,h2,h3,h4,h5,h6')];
-    const size=byte_length(this.state.source),fragment=document.createDocumentFragment();let start=0;
-    for(const line of this.state.source.split('\n')){
+    const size=rangeEnd,fragment=document.createDocumentFragment();let start=rangeStart;
+    for(const line of byte_slice(this.state.source,rangeStart,rangeEnd).split('\n')){
       const end=start+byte_length(line),row=document.createElement('div');row.className='markdown_line';row.dataset.block='1';row.dataset.start=start;row.dataset.end=end;
       const heading=headings.find(node=>{const owner=node.closest('[data-block]');return owner&&+owner.dataset.start===start;});
       if(heading&&!code.some(([a,b])=>a<=start&&start<b))row.dataset.level=heading.localName;
@@ -587,25 +613,86 @@ class MarkdownEditor extends EventTarget {
       if(end<size){const newline=document.createElement('span');newline.dataset.text='1';newline.dataset.start=end;newline.dataset.end=end+1;newline.className='markdown_eol';newline.textContent='\n';row.append(newline);}
       fragment.append(row);start=end+1;
     }
-    this.surface.replaceChildren(fragment);
+    return fragment;
   }
   should_reveal(kind) {
+    if(this.options.mode==='rich')return false;
     if (this.options.elements[kind]?.reveal_markdown !== undefined) return this.options.elements[kind].reveal_markdown;
     return this.options.mode === 'hybrid';
   }
   refresh_syntax(restore = true) {
     if (this.options.mode !== 'hybrid' || this.composing || this.dragging || this.source_view || this.html_view || this.reading || (!this.keep_active_syntax && !this.has_focus())) return;
     const focus = this.selection.focus;
+    let session=this.source_edit_session;
+    if(session&&(focus<session.start||focus>session.end)){this.source_edit_session=null;session=null;}
     const reveal = [...this.surface.querySelectorAll('[data-kind]')].filter(element => this.should_reveal(element.dataset.kind) && focus >= Number(element.dataset.start) && focus <= Number(element.dataset.end));
     // Restore only if the active syntax region changed; never rebuild on caret movement inside it.
-    const desired = reveal.find(element => !reveal.some(other => other !== element && other.contains(element)));
+    let desired = reveal.find(element => !reveal.some(other => other !== element && other.contains(element)));
+    if(desired&&!desired.dataset.revealed){
+      const end=+desired.dataset.end;
+    const lastText=[...desired.querySelectorAll('[data-text]')].at(-1);
+    if(this.selection.anchor===focus&&lastText&&+lastText.dataset.end===focus&&focus<end
+        &&['bold','italic','highlight','strikethrough','subscript','superscript','inline_code','link'].includes(desired.dataset.kind)){
+      // Entry from the rendered right edge lands after the revealed closing syntax.
+      // Only snap on the reveal transition; subsequent source navigation is literal.
+      this.selection={anchor:end,focus:end};
+      this.state=this.core.request(4,'',end,end);
+    }
+    }
+    // Live Preview edits an active text block as source, not a changing inline
+    // fragment. Configured rich-only constructs keep their existing projection.
+    const owner=[...this.surface.querySelectorAll('section[data-block]')].find(node=>+node.dataset.start<=focus&&focus<=+node.dataset.end);
+    const content=owner?.firstElementChild;
+    if(content&&content.matches('p,h1,h2,h3,h4,h5,h6')&&this.should_reveal(content.dataset.kind||'paragraph')
+        &&![...content.querySelectorAll('[data-kind]')].some(node=>!this.should_reveal(node.dataset.kind))){
+      content.dataset.kind=content.dataset.kind||'paragraph';content.dataset.start=owner.dataset.start;content.dataset.end=owner.dataset.end;desired=content;
+    }
+    // Lists reveal as a complete container, including nested items and inline syntax.
+    if(this.should_reveal('list')){
+      const item=reveal.find(element=>element.dataset.kind==='list');
+      if(item){
+        let list=item.closest('ul,ol');
+        if(list){while(list.parentElement.closest('ul,ol'))list=list.parentElement.closest('ul,ol');
+          const items=[...list.querySelectorAll('[data-kind="list"]')];
+          list.dataset.start=Math.min(...items.map(item=>+item.dataset.start));
+          list.dataset.end=Math.max(...items.map(item=>+item.dataset.end));
+          desired=list;
+        }
+      }
+    }
+    if(session&&this.should_reveal(session.kind)){
+      let block=[...this.surface.querySelectorAll('[data-kind="'+session.kind+'"]')].find(node=>+node.dataset.start===session.start);
+      if(block&&session.kind==='list'){
+        let list=block.closest('ul,ol');
+        if(list){while(list.parentElement.closest('ul,ol'))list=list.parentElement.closest('ul,ol');block=list;}
+      }
+      if(!block){
+        const owner=[...this.surface.querySelectorAll('section[data-block]')].find(node=>+node.dataset.start<=session.start&&session.start<=+node.dataset.end);
+        block=owner?.firstElementChild;
+        if(block){session.start=+owner.dataset.start;session.end=Math.max(session.end,+owner.dataset.end);block.dataset.kind=session.kind;}
+      }
+      if(block){block.dataset.start=session.start;block.dataset.end=Math.max(+block.dataset.end||0,session.end);desired=block;}
+    }
     const current = this.surface.querySelector('[data-revealed]');
     if (current && (!desired || current !== desired)) { this.render(); return; }
     if (!desired || desired.dataset.revealed) return;
     const start = Number(desired.dataset.start), end = Number(desired.dataset.end);
-    const span = document.createElement('span'); span.dataset.text = '1'; span.dataset.start = start; span.dataset.end = end;
-    span.textContent = byte_slice(this.state.source, start, end);
-    desired.replaceChildren(span); desired.dataset.revealed = '1'; desired.classList.add('syntax');
+    const fragment=this.markdown_source_fragment(this.editing_markup(),start,end);
+    // Inline syntax and headings share the same token styles without introducing
+    // a second block box or applying the heading size twice.
+    if(!desired.matches('ul,ol,pre,table,p,h1,h2,h3,h4,h5,h6,blockquote')&&!['table','paragraph','heading','quote','code_block'].includes(desired.dataset.kind)&&!desired.classList.contains('list_source')){
+      for(const row of [...fragment.children])row.replaceWith(...row.childNodes);
+    }
+    if(desired.matches('ul,ol,table,p,h1,h2,h3,h4,h5,h6,pre,blockquote')){
+      const kind=desired.matches('ul,ol')?'list':desired.matches('table')?'table':desired.dataset.kind||'paragraph';
+      const block=document.createElement('div');block.dataset.kind=kind;block.dataset.start=start;block.dataset.end=end;block.className=kind+'_source';desired.replaceWith(block);desired=block;
+    }
+    if(session){
+      const owner=desired.closest('section[data-block]');
+      let next=owner?.nextElementSibling;
+      while(next&&+next.dataset.start<=end&&+next.dataset.end<=end){const following=next.nextElementSibling;next.remove();next=following;}
+    }
+    desired.replaceChildren(fragment); desired.dataset.revealed = '1'; desired.classList.add('source_revealed');
     if (restore && this.has_focus()) this.restore_selection();
   }
   dom_selection() { return this.root.getSelection?.() || document.getSelection(); }
@@ -622,14 +709,14 @@ class MarkdownEditor extends EventTarget {
       this.projected_selection = null;
       this.selection = { anchor: this.dom_to_source(selection.anchorNode, selection.anchorOffset), focus: this.dom_to_source(selection.focusNode, selection.focusOffset) };
     }
+    if(this.core.replica)this.core.source_mode=this.editing_mode()==='markdown';
     this.core.request(4, '', this.selection.anchor, this.selection.focus);
   }
   at_paragraph_gap(node, offset) {
-    if (this.native_rich.active || this.options.mode==='markdown') return false;
+    if (this.options.mode==='markdown') return false;
     return node?.nodeType === 1 && (node === this.surface || node.matches('section[data-block]'));
   }
   dom_to_source(node, offset) {
-    if (this.native_rich.active) return this.native_rich.capture(node, offset);
     const element = node.nodeType === 1 ? node : node.parentElement;
     const decoration = element.closest('.break_mark');
     if (decoration?.nextElementSibling?.matches('br[data-break]')) return Number(decoration.nextElementSibling.dataset.start);
@@ -665,7 +752,7 @@ class MarkdownEditor extends EventTarget {
   }
   visual_position(position) {
     if(position===this.table_entry_caret)return position;
-    if (this.source_view || this.options.mode === 'markdown') return position;
+    if (this.source_view || this.editing_mode() === 'markdown') return position;
     const gap = [...this.surface.querySelectorAll('[data-gap-start]')].find(block => Number(block.dataset.gapStart) <= position && position <= Number(block.dataset.gapEnd));
     if (!gap) return position;
     const next = gap.querySelector('[data-text]');
@@ -674,7 +761,6 @@ class MarkdownEditor extends EventTarget {
     return previous ? Number(previous.dataset.end) : position;
   }
   source_to_dom(position) {
-    if (this.options.mode === 'rich' && !this.source_view && !this.html_view) return this.native_rich.locate(position);
     position = this.visual_position(position);
     const separator = [...this.surface.querySelectorAll('.paragraph_separator')].find(block => Number(block.dataset.start) <= position && position <= Number(block.dataset.separatorEnd));
     if (separator && !separator.hasAttribute('data-gap')) return [separator.firstChild, 0];
@@ -739,6 +825,59 @@ class MarkdownEditor extends EventTarget {
     this.typing_input = event.inputType;
     try { return run(); } finally { this.typing_input = null; }
   }
+  editing_mode() {
+    if(this.source_view||this.options.mode==='markdown')return 'markdown';
+    if(this.options.mode==='rich')return 'rich';
+    const {anchor,focus}=this.selection;
+    const revealed=[...this.surface.querySelectorAll('[data-revealed]')].some(node=>+node.dataset.start<=Math.min(anchor,focus)&&Math.max(anchor,focus)<=+node.dataset.end);
+    return revealed?'markdown':'rich';
+  }
+  begin_source_session(start,end) {
+    if(this.pending_source_exit)return;
+    if(this.options.mode==='hybrid'&&this.editing_mode()==='markdown'&&!this.source_edit_session){
+      const block=[...this.surface.querySelectorAll('[data-revealed]')].find(node=>+node.dataset.start<=start&&end<=+node.dataset.end);
+      if(block)this.source_edit_session={kind:block.dataset.kind,start:+block.dataset.start,end:+block.dataset.end};
+    }
+  }
+  source_delete(inputType) {
+    const at=this.selection.focus,backwards=!inputType.includes('Forward');
+    if(inputType.includes('Word')){
+      const source=this.state.source,index=byte_to_utf16(source,at),part=backwards?source.slice(0,index):source.slice(index);
+      const segments=[...new Intl.Segmenter(undefined,{granularity:'word'}).segment(part)];
+      if(backwards){while(segments.length&&!segments.at(-1).segment.trim())segments.pop();const target=segments.at(-1);return this.replace('',target?byte_length(part.slice(0,target.index)):0,at);}
+      let to=0;for(const segment of segments){to=segment.index+segment.segment.length;if(segment.segment.trim())break;}
+      return this.replace('',at,at+byte_length(part.slice(0,to)));
+    }
+    const [start,end]=grapheme_range(this.state.source,at,backwards);return this.replace('',start,end);
+  }
+  source_enter() {
+    const line=this.line_range(),at=Math.min(this.selection.anchor,this.selection.focus);
+    const prefix=byte_slice(this.state.source,line.start,at);
+    const code=[...this.editing_markup().querySelectorAll('pre')].some(node=>+node.dataset.start<=at&&at<+node.dataset.end);
+    if(!code){
+      const list=prefix.match(/^([ \t]*)([-+*]|(\d+)([.)]))[ \t]+(\[[ xX]\][ \t]+)?(.*)$/u);
+      if(list){
+        if(!list[6].trim()&&at===line.end){
+          if(list[1])return this.replace('',line.start,line.start+byte_length(list[1].startsWith('\t')?'\t':list[1].slice(0,Math.min(4,list[1].length))));
+          this.pending_source_exit=true;this.source_edit_session=null;return this.replace('\n',line.start,line.end,line.start+1);
+        }
+        const marker=list[3]?String(Number(list[3])+1)+list[4]:list[2];
+        return this.replace('\n'+list[1]+marker+' '+(list[5]?'[ ] ':''));
+      }
+      const quote=prefix.match(/^([ \t]*> ?)(.*)$/u);
+      if(quote){if(!quote[2].trim()&&at===line.end){this.pending_source_exit=true;this.source_edit_session=null;return this.replace('\n',line.start,line.end,line.start+1);}return this.replace('\n'+quote[1]);}
+    }
+    return this.replace('\n');
+  }
+  source_indent(outdent) {
+    const start=Math.min(this.selection.anchor,this.selection.focus),end=Math.max(this.selection.anchor,this.selection.focus),source=this.state.source;
+    if(start===end&&!outdent&&!/^\s*(?:[-+*]|\d+[.)])[ \t]/u.test(this.line_range().text))return this.replace('    ');
+    const prefix=byte_slice(source,0,start),from=byte_length(prefix.slice(0,prefix.lastIndexOf('\n')+1));
+    const selected=byte_slice(source,from,end),lines=selected.split('\n');
+    const mapped=lines.map(line=>outdent?line.replace(/^(?:\t| {1,4})/u,''):'    '+line);
+    const delta=byte_length(mapped[0])-byte_length(lines[0]);
+    this.replace(mapped.join('\n'),from,end,Math.max(from,start+delta));
+  }
   before_input(event) {
     if (this.options.read_only || this.reading) { event.preventDefault(); return; }
     if (event.isComposing || this.composing || event.inputType === 'insertCompositionText') return;
@@ -749,8 +888,8 @@ class MarkdownEditor extends EventTarget {
     if (event.inputType.startsWith('delete')) {
       if (this.selection.anchor !== this.selection.focus) return this.replace('');
       const backwards = !event.inputType.includes('Forward');
-      if(this.delete_empty_list_continuation(backwards))return;
-      if (this.options.mode !== 'markdown') {
+      if(this.editing_mode()==='markdown')return this.source_delete(event.inputType);
+      if (this.editing_mode() !== 'markdown') {
         const boundary = backwards ? 'end' : 'start';
         const edge = this.inline_edge(this.selection.focus, backwards);
         const line_break = [...this.editing_markup().querySelectorAll('br[data-break]')].find(br => Number(br.dataset[boundary]) === edge);
@@ -770,23 +909,12 @@ class MarkdownEditor extends EventTarget {
       const [start, end] = grapheme_range(this.state.source, this.selection.focus, backwards);
       return this.replace('', start, end);
     }
-    if (event.inputType === 'insertParagraph') return this.options.mode==='markdown'?this.replace('\n'):this.enter();
-    if (event.inputType === 'insertLineBreak') return this.run('hard_break');
+    if (event.inputType === 'insertParagraph') return this.editing_mode()==='markdown'?this.source_enter():this.enter();
+    if (event.inputType === 'insertLineBreak') return this.editing_mode()==='markdown'?this.replace('  \n'):this.run('hard_break');
     if (event.inputType === 'insertText' || event.inputType === 'insertReplacementText') return this.type_text(event.data || '');
     if (event.inputType.startsWith('format')) {
       const map = { formatBold: 'bold', formatItalic: 'italic', formatStrikeThrough: 'strikethrough' }; if (map[event.inputType]) this.run(map[event.inputType]);
     }
-  }
-  delete_empty_list_continuation(backwards) {
-    if(this.options.mode!=='hybrid'||this.source_view)return false;
-    const line=this.line_range();if(!line.text||/^\s*(?:[-+*]|\d+[.)])(?:[ \t]|$)/u.test(line.text))return false;
-    const [start,end]=grapheme_range(this.state.source,this.selection.focus,backwards);
-    if(start!==line.start||end!==line.end)return false;
-    const item=[...this.editing_markup().querySelectorAll('[data-kind="list"]')].find(node=>+node.dataset.start<line.start&&line.end<=+node.dataset.end);
-    if(!item)return false;
-    // The sole remaining character was a lazy continuation of the previous LI.
-    // Preserve its visual line as a separate, editable paragraph after the list.
-    this.replace('\n&nbsp;',start,end,start+1);return true;
   }
   merge_paragraph_boundary(backwards) {
     const caret = this.text_caret();
@@ -855,14 +983,28 @@ class MarkdownEditor extends EventTarget {
   }
   type_text(text) {
     const start = Math.min(this.selection.anchor, this.selection.focus), end = Math.max(this.selection.anchor, this.selection.focus);
+    if(text===' '&&start===end&&this.editing_mode()==='markdown'&&!this.source_view){
+      const line=this.line_range(),prefix=byte_slice(this.state.source,line.start,start);
+      if(prefix==='|'&&line.text.trim()==='|'){
+        const table=[...this.editing_markup().querySelectorAll('[data-kind="table"]')].find(node=>{
+          const from=+node.dataset.start,to=+node.dataset.end;
+          return from<line.start&&(to>=line.start||byte_slice(this.state.source,to,line.start)==='\n');
+        });
+        const columns=table?.querySelector('table')?.rows[0]?.cells.length;
+        if(columns){
+          const row='| '+Array(columns).fill('').join(' | ')+' |';
+          this.replace(row,line.start,line.end,line.start+2);return;
+        }
+      }
+    }
     const auto = this.options.auto_close;
     const context = this.active_kind();
     const empty_task = [...this.surface.querySelectorAll('.empty_task_caret')].find(span => Number(span.dataset.start) === start);
-    if (start === end && !this.source_view && this.options.mode !== 'markdown' && empty_task
+    if (start === end && !this.source_view && this.editing_mode() !== 'markdown' && empty_task
         && /\[[ xX]\]$/u.test(this.line_range().text)) {
       this.replace(' ' + (text === ' ' ? '&nbsp;' : text)); return;
     }
-    if (text === ' ' && start === end && !this.source_view && this.options.mode !== 'markdown'
+    if (text === ' ' && start === end && !this.source_view && this.editing_mode() !== 'markdown'
         && !['code_block', 'inline_code', 'comment', 'front_matter'].includes(context) && this.at_visual_line_start(start)) {
       this.replace('&nbsp;'); return;
     }
@@ -938,7 +1080,7 @@ class MarkdownEditor extends EventTarget {
       .filter(block => !block.closest('li,blockquote,td,th,pre') && block.querySelector('[data-text]'));
   }
   text_caret() {
-    if (this.source_view || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus) return null;
+    if (this.source_view || this.editing_mode() === 'markdown' || this.selection.anchor !== this.selection.focus) return null;
     const focus = this.selection.focus;
     const block = this.text_blocks().find(block => Number(block.parentElement.dataset.start) <= focus && focus <= Number(block.parentElement.dataset.end));
     if (!block) return null;
@@ -950,11 +1092,11 @@ class MarkdownEditor extends EventTarget {
       at_end: focus === end || visible.at(-1) === last && (focus === Number(last.dataset.end) || focus === this.inline_edge(Number(last.dataset.end), false)) };
   }
   inline_opening_position() {
-    return this.source_view || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus
+    return this.source_view || this.editing_mode() === 'markdown' || this.selection.anchor !== this.selection.focus
       ? this.selection.focus : this.inline_edge(this.selection.focus, true);
   }
   table_source_enter() {
-    if(this.source_view||!['rich','hybrid'].includes(this.options.mode)||this.selection.anchor!==this.selection.focus)return false;
+    if(this.source_view||this.editing_mode()!=='rich'||this.selection.anchor!==this.selection.focus)return false;
     const at=this.selection.focus,before=byte_slice(this.state.source,0,at);
     if(!before.endsWith('|')||['code_block','inline_code','front_matter','comment'].includes(this.active_kind()))return false;
     const escapes=before.slice(0,-1).match(/\\+$/u)?.[0].length||0;if(escapes%2)return false;
@@ -964,7 +1106,7 @@ class MarkdownEditor extends EventTarget {
     return true;
   }
   paragraph_enter() {
-    if(this.source_view||!['rich','hybrid'].includes(this.options.mode)||this.selection.anchor!==this.selection.focus)return false;
+    if(this.source_view||this.editing_mode()!=='rich'||this.selection.anchor!==this.selection.focus)return false;
     const focus=this.selection.focus,markup=this.editing_markup();
     const block=[...markup.querySelectorAll('p,h1,h2,h3,h4,h5,h6')].find(node=>{const section=node.closest('[data-block]');return section&&+section.dataset.start<=focus&&focus<=+section.dataset.end;});
     if(!block||block.closest('li,td,th,pre,blockquote'))return false;
@@ -1015,7 +1157,7 @@ class MarkdownEditor extends EventTarget {
     this.replace('\n\n');
   }
   move_line_break(key) {
-    if (this.source_view || this.html_view || this.reading || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus) return false;
+    if (this.source_view || this.html_view || this.reading || this.editing_mode() === 'markdown' || this.selection.anchor !== this.selection.focus) return false;
     const forwards = key === 'ArrowRight';
     const br = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset[forwards ? 'start' : 'end']) === this.selection.focus);
     if (!br) return false;
@@ -1023,7 +1165,7 @@ class MarkdownEditor extends EventTarget {
     this.refresh_syntax(); return true;
   }
   move_block_boundary(key) {
-    if (this.source_view || this.html_view || this.reading || this.options.mode === 'markdown' || this.selection.anchor !== this.selection.focus || this.active_cell()) return false;
+    if (this.source_view || this.html_view || this.reading || this.editing_mode() === 'markdown' || this.selection.anchor !== this.selection.focus || this.active_cell()) return false;
     const caret = this.text_caret();
     if (caret) {
       if (!(key === 'ArrowRight' ? caret.at_end : caret.at_start)) return false;
@@ -1067,20 +1209,19 @@ class MarkdownEditor extends EventTarget {
     // Command palette makes every toolbar command keyboard reachable without reserved shortcuts.
     if (modifier && event.shiftKey && event.key.toLowerCase() === 'p') { event.preventDefault(); this.command_palette(); return; }
     if (event.key === 'Escape') { event.preventDefault(); this.cell_selection = null; this.paint_cells(); this.root.querySelector('select').focus(); return; }
+    if(event.key==='Tab'&&!this.source_view&&this.editing_mode()==='markdown'){event.preventDefault();this.source_indent(event.shiftKey);return;}
     if (event.key === 'Tab' && !this.source_view) {
       const selection=this.dom_selection(),node=selection?.focusNode,element=node?.nodeType===1?node:node?.parentElement;
       const dom_cell=element?.closest('[data-cell]');
-      if(dom_cell&&this.surface.contains(dom_cell)&&this.options.mode!=='markdown'){
+      if(dom_cell&&this.surface.contains(dom_cell)&&this.editing_mode()!=='markdown'){
         event.preventDefault();this.set_selection(Number(dom_cell.dataset.start));this.move_cell(event.shiftKey?-1:1);
       }
       else if (this.active_cell()) { event.preventDefault(); this.move_cell(event.shiftKey ? -1 : 1); }
       else if (/^\s*(?:[-+*]|\d+[.)]) /u.test(this.line_range().text)) { event.preventDefault(); this.run(event.shiftKey ? 'outdent' : 'indent'); }
     }
-    if (!this.native_rich.active && !event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
-    if(this.native_rich.vertical_arrow(event))return;
-    // Horizontal rich navigation remains native; vertical table navigation above
-    // uses DOM row/column identity, independent of Markdown source offsets.
-    if (!this.native_rich.active && !this.source_view && !event.shiftKey && !modifier && event.key.startsWith('Arrow')) this.cell_arrow(event);
+    if (!event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
+    // Rich and hybrid share source-coordinate table navigation.
+    if (!this.source_view && this.editing_mode()==='rich' && !event.shiftKey && !modifier && event.key.startsWith('Arrow')) this.cell_arrow(event);
   }
   async run(command) {
     try { await this.execute_command(command); } catch (error) { this.report(error); }
@@ -1091,9 +1232,9 @@ class MarkdownEditor extends EventTarget {
     this.typing_group = null;
     this.root.querySelector('.errors').textContent = '';
     if (this.composing) return;
-    const read_command = ['save', 'save_local', 'open', 'open_link', 'copy_markdown'].includes(command);
+    const read_command = ['save', 'save_local', 'save_session', 'clear_session', 'open', 'open_link', 'copy_markdown'].includes(command);
     if ((this.options.read_only || this.reading || this.html_view) && !read_command) return;
-    if (this.native_rich.active && this.active_cell() && (command==='table'||command.startsWith('heading_')||['quote','list','ordered_list','task','code_block','details','alert'].includes(command))) { this.report(new Error('표 셀에는 인라인 내용만 허용합니다. 중첩 표와 블록 삽입은 사용할 수 없습니다.')); return; }
+    if (this.active_cell() && (command==='table'||command.startsWith('heading_')||['quote','list','ordered_list','task','code_block','details','alert'].includes(command))) { this.report(new Error('표 셀에는 인라인 내용만 허용합니다. 중첩 표와 블록 삽입은 사용할 수 없습니다.')); return; }
     const display_options = { line_numbers: 'show_code_line_numbers', heading_levels: 'show_heading_levels', paragraph_marks: 'show_paragraph_marks' };
     if (display_options[command]) { this.set_options({ [display_options[command]]: !this.options[display_options[command]] }); return; }
     if (command === 'undo' || command === 'redo') {
@@ -1108,6 +1249,9 @@ class MarkdownEditor extends EventTarget {
       this.auto_transform = null; this.selection = { anchor: this.state.anchor, focus: this.state.focus }; this.pairs = []; this.render(); this.focus(); this.emit_change(); return;
     }
     const wrappers = { bold: ['**', '**'], italic: ['*', '*'], strikethrough: ['~~', '~~'], highlight: ['==', '=='], subscript: ['~', '~'], superscript: ['^', '^'], inline_code: ['`', '`'], comment: ['<!--', '-->'], details: ['<details>\n<summary>제목</summary>\n\n', '\n</details>'], code_block: ['```\n', '\n```'] };
+    if(command==='save_session')return this.save_session();
+    if(command==='clear_session')return this.clear_session();
+    if(command==='load_session'){if(!this.load_session())this.root.querySelector('.state').textContent='현재 탭에 임시 저장된 문서가 없습니다.';return;}
     if(command==='save_local')return this.save_local();
     if(command==='load_local'){if(!this.load_local())this.root.querySelector('.state').textContent='브라우저에 저장된 문서가 없습니다.';return;}
     if (wrappers[command]) {
@@ -1142,7 +1286,7 @@ class MarkdownEditor extends EventTarget {
         this.replace(text, position, position, position + byte_length(text)); this.focus(); return;
       }
       const consumed = new Set();
-      if (!literal && !this.source_view && this.options.mode !== 'markdown' && this.selection.anchor === position) {
+      if (!literal && !this.source_view && this.editing_mode() !== 'markdown' && this.selection.anchor === position) {
         // Exit only still-tracked generated closers, never arbitrary source syntax.
         for (;;) {
           const pair = this.pairs.find(pair => !consumed.has(pair) && pair.start === position
@@ -1500,7 +1644,7 @@ class MarkdownEditor extends EventTarget {
     try {
       const files = [...event.clipboardData.files]; if (files.length) return await this.add_files(files);
       const html = event.clipboardData.getData('text/html');
-      const text = html && !this.source_view ? html_to_markdown(html) : event.clipboardData.getData('text/plain').replace(/\t/gu, ' ');
+      const text = html && this.editing_mode()==='rich' ? html_to_markdown(html) : event.clipboardData.getData('text/plain');
       this.replace(text);
     } catch (error) { this.report(error); }
   }

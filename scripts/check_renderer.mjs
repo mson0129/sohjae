@@ -17,6 +17,9 @@ assert.equal(renderer.render('# 함께 쓰는 문서\n\n==리치 화면==과 **�
 assert.doesNotMatch(renderer.render('> **인용**\n\n- [x] 완료\n\n![그림](image.png)'), /data-(?:start|end|block|text|kind|task)|contenteditable|<section/);
 const tableHTML=renderer.render('| A | B |\n| --- | --- |\n| x | y |');
 assert.match(tableHTML,/^<table\b/);assert.doesNotMatch(tableHTML,/table_scroll|<div/);assert.match(tableHTML,/<thead>\n\s*<tr>\n\s*<th\b/);assert.match(tableHTML,/<\/thead>\n\s*<tbody>\n\s*<tr>\n\s*<td\b/);assert.match(tableHTML,/<\/tbody>\n<\/table>$/);
+const paragraphAfterTable=renderer.render('| A | B |\n| --- | --- |\n| x | y |\n&nbsp;');
+assert.equal((paragraphAfterTable.match(/<tr>/g)||[]).length,2);
+assert.match(paragraphAfterTable,/<\/table>\n<p>\u00a0<\/p>$/);
 assert.match(renderer.render('# Heading {#custom}\n\n[Go](#custom)'), /id="custom"/);
 assert.match(renderer.render('# Heading\n\n[Go](#heading)'), /id="heading"/);
 assert.equal(renderer.render('한😀\r\n\r\n==강조=='), renderer.render('한😀\n\n==강조=='));

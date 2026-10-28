@@ -526,6 +526,13 @@ impl Replica {
             if scope == TextScope::Document
                 && other == scope
                 && from <= to
+                // Raw table syntax near a table atom can move text into the
+                // table. Reconcile the complete source boundaries atomically;
+                // promoting a document-only insertion can leave its pipe behind.
+                && !(raw_source
+                    && !projection.tables.is_empty()
+                    && (text.contains(['|', '\n'])
+                        || projection.markdown[start..end].contains(['|', '\n'])))
                 && !projection
                     .tables
                     .iter()

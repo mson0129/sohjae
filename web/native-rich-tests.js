@@ -166,7 +166,7 @@ await test('Native rich paragraph marks toggle without changing Markdown or addi
  }finally{e.destroy();}
 });
 await test('Hybrid revealed lists hide browser bullets and numbering',async()=>{
- for(const source of ['- 항목','1. 항목']){const e=await fixture(source,{mode:'hybrid'});try{e.focus();e.set_selection(byte_length(source));e.refresh_syntax();const item=e.surface.querySelector('li[data-revealed]');assert(item);equal(item.textContent,source);equal(getComputedStyle(item).listStyleType,'none');e.set_options({elements:{list:{reveal_markdown:false}}});assert(!e.surface.querySelector('li[data-revealed]'));assert(getComputedStyle(e.surface.querySelector('li')).listStyleType!=='none');}finally{e.destroy();}}
+ for(const source of ['- 항목','1. 항목']){const e=await fixture(source,{mode:'hybrid'});try{e.focus();e.set_selection(byte_length(source));e.refresh_syntax();const item=e.surface.querySelector('.list_source[data-revealed]');assert(item);equal(item.textContent,source);assert(!item.querySelector('li'));e.set_options({elements:{list:{reveal_markdown:false}}});assert(!e.surface.querySelector('.list_source[data-revealed]'));assert(getComputedStyle(e.surface.querySelector('li')).listStyleType!=='none');}finally{e.destroy();}}
 });
 await test('Deleting the last lazy list continuation character creates a paragraph below the list',async()=>{
  for(const shared of [false,true])for(const backwards of [true,false]){let e,replica;
@@ -242,4 +242,58 @@ await test('Rich wrapped table cells navigate by DOM row and column from every c
  }finally{e?.destroy();replica?.destroy();}}
 });
 
+await test('Hybrid deleting list markers preserves independent paragraphs and caret',async()=>{
+ for(const shared of [false,true])for(const marker of ['-','1.'])for(const previous of ['', '- 앞\n'])for(const body of ['', '내용']){
+  let e,replica;try{if(shared)replica=await create_replica({document_id:new_identity()});const source=previous+marker+' '+body+'\n\n뒤 문단';e=await fixture(source,{mode:'hybrid',...(replica?{replica}:{})});
+  const at=byte_length(previous+marker);e.set_selection(at);e.focus();e.refresh_syntax();e.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'deleteContentBackward',bubbles:true,cancelable:true}));
+  assert(e.state.source.includes((body||'&nbsp;')+'\n\n뒤 문단'));if(previous)assert(e.state.source.includes('앞\n\n'));const caret=e.selection.focus;assert(byte_slice(e.state.source,caret).startsWith(body||'&nbsp;'),'caret left the converted paragraph');assert(e.editing_markup().querySelector('p'),'paragraph missing');
+  }finally{e?.destroy();replica?.destroy();}
+ }
+});
+await test('Hybrid Backspace and Delete remove exactly one source grapheme at inline delimiters',async()=>{
+ for(const shared of [false,true])for(const source of ['==하이라이트==','~~취소선~~','**굵게**','*기울임*','~아래~','^위^','`코드`','[링크](url)']){
+  let e,replica;try{if(shared)replica=await create_replica({document_id:new_identity()});e=await fixture(source,{mode:'hybrid',...(replica?{replica}:{})});const original=e.state.source;
+  // Every ASCII delimiter edge, both delete directions, not only content edges.
+  for(let pos=0;pos<=original.length;pos++){
+   if(pos<original.length&&original.charCodeAt(pos)>127)continue;
+   for(const backwards of [true,false]){if(backwards&&pos===0||!backwards&&pos===original.length)continue;const index=backwards?pos-1:pos;if(original.charCodeAt(index)>127)continue;
+    e.set_markdown(original);const at=byte_length(original.slice(0,pos));e.set_selection(at);e.focus();e.refresh_syntax();e.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:backwards?'deleteContentBackward':'deleteContentForward',bubbles:true,cancelable:true}));equal(e.state.source,original.slice(0,index)+original.slice(index+1));
+   }
+  }
+  }finally{e?.destroy();replica?.destroy();}
+ }
+});
+await test('Hybrid reveals the entire list container, including nested items and inline syntax',async()=>{
+ for(const source of ['- 첫째\n- **둘째**\n  - 하위\n- 셋째','1. 첫째\n2. ==둘째==\n3. 셋째']){
+  const e=await fixture(source+'\n\n뒤 문단',{mode:'hybrid'});try{const at=byte_length(source.slice(0,source.indexOf('둘째')));e.set_selection(at);e.focus();e.refresh_syntax();const block=e.surface.querySelector('.list_source');assert(block);equal(block.textContent,source);assert(!e.surface.querySelector('ul,ol'));assert(!block.querySelector('strong,mark'));const start=+block.dataset.start,end=+block.dataset.end;equal(byte_slice(e.state.source,start,end),source);e.set_selection(end-byte_length('째'));e.refresh_syntax();assert(e.surface.querySelector('.list_source')===block);e.set_selection(byte_length(source+'\n\n뒤'));e.refresh_syntax();assert(e.surface.querySelector('ul,ol'));}finally{e.destroy();}
+ }
+ const e=await fixture('- 하나\n- 둘',{mode:'hybrid',elements:{list:{reveal_markdown:false}}});try{e.set_selection(byte_length('- '));e.focus();e.refresh_syntax();assert(!e.surface.querySelector('.list_source'));assert(e.surface.querySelector('ul'));}finally{e.destroy();}
+});
+await test('Hybrid revealed source and Markdown use identical token rendering',async()=>{
+ for(const source of ['**굵게**','==강조==','~~취소~~','`코드`','- **하나**\n- ==둘==']){
+  const e=await fixture(source,{mode:'hybrid'});try{e.set_selection(0);e.focus();e.refresh_syntax();const raw=e.surface.querySelector('[data-revealed]');assert(raw);equal(raw.textContent,source);
+   const tokens=node=>[...node.querySelectorAll('[data-text]')].map(span=>[span.dataset.start,span.dataset.end,span.textContent,[...span.classList].sort().join(' ')]);
+   const hybrid=JSON.stringify(tokens(raw));e.set_options({mode:'markdown'});equal(JSON.stringify(tokens(e.surface)),hybrid);
+  }finally{e.destroy();}
+ }
+});
+await test('Hybrid table source has the same visible rows and tokens as Markdown',async()=>{
+ const source='| 항목 | 상태 |\n| --- | :---: |\n| 공동 편집 | 준비 |\n| 원본 편집 | 동기화 |';
+ for(const shared of [false,true]){let e,replica;try{if(shared)replica=await create_replica({document_id:new_identity()});e=await fixture(source+'\n\n뒤 문단',{mode:'hybrid',...(replica?{replica}:{})});const table=e.surface.querySelector('[data-kind="table"]'),start=+table.dataset.start,end=+table.dataset.end;e.set_selection(start+2);e.focus();e.refresh_syntax();const block=e.surface.querySelector('[data-kind="table"][data-revealed]');assert(block);assert(!block.matches('table'));const rows=[...block.querySelectorAll('.markdown_line')];equal(rows.length,4);for(let i=1;i<rows.length;i++)assert(rows[i].getBoundingClientRect().top>rows[i-1].getBoundingClientRect().top,'source rows must occupy distinct visual lines');
+ const tokens=node=>[...node.querySelectorAll('[data-text]')].filter(span=>+span.dataset.end<=end).map(span=>[span.dataset.start,span.dataset.end,span.textContent,span.className]);const before=JSON.stringify(tokens(block));e.set_options({mode:'markdown'});const matching=[...e.surface.querySelectorAll('.markdown_line')].filter(row=>+row.dataset.start>=start&&+row.dataset.end<=end);const host=document.createElement('div');matching.forEach(row=>host.append(row.cloneNode(true)));equal(JSON.stringify(tokens(host)),before);
+ }finally{e?.destroy();replica?.destroy();}}
+});
+await test('Hybrid Enter at table end retains source editing on the new line',async()=>{
+ for(const shared of [false,true]){let e,replica;try{if(shared)replica=await create_replica({document_id:new_identity()});const table='| 항목 | 상태 |\n| --- | --- |\n| 표 순서 이동 | 사용 가능 |';e=await fixture(table+'\n\n뒤 문단',{mode:'hybrid',...(replica?{replica}:{})});const at=byte_length(table);e.set_selection(at);e.focus();e.refresh_syntax();e.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertParagraph',bubbles:true,cancelable:true}));equal(e.selection.focus,at+1);let block=e.surface.querySelector('[data-kind="table"][data-revealed]');assert(block,'table reveal lost');equal(block.querySelectorAll('.markdown_line').length,4);const selection=e.dom_selection(),element=selection.focusNode.nodeType===1?selection.focusNode:selection.focusNode.parentElement;assert(block.contains(element),'caret outside table source');
+ e.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertText',data:'|',bubbles:true,cancelable:true}));block=e.surface.querySelector('[data-kind="table"][data-revealed]');assert(block,'reveal missing shared='+shared+' source='+e.state.source+' session='+JSON.stringify(e.table_source_session)+' caret='+e.selection.focus);assert(block.textContent.endsWith('\n|'),'unexpected block='+block.textContent);assert(e.state.source.includes('\n\n뒤 문단'));
+ }finally{e?.destroy();replica?.destroy();}}
+});
+await test('Leaving hybrid table after Enter never creates a phantom row',async()=>{
+ for(const shared of [false,true])for(const tail of ['\n&nbsp;\n\n- [ ] 확인할 작업','\n\n&nbsp;\n\n- [ ] 확인할 작업','\n\n- [ ] 확인할 작업','']){let e,replica;try{if(shared)replica=await create_replica({document_id:new_identity()});const table='| 항목 | 상태 |\n| --- | :---: |\n| 표 순서 이동 | 사용 가능 |';e=await fixture('# 제목\n\n'+table+tail,{mode:'hybrid',...(replica?{replica}:{})});const at=byte_length('# 제목\n\n'+table),count=e.surface.querySelectorAll('tr').length;equal(count,2);e.set_selection(at);e.focus();e.refresh_syntax();e.surface.dispatchEvent(new InputEvent('beforeinput',{inputType:'insertParagraph',bubbles:true,cancelable:true}));const edited=e.state.source;e.set_selection(2);e.refresh_syntax();equal(e.surface.querySelectorAll('tr').length,count);equal(e.state.source,edited);equal(e.surface.querySelectorAll('tr').length,e.editing_markup().querySelectorAll('tr').length);
+ }finally{e?.destroy();replica?.destroy();}}
+});
+await test('Hybrid pipe-space completes the new row and displays every column immediately',async()=>{
+ for(const shared of [false,true])for(const columns of [2,4]){let e,replica;try{if(shared)replica=await create_replica({document_id:new_identity()});const table='| '+Array(columns).fill('제목').join(' | ')+' |\n| '+Array(columns).fill('---').join(' | ')+' |\n| '+Array(columns).fill('값').join(' | ')+' |';e=await fixture(table+'\n\n뒤 문단',{mode:'hybrid',...(replica?{replica}:{})});e.set_selection(byte_length(table));e.focus();e.refresh_syntax();for(const [inputType,data] of [['insertParagraph',null],['insertText','|'],['insertText',' ']])e.surface.dispatchEvent(new InputEvent('beforeinput',{inputType,data,bubbles:true,cancelable:true}));const row='| '+Array(columns).fill('').join(' | ')+' |',block=e.surface.querySelector('[data-kind="table"][data-revealed]');assert(block);assert(block.textContent.endsWith('\n'+row),'incomplete displayed row '+block.textContent);assert(e.state.source.includes('\n'+row));equal(e.selection.focus,byte_length(table+'\n| '));if(shared)assert(replica.snapshot.markdown.includes('\n'+row),'shared row differs');
+ }finally{e?.destroy();replica?.destroy();}}
+});
 document.querySelector('#summary').textContent=`${passed} passed / ${failed} failed`;document.body.dataset.passed=failed?'false':'true';

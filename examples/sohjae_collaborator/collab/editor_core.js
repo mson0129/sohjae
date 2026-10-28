@@ -75,7 +75,10 @@ class SharedEditorCore extends EventTarget {
       const previous_steps=this.draft?.steps||[];
       const args = this.draft ? diff(this.draft.base,source) : [start,end,text];
       this.mutate(() => (this.source_mode||this.draft ? this.replica.replace_markdown(...args) : this.replica.replace_projected_text(...args))); this.draft = null;
-      const offset = caret ? this.replica.resolve_projected_anchor(caret) : Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown));
+      // Literal source edits place the caret after the inserted source bytes.
+      // A projected anchor at EOF can resolve before a newly inserted newline.
+      const offset = this.source_mode ? Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown))
+        : caret ? this.replica.resolve_projected_anchor(caret) : Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown));
       this.selection = {anchor:offset,focus:offset};
       // A valid table may normalize a deleted optional pipe straight back in.
       // Source editing must retain the user's exact spelling as a local draft.

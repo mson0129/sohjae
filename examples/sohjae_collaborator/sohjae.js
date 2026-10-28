@@ -172,6 +172,9 @@
     get_options(...args) { return this.#active().get_options(...args); }
     save_local(...args) { return this.#active().save_local(...args); }
     load_local(...args) { return this.#active().load_local(...args); }
+    save_session(...args) { return this.#active().save_session(...args); }
+    load_session(...args) { return this.#active().load_session(...args); }
+    clear_session(...args) { return this.#active().clear_session(...args); }
     mark_saved(...args) { return this.#active().mark_saved(...args); }
     get_pending_draft(...args) { return this.#active().get_pending_draft(...args); }
     discard_pending_draft(...args) { return this.#active().discard_pending_draft(...args); }

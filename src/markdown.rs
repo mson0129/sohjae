@@ -227,6 +227,8 @@ pub fn parse(source: &str) -> Vec<Block> {
             end = lines[index].end;
             while index + 1 < lines.len()
                 && !lines[index + 1].text.trim().is_empty()
+                // The editor's explicit empty paragraph is not a table row.
+                && lines[index + 1].text.trim() != "&nbsp;"
                 && !lines[index + 1].text.trim_start().starts_with('>')
                 && atx_heading(lines[index + 1].text).is_none()
                 && list_prefix(lines[index + 1].text).is_none()

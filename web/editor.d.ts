@@ -6,11 +6,13 @@ export type EditorCommand =
   | 'quote' | 'list' | 'ordered_list' | 'task' | 'indent' | 'outdent' | 'hard_break'
   | 'link' | 'unlink' | 'open_link' | 'table' | 'table_tools' | 'attachment' | 'footnote'
   | 'alert' | 'details' | 'comment' | 'line_numbers' | 'heading_levels' | 'paragraph_marks'
-  | 'copy_markdown' | 'open' | 'save';
+  | 'copy_markdown' | 'open' | 'save' | 'save_local' | 'load_local' | 'save_session' | 'load_session' | 'clear_session';
 export type ElementKind = 'bold' | 'bold_italic' | 'italic' | 'strikethrough' | 'highlight'
   | 'inline_code' | 'code_block' | 'link' | 'image' | 'heading' | 'list' | 'quote' | 'table'
   | 'footnote' | 'rule' | 'html' | 'comment' | 'definition_list' | 'definition_term' | 'definition';
 export type AutoClosePair = 'bold' | 'italic' | 'strikethrough' | 'highlight' | 'inline_code' | 'link_brackets' | 'html_comment';
+export interface BrowserStorageOptions { key: string | null; auto_save: boolean; }
+export interface BrowserStorageRecord { version: 1; markdown: string; saved_at: string; }
 export interface Layout { name?: string; css_url?: string; }
 export interface AutoCloseOptions {
   enabled: boolean; pairs: Record<AutoClosePair, boolean>;
@@ -22,6 +24,7 @@ export interface AttachmentOptions {
 export interface ImageOptions { enabled: boolean; storage: 'embedded'; }
 /** Defaults are filled in by the editor; changes to this snapshot do not update it. */
 export interface EditorSettings {
+  local_storage: BrowserStorageOptions; session_storage: BrowserStorageOptions;
   mode: EditorMode; elements: Partial<Record<ElementKind, { reveal_markdown: boolean }>>;
   read_only: boolean; announce_changes: boolean; show_code_line_numbers: boolean;
   show_heading_levels: boolean; show_paragraph_marks: boolean;
@@ -31,6 +34,7 @@ export interface EditorSettings {
 }
 /** Settings accepted by set_options; nested groups are merged. */
 export interface EditorOptionsPatch {
+  local_storage?: Partial<BrowserStorageOptions>; session_storage?: Partial<BrowserStorageOptions>;
   mode?: EditorMode; elements?: EditorSettings['elements']; read_only?: boolean;
   announce_changes?: boolean; show_code_line_numbers?: boolean;
   show_heading_levels?: boolean; show_paragraph_marks?: boolean;
@@ -59,6 +63,11 @@ export interface EditorEventMap {
 export interface Editor extends EventTarget {
   get_markdown(options?: { normalize?: boolean }): string;
   set_markdown(source: string): void;
+  save_local(): BrowserStorageRecord;
+  load_local(): boolean;
+  save_session(): BrowserStorageRecord;
+  load_session(): boolean;
+  clear_session(): void;
   get_selection(): EditorSelection;
   set_selection(anchor: number, focus?: number): void;
   replace(text: string, start?: number, end?: number, caret?: number): void;

@@ -62,3 +62,11 @@ const preview = new SeojaeRenderer({selector:'#preview'});
 preview.ready.then(renderer=>renderer.render('**hello**'));
 // @ts-expect-error Exactly one target is required.
 new SeojaeRenderer({selector:'#preview',target:container});
+
+editor.set_options({session_storage:{key:'document:42',auto_save:true}});
+const temporaryMarkdown: string = editor.save_session().markdown;
+const restoredSession: boolean = editor.load_session();
+editor.clear_session();
+// @ts-expect-error auto_save must be boolean.
+editor.set_options({session_storage:{auto_save:'yes'}});
+void [temporaryMarkdown,restoredSession];

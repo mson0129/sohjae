@@ -11,6 +11,7 @@ mkdir -p dist/sohjae/collab
 cp web/collab/core.d.ts web/collab/webrtc.d.ts dist/sohjae/collab/
 rm -f dist/sohjae/sohjae_collaborator.wasm
 cp docs/collaboration_api.md docs/collaboration.md dist/sohjae/
+cp docs/session-storage.md docs/local-storage.md docs/editing-modes.md dist/sohjae/
 cp docs/api.md dist/sohjae/API.md
 cp docs/gfm-conformance.md dist/sohjae/gfm-conformance.md
 cp docs/gfm-policy-review.md dist/sohjae/gfm-policy-review.md
