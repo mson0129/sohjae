@@ -31,3 +31,11 @@ The preview has a sticky outline on the right. H1–H6 entries indent by heading
 Sources: `web/app/`. `python3 scripts/build_examples.py` copies the application into `examples/` and resolves SDK/renderer assets relative to the Pages project root. Local development: `http://127.0.0.1:8080/app/` with `scripts/serve.py`; the Pages artifact is `examples/`.
 
 Run `node scripts/check_workspace.mjs` and `node scripts/check_examples.mjs`. Verify actual browser flows for create/rename, recursive deletion/cancellation, dragging between folders, reload restoration, all layouts, H1–H6 outline indentation, outline navigation, and scroll sync on/off in both directions.
+
+## Save and import Markdown files
+
+The sidebar download button, Ctrl/Cmd+S and the editor's Markdown Save command use the current document name. Renaming or switching documents updates the editor filename; `.md` is added only when missing (case-insensitive).
+
+Drop one or more UTF-8 `.md` files anywhere in the browser window to add documents. Dropping on a folder imports into that folder; other locations import at root. The final imported document opens automatically. File names and source text are preserved, and duplicate names create separate documents rather than overwrite existing content. Dropping from the splash opens the workspace first. Non-Markdown attachments dropped directly in the editor retain its normal attachment handling.
+
+Run `node scripts/check_workspace.mjs` for filename and import model checks. `/app/file-import-tests.html` runs isolated browser integration checks with a dedicated temporary LocalStorage key: splash/multiple-file drop, folder-target drop, rename plus Ctrl/Cmd+S/toolbar/sidebar save filename consistency. Existing workspace data is not used by these tests.
