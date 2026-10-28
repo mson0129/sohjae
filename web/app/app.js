@@ -120,3 +120,7 @@ window.addEventListener('drop',async e=>{
 
 function applyAppearance(){document.body.dataset.appearance=data.appearance;document.body.dataset.readingTheme=data.readingTheme;$('#appearance').textContent=data.appearance==='dark'?'☀':'◐';$('#appearance').setAttribute('aria-label',data.appearance==='dark'?'라이트모드 켜기':'다크모드 켜기');$('#appearance').setAttribute('aria-pressed',String(data.appearance==='dark'));$('#reading-theme').value=data.readingTheme;if(editor)editor.container.toggleAttribute('data-dark',data.appearance==='dark');requestAnimationFrame(updateToc);}
 $('#appearance').onclick=()=>{data.appearance=data.appearance==='dark'?'light':'dark';applyAppearance();persist();};$('#reading-theme').onchange=()=>{data.readingTheme=$('#reading-theme').value;applyAppearance();persist();};window.addEventListener('resize',updateToc);applyAppearance();
+
+// Print a semantic copy, independent of editor layout, theme and scroll position.
+window.addEventListener('beforeprint',()=>{capture();const node=active();$('#print-document').innerHTML=renderer&&node?renderer.render(node.markdown):'';});
+window.addEventListener('afterprint',()=>$('#print-document').replaceChildren());

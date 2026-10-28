@@ -60,3 +60,7 @@ The header appearance button switches the whole application and editor between l
 All visible H1–H6 headings highlight together in the outline; headings outside the preview viewport are not highlighted. The same behavior applies in split and reading layouts. Each tab retains view preferences in SessionStorage for its own reload; the workspace also stores defaults for new tabs.
 
 The document library footer controls have been removed. Download is available in each document's right-click/ellipsis menu and via Ctrl/Cmd+S. Dropping a row in blank tree space moves it to root.
+
+## Printing
+
+Browser printing uses `@media print` to output only a semantic copy of the active document. `beforeprint` refreshes that copy from the current source, including edits in full, split, source or reading layouts; `afterprint` clears the temporary copy. The workspace, sidebar, toolbar, outline, notices, dialogs and splash are excluded. Printing does not switch layouts or change source/history. Scroll height limits are removed, tables can repeat their headers, and code wraps to fit the page. All application/reading themes print on white paper with dark text.
