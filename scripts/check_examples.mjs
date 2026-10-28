@@ -31,7 +31,7 @@ for (const name of ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','ed
 }
 console.log('Classic-script quick start and SDK example assets verified.');
 
-for(const name of ['app.js','app.css','store.js'])assert.deepEqual(await readFile(new URL('../examples/'+name,import.meta.url)),await readFile(new URL('../web/app/'+name,import.meta.url)));
+for(const name of ['app.js','app.css','store.js','browser-sync.js'])assert.deepEqual(await readFile(new URL('../examples/'+name,import.meta.url)),await readFile(new URL('../web/app/'+name,import.meta.url)));
 const application=await readFile(new URL('../examples/index.html',import.meta.url),'utf8');
-assert.match(application,/data-editor-base=".\/sohjae_editor\/"/);assert.match(application,/data-renderer-base=".\/sohjae_renderer\/"/);assert.match(application,/id="toc"/);assert.match(application,/id="sync-scroll"/);
+assert.match(application,/data-editor-base=".\/sohjae_collaborator\/"/);assert.match(application,/data-renderer-base=".\/sohjae_renderer\/"/);assert.match(application,/id="toc"/);assert.match(application,/id="sync-scroll"/);
 console.log('Pages workspace and relative SDK assets verified.');

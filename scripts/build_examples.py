@@ -104,7 +104,7 @@ collab_quick=root/'examples'/'sohjae_collaborator'/'quick-start.html'
 collab_quick.write_text(collab_quick.read_text().replace("new Sohjae({ selector: '#editor' });", "new Sohjae({ selector: '#editor', plugins: ['collaboration'] });"))
 
 # The Pages root is the application; module demos retain their existing URLs.
-for asset in ['app.css','app.js','store.js']:
+for asset in ['app.css','app.js','store.js','browser-sync.js']:
     shutil.copyfile(web/'app'/asset,root/'examples'/asset)
-app_html=(web/'app'/'index.html').read_text().replace('data-editor-base="../"','data-editor-base="./sohjae_editor/"').replace('data-renderer-base="../"','data-renderer-base="./sohjae_renderer/"').replace('href="../renderer.css"','href="./sohjae_renderer/renderer.css"')
+app_html=(web/'app'/'index.html').read_text().replace('data-editor-base="../"','data-editor-base="./sohjae_collaborator/"').replace('data-renderer-base="../"','data-renderer-base="./sohjae_renderer/"').replace('href="../renderer.css"','href="./sohjae_renderer/renderer.css"')
 (root/'examples'/'index.html').write_text(app_html)
