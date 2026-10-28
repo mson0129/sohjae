@@ -122,3 +122,5 @@ The detailed reference documents are currently written in Korean.
 ## Optional collaboration and div rendering
 
 Enable collaboration with `new Sohjae({ selector: "#editor", plugins: ["collaboration"] })`. Render Markdown inside a div with `new SeojaeRenderer({ selector: "#preview" })` after loading `sohjae-renderer.js`. See [quick start](docs/quick-start.md) for deployment and connection details.
+
+The document workspace application has moved to [Suhjae](https://github.com/mson0129/suhjae) ([web app](https://mson0129.github.io/suhjae/)). This repository provides the Sohjae SDK and its three module demos.

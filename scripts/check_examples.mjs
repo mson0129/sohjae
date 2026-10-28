@@ -1,7 +1,6 @@
 // Verify committed example artifacts, offline companions, and exclusive ABI boundaries.
 import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 const packagedOnly=process.argv.includes('--packaged-only');
 const binaries=new Map();
 const examples=[['sohjae_renderer',['sohjae_render.wasm']],['sohjae_editor',['sohjae_editor.wasm']],['sohjae_collaborator',['sohjae_editor.wasm','sohjae_collaborator.wasm']]];
@@ -32,22 +31,7 @@ for (const name of ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','ed
 }
 console.log('Classic-script quick start and SDK example assets verified.');
 
-for(const name of ['app.js','app.css','store.js','browser-sync.js','offline.js','export-zip.js'])assert.deepEqual(await readFile(new URL('../examples/'+name,import.meta.url)),await readFile(new URL('../web/app/'+name,import.meta.url)));
-const application=await readFile(new URL('../examples/index.html',import.meta.url),'utf8');
-assert.match(application,/data-editor-base=".\/sohjae_collaborator\/"/);assert.match(application,/data-renderer-base=".\/sohjae_renderer\/"/);assert.match(application,/id="toc"/);assert.match(application,/id="sync-scroll"/);
-console.log('Pages workspace and relative SDK assets verified.');
-
-const worker=await readFile(new URL('../examples/sw.js',import.meta.url),'utf8');
-const encoded=worker.match(/^const ASSETS=(\[.*\]);$/m)[1];
-const assets=JSON.parse(encoded),hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-assert.equal(JSON.parse(worker.match(/^const BUILD=(".*");$/m)[1]),hash(encoded).slice(0,20));
-assert.equal(new Set(assets.map(asset=>asset.url)).size,assets.length);
-for(const asset of assets){
- assert(!asset.url.includes('..')&&!asset.url.includes('://'));
- const path=asset.url==='./'?'index.html':asset.url;
- assert.equal(hash(await readFile(new URL('../examples/'+path,import.meta.url))),asset.sha256,asset.url);
-}
-for(const name of ['sohjae_editor.wasm','sohjae_collaborator.wasm','sohjae_render.wasm'])assert(assets.some(asset=>asset.url.endsWith('/'+name)));
-assert.match(application,/오프라인에서도 사용 가능/);
-assert.match(application,/편집 시작하기/);
-console.log(`Offline manifest: ${assets.length} version-matched app assets verified.`);
+const landing=await readFile(new URL('../examples/index.html',import.meta.url),'utf8');
+for(const [folder] of examples)assert(landing.includes('./'+folder+'/'));
+assert(!landing.includes('id="workspace"'));
+console.log('SDK demo index verified.');

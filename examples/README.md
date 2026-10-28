@@ -43,3 +43,5 @@ example.js와 companion은 scripts/build_examples.py로 생성한다. SDK 수정
 공개 데모: https://mson0129.github.io/sohjae/
 
 `.github/workflows/pages.yml`이 main 푸시 또는 수동 실행 시 예제 자산을 검증하고 `examples/`만 GitHub Pages에 배포한다. Rust 빌드는 배포 단계에서 실행하지 않으므로 SDK 변경 후에는 먼저 예제를 다시 생성해 커밋한다. Pages 배포 소스는 GitHub Actions로 설정한다.
+
+문서함 웹앱은 [서재(Suhjae)](https://mson0129.github.io/suhjae/)로 이전했습니다. Pages 첫 화면은 위 세 모듈 데모를 안내합니다.

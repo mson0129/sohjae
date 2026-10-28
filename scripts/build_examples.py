@@ -2,7 +2,7 @@
 The classic-script bundle is generated, never a second editor implementation.
 """
 from pathlib import Path
-import base64,json,posixpath,re,shutil,hashlib
+import base64,json,posixpath,re,shutil
 root=Path(__file__).resolve().parents[1]
 web=root/'web'
 common="""body{font:15px/1.6 system-ui,sans-serif;color:#242833;background:#f5f7fa;margin:0}main{max-width:1120px;margin:auto;padding:24px}h1{font-size:24px}button,textarea{font:inherit}button{padding:8px 16px;cursor:pointer}#status{min-height:1.6em}#status[data-error]{color:#a32121}.columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}#source{width:100%;height:70vh;box-sizing:border-box;padding:16px;border:1px solid #cbd3df;border-radius:8px}#preview{padding:20px;background:white;min-height:60vh;border:1px solid #cbd3df;border-radius:8px;overflow:auto}@media(max-width:760px){.columns{grid-template-columns:1fr}main{padding:12px}}"""
@@ -103,22 +103,6 @@ for folder_name, assets in [
 collab_quick=root/'examples'/'sohjae_collaborator'/'quick-start.html'
 collab_quick.write_text(collab_quick.read_text().replace("new Sohjae({ selector: '#editor' });", "new Sohjae({ selector: '#editor', plugins: ['collaboration'] });"))
 
-# The Pages root is the application; module demos retain their existing URLs.
-for asset in ['app.css','app.js','store.js','browser-sync.js','offline.js','export-zip.js']:
-    shutil.copyfile(web/'app'/asset,root/'examples'/asset)
-app_html=(web/'app'/'index.html').read_text().replace('data-editor-base="../"','data-editor-base="./sohjae_collaborator/"').replace('data-renderer-base="../"','data-renderer-base="./sohjae_renderer/"').replace('href="../renderer.css"','href="./sohjae_renderer/renderer.css"')
-(root/'examples'/'index.html').write_text(app_html)
-
-# Precache all runtime dependencies, including lazily loaded modules and WASM.
-worker=(web/'app'/'offline-worker.js').read_text()
-editor_assets=['editor.js','editor.css','core.js','clipboard.js','html.js','source-map.js','collab/core.js','collab/editor_core.js','sohjae_editor.wasm','sohjae_collaborator.wasm']
-renderer_assets=['renderer.js','renderer.css','sohjae_render.wasm']
-for destination,editor_prefix,renderer_prefix in [(web/'app','../','../'),(root/'examples','./sohjae_collaborator/','./sohjae_renderer/')]:
-    urls=['./','./index.html','./app.css','./app.js','./store.js','./browser-sync.js','./offline.js','./export-zip.js']+[editor_prefix+name for name in editor_assets]+[renderer_prefix+name for name in renderer_assets]
-    manifest=[]
-    for url in urls:
-        source=(destination/'index.html') if url=='./' else destination/url
-        manifest.append({'url':url,'sha256':hashlib.sha256(source.read_bytes()).hexdigest()})
-    encoded=json.dumps(manifest,separators=(',',':'))
-    build=hashlib.sha256(encoded.encode()).hexdigest()[:20]
-    (destination/'sw.js').write_text(worker.replace("const BUILD='development';",'const BUILD='+json.dumps(build)+';').replace('const ASSETS=[];','const ASSETS='+encoded+';'))
+# Pages now hosts only the SDK demo index and retires the former app cache.
+for name in ['index.html','sw.js']:
+    shutil.copyfile(root/'scripts'/'pages'/name,root/'examples'/name)

@@ -23,8 +23,6 @@ jobs:
       - name: Verify example assets
         run: |
           node scripts/check_examples.mjs --packaged-only
-          node scripts/check_workspace.mjs
-          node scripts/check_browser_sync.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
