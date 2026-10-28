@@ -595,7 +595,10 @@ impl Replica {
                         "",
                     );
                 }
-                return Err(CollabError::ProjectionDraft);
+                // A source edit at a table boundary may create a paragraph
+                // before/after it. Reconcile both regions instead of trapping
+                // otherwise valid text in the table-only draft path.
+                return self.replace_across_tables(&projection, start, end, text);
             }
         }
         self.replace_across_tables(&projection, start, end, text)

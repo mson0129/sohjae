@@ -434,7 +434,137 @@ class RichDOM {
 
 Object.assign(exports,{validate_rich_tables,sanitize_rich,serialize_rich,RichDOM});
 },
+"source-map.js":async(load,exports)=>{
+// UTF-8 source coordinates are authoritative; DOM points are a view projection.
+const {byte_length,byte_slice,byte_to_utf16}=await load("core.js");
+class SourceMap {
+  constructor(editor){this.editor=editor;}
+  semantic_edge(element,position){
+    if(element.closest('[data-revealed],.styled_markdown'))return position;
+    let result=position;
+    for(let node=element.closest('[data-kind]');node&&this.editor.surface.contains(node);node=node.parentElement?.closest('[data-kind]')){
+      if(!['bold','italic','highlight','strikethrough','subscript','superscript','inline_code','link'].includes(node.dataset.kind))continue;
+      const texts=[...node.querySelectorAll('[data-text]')];
+      if(texts.length&&+texts.at(-1).dataset.end===position)result=Math.max(result,+node.dataset.end);
+      if(texts.length&&+texts[0].dataset.start===position)result=Math.min(result,+node.dataset.start);
+    }
+    return result;
+  }
+  dom_to_source(node, offset) {
+    const element = node.nodeType === 1 ? node : node.parentElement;
+    if(!element)return 0;
+    const decoration = element.closest('.break_mark');
+    if (decoration?.nextElementSibling?.matches('br[data-break]')) return Number(decoration.nextElementSibling.dataset.start);
+    const text = element.closest('[data-text]');
+    if (text) {
+      const range = document.createRange(); range.setStart(text, 0); range.setEnd(node, offset);
+      const displayed = text.textContent, before = range.toString();
+      const start = Number(text.dataset.start), end = Number(text.dataset.end), raw = byte_slice(this.editor.state.source, start, end);
+      if (raw === displayed) return this.semantic_edge(element,start+byte_length(before));
+      if (raw.startsWith('\\') && raw.slice(1) === displayed) return this.semantic_edge(element,start+1+byte_length(before));
+      return before.length ? end : start;
+    }
+    // Browsers may put a caret in the literal space between a task input
+    // and its coordinate wrapper instead of in the first label text node.
+    if (node.nodeType === 3 && /^[ \t]*$/u.test(node.textContent) && element.matches('li.list_item')
+        && node.previousSibling?.matches?.('input[data-task]')) {
+      const label = node.nextSibling?.querySelector?.('[data-text]');
+      if (label) return Number(label.dataset.start);
+    }
+    if (node.nodeType === 1) {
+      const previousTask=node.childNodes[offset-1];
+      if(previousTask?.matches?.('input[data-task]')){
+        const label=node.querySelector('[data-text]');
+        if(label)return Number(label.dataset.start);
+        const start=Number(node.dataset.start),raw=byte_slice(this.editor.state.source,start,Number(node.dataset.end));
+        const prefix=raw.match(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+\[[ xX]\][ \t]?/u);
+        if(prefix)return start+byte_length(prefix[0]);
+      }
+      const after = node.childNodes[offset];
+      const target = after?.nodeType === 1 ? (after.matches('[data-text]') ? after : after.querySelector('[data-text]')) : null;
+      if (target) return Number(target.dataset.start);
+      const previous = node.childNodes[offset - 1];
+      if (previous?.nodeType === 1 && previous.matches('[data-break]')) return Number(previous.dataset.end);
+      if (after?.nodeType === 1 && after.matches('[data-break]')) return Number(after.dataset.start);
+      const spans = previous?.nodeType === 1 ? [...previous.querySelectorAll('[data-text]')] : [];
+      if (previous?.nodeType === 1 && previous.matches('[data-text]')) spans.push(previous);
+      if (spans.length) return Number(spans.at(-1).dataset.end);
+    }
+    const owner = element.closest('[data-cell],[data-block]');
+    return Number(owner?.dataset.start || 0);
+  }
+  visual_position(position) {
+    if(position===this.editor.table_entry_caret)return position;
+    if (this.editor.source_view || this.editor.editing_mode() === 'markdown') return position;
+    const gap = [...this.editor.surface.querySelectorAll('[data-gap-start]')].find(block => Number(block.dataset.gapStart) <= position && position <= Number(block.dataset.gapEnd));
+    if (!gap) return position;
+    const next = gap.querySelector('[data-text]');
+    if (next) return Number(next.dataset.start);
+    const previous = [...(gap.previousElementSibling?.querySelectorAll('[data-text]') || [])].at(-1);
+    return previous ? Number(previous.dataset.end) : position;
+  }
+  source_to_dom(position) {
+    position = this.visual_position(position);
+    const separator = [...this.editor.surface.querySelectorAll('.paragraph_separator')].find(block => Number(block.dataset.start) <= position && position <= Number(block.dataset.separatorEnd));
+    if (separator && !separator.hasAttribute('data-gap')) return [separator.firstChild, 0];
+    const line_break = [...this.editor.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset.end) === position);
+    if (line_break) return [line_break.parentNode, [...line_break.parentNode.childNodes].indexOf(line_break) + 1];
+    const exactCell=[...this.editor.surface.querySelectorAll('[data-cell]')].find(cell=>+cell.dataset.start===position&&+cell.dataset.end===position);
+    if(exactCell){const text=exactCell.querySelector('[data-text]');if(!text)return [exactCell,0];}
+    const spans = [...this.editor.surface.querySelectorAll('[data-text]')].filter(span=>!span.classList.contains('markdown_eol'));
+    let nearest;
+    for (const span of spans) {
+      const start = Number(span.dataset.start), end = Number(span.dataset.end);
+      if (start <= position && position <= end) {
+        const raw = byte_slice(this.editor.state.source, start, end), displayed = span.textContent;
+        let offset = position === end ? displayed.length : 0;
+        if (raw === displayed) offset = byte_to_utf16(raw, position - start);
+        else if (raw.startsWith('\\') && raw.slice(1) === displayed) offset = byte_to_utf16(raw, Math.max(1, position - start)) - 1;
+        if (!span.firstChild) span.append(document.createTextNode(''));
+        return [span.firstChild, Math.max(0, offset)];
+      }
+      const distance = Math.min(Math.abs(position - start), Math.abs(position - end));
+      if (!nearest || distance < nearest.distance) nearest = { span, distance, end: position > end };
+    }
+    const cell = [...this.editor.surface.querySelectorAll('[data-cell]')].find(cell => Number(cell.dataset.start) === position && Number(cell.dataset.end) === position);
+    if (cell) return [cell, 0];
+    const empty = [...this.editor.surface.children].find(block => Number(block.dataset.start) === position && Number(block.dataset.end) === position);
+    if (empty) return [empty.firstChild || empty, 0];
+    if (nearest) {
+      if (!nearest.span.firstChild) nearest.span.append(document.createTextNode(''));
+      return [nearest.span.firstChild, nearest.end ? nearest.span.textContent.length : 0];
+    }
+    return [this.editor.surface, 0];
+  }
+  restore_selection() {
+    if (this.editor.html_view) return;
+    const { anchor, focus } = this.editor.selection;
+    if (this.editor.source_view) {
+      this.editor.source_input.setSelectionRange(byte_to_utf16(this.editor.state.source, Math.min(anchor, focus)), byte_to_utf16(this.editor.state.source, Math.max(anchor, focus)), anchor > focus ? 'backward' : 'forward'); return;
+    }
+    const [a_node, a_offset] = this.source_to_dom(anchor), [f_node, f_offset] = this.source_to_dom(focus);
+    this.editor.projected_selection = { source:this.editor.state.source, anchorNode: a_node, anchorOffset: a_offset, focusNode: f_node, focusOffset: f_offset };
+    this.editor.dom_selection()?.setBaseAndExtent(a_node, a_offset, f_node, f_offset);
+  }
+}
+
+// Rebase only a display session after a remote source change. Logical selection
+// is restored by the shared replica's stable anchors, never by this text diff.
+function rebase_source_range(before,after,range){
+  let prefix=0,oldEnd=before.length,newEnd=after.length;
+  while(prefix<Math.min(oldEnd,newEnd)&&before[prefix]===after[prefix])prefix++;
+  if(prefix&&/[\uD800-\uDBFF]/u.test(before[prefix-1]))prefix--;
+  while(oldEnd>prefix&&newEnd>prefix&&before[oldEnd-1]===after[newEnd-1]){oldEnd--;newEnd--;}
+  if(oldEnd<before.length&&/[\uDC00-\uDFFF]/u.test(before[oldEnd])){oldEnd++;newEnd++;}
+  const start=byte_length(before.slice(0,prefix)),end=byte_length(before.slice(0,oldEnd)),length=byte_length(after.slice(prefix,newEnd)),shift=length-(end-start);
+  const map=(position,bias)=>position<start?position:position>end?position+shift:position===end&&end>start?start+length:start+(bias==='after'?length:0);
+  return {...range,start:map(range.start,'before'),end:map(range.end,'after')};
+}
+
+Object.assign(exports,{SourceMap,rebase_source_range});
+},
 "editor.js":async(load,exports)=>{
+const { SourceMap, rebase_source_range }=await load("source-map.js");
 const { pretty_html }=await load("html.js");
 const { load_core, byte_length, byte_slice, utf16_to_byte, byte_to_utf16 }=await load("core.js");
 const { html_to_markdown, safe_url, read_file, file_markdown }=await load("clipboard.js");
@@ -550,6 +680,7 @@ class MarkdownEditor extends EventTarget {
     if (container.shadowRoot?.childNodes.length) throw new Error('Container already has an active shadow root');
     this.root = container.shadowRoot || container.attachShadow({ mode: 'open' });
     this.container = container;
+    this.source_map = new SourceMap(this);
     this.composing = false;
     this.source_view = false;
     this.html_view = false;
@@ -560,7 +691,7 @@ class MarkdownEditor extends EventTarget {
     this.root.innerHTML = `<style>${css}</style><link class="layout_link" rel="stylesheet" disabled>
       <div class="markdown_editor"><header><div class="toolbar" role="toolbar" aria-label="문서 편집 도구"></div>
       <div class="view_bar"><label>편집 방식 <select aria-label="편집 방식"><option value="rich">리치</option><option value="hybrid">하이브리드</option><option value="markdown">마크다운</option></select></label>
-      <button data-view="source" aria-pressed="false">원본</button><button data-view="html" aria-pressed="false">HTML</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state"></span><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
+      <button data-view="source" aria-pressed="false">원본</button><button data-view="html" aria-pressed="false">HTML</button><button data-view="reading" aria-pressed="false">읽기</button><span class="state"></span><button data-draft-commit hidden>정규화 후 초안 공유</button><button data-draft-discard hidden>원본 초안 되돌리기</button></div></header>
       <div class="surface" contenteditable="true" role="textbox" aria-label="Markdown 문서" aria-describedby="editor_help" aria-multiline="true" spellcheck="false"></div>
       <textarea class="source" aria-label="Markdown 원본" aria-describedby="editor_help" spellcheck="false" hidden></textarea>
       <textarea class="source html_output" aria-label="렌더링된 HTML" readonly spellcheck="false" hidden></textarea>
@@ -601,6 +732,7 @@ class MarkdownEditor extends EventTarget {
     this.on(this.toolbar,'focusin',event=>{if(event.target.matches('button'))this.toolbar.querySelectorAll('button').forEach(button=>button.tabIndex=button===event.target?0:-1);});
     this.on(this.toolbar, 'pointerdown' , event => { if (event.target.closest('button')) event.preventDefault(); });
     this.on(this.toolbar, 'click', event => { const command = event.target.closest('[data-command]')?.dataset.command; if (command) this.run(command); });
+    this.on(this.root.querySelector('[data-draft-commit]'),'click',()=>{try{this.commit_pending_draft();}catch(error){this.report(error);}});
     this.on(this.root.querySelector('[data-draft-discard]'), 'click', () => {
       this.discard_pending_draft();
     });
@@ -745,6 +877,7 @@ class MarkdownEditor extends EventTarget {
       this.cancel_table_drag();
       const previous = this.state.source;
       this.state = this.core.snapshot; this.selection = { anchor:this.state.anchor, focus:this.state.focus };
+      if(this.source_edit_session&&previous!==this.state.source)this.source_edit_session=rebase_source_range(previous,this.state.source,this.source_edit_session);
       this.map_dialog_from_sources(previous,this.state.source); this.pairs = []; this.auto_transform = null; this.cell_selection = null;
       this.render(); if(previous!==this.state.source)this.emit_change('remote');
     });
@@ -759,6 +892,15 @@ class MarkdownEditor extends EventTarget {
   }
   get_selection() { this.assert_active(); return { ...this.selection, revision: this.state.revision }; }
   get_pending_draft() { this.assert_active(); return this.rich_pending_draft ?? this.core.draft?.source ?? null; }
+  commit_pending_draft() {
+    this.assert_active();if(this.options.read_only||this.reading||this.composing)throw new Error('편집 가능한 상태에서 초안을 공유해 주세요.');
+    const previous=this.state.source;
+    if(!this.core.commit_draft?.())return false;
+    this.state=this.core.snapshot;this.selection={anchor:this.state.anchor,focus:this.state.focus};this.pairs=[];
+    this.map_dialog_from_sources(previous,this.state.source);
+    if(this.source_edit_session)this.source_edit_session=rebase_source_range(previous,this.state.source,this.source_edit_session);
+    this.render();this.emit_change();return true;
+  }
   discard_pending_draft() {
     this.assert_active();
     if(this.rich_pending_draft!=null){const draft=this.rich_pending_draft;this.rich_pending_draft=null;return draft;}
@@ -992,6 +1134,7 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('[data-view="reading"]').setAttribute('aria-pressed', String(this.reading));
     this.root.querySelector('.state').textContent = this.options.read_only ? '읽기 전용' : this.state.draft_conflict ? '원격 변경 도착 · 공유되지 않은 원본 초안' : this.state.draft ? '표 문법 편집 중 · 아직 공유되지 않음' : this.state.dirty ? '수정됨' : '저장됨';
     this.root.querySelector('[data-draft-discard]').hidden = !this.state.draft;
+    const commit=this.root.querySelector('[data-draft-commit]');commit.hidden=!this.state.draft;commit.disabled=!!this.state.draft_conflict||this.options.read_only||this.reading||this.composing;
     this.toolbar.querySelectorAll('button').forEach(button => {
       const command = button.dataset.command;
       button.disabled = ((this.options.read_only || this.reading || this.html_view) && !['copy_markdown', 'save', 'save_local', 'save_session', 'clear_session', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
@@ -1065,25 +1208,8 @@ class MarkdownEditor extends EventTarget {
     const reveal = [...this.surface.querySelectorAll('[data-kind]')].filter(element => this.should_reveal(element.dataset.kind) && focus >= Number(element.dataset.start) && focus <= Number(element.dataset.end));
     // Restore only if the active syntax region changed; never rebuild on caret movement inside it.
     let desired = reveal.find(element => !reveal.some(other => other !== element && other.contains(element)));
-    if(desired&&!desired.dataset.revealed){
-      const end=+desired.dataset.end;
-    const lastText=[...desired.querySelectorAll('[data-text]')].at(-1);
-    if(this.selection.anchor===focus&&lastText&&+lastText.dataset.end===focus&&focus<end
-        &&['bold','italic','highlight','strikethrough','subscript','superscript','inline_code','link'].includes(desired.dataset.kind)){
-      // Entry from the rendered right edge lands after the revealed closing syntax.
-      // Only snap on the reveal transition; subsequent source navigation is literal.
-      this.selection={anchor:end,focus:end};
-      this.state=this.core.request(4,'',end,end);
-    }
-    }
-    // Live Preview edits an active text block as source, not a changing inline
-    // fragment. Configured rich-only constructs keep their existing projection.
-    const owner=[...this.surface.querySelectorAll('section[data-block]')].find(node=>+node.dataset.start<=focus&&focus<=+node.dataset.end);
-    const content=owner?.firstElementChild;
-    if(content&&content.matches('p,h1,h2,h3,h4,h5,h6')&&this.should_reveal(content.dataset.kind||'paragraph')
-        &&![...content.querySelectorAll('[data-kind]')].some(node=>!this.should_reveal(node.dataset.kind))){
-      content.dataset.kind=content.dataset.kind||'paragraph';content.dataset.start=owner.dataset.start;content.dataset.end=owner.dataset.end;desired=content;
-    }
+    // Inline syntax reveals only the approached element. Structural containers
+    // (lists, tables, fenced code) retain their complete source projection.
     // Lists reveal as a complete container, including nested items and inline syntax.
     if(this.should_reveal('list')){
       const item=reveal.find(element=>element.dataset.kind==='list');
@@ -1102,6 +1228,18 @@ class MarkdownEditor extends EventTarget {
       if(block&&session.kind==='list'){
         let list=block.closest('ul,ol');
         if(list){while(list.parentElement.closest('ul,ol'))list=list.parentElement.closest('ul,ol');block=list;}
+      }
+      if(!block&&['bold','italic','strikethrough','highlight','subscript','superscript','inline_code','link'].includes(session.kind)){
+        // A broken delimiter remains a local source island, not a whole paragraph.
+        const [from,fromOffset]=this.source_to_dom(session.start),[to,toOffset]=this.source_to_dom(session.end);
+        if(from&&to){
+          const range=document.createRange();range.setStart(from,fromOffset);range.setEnd(to,toOffset);
+          block=document.createElement('span');block.dataset.kind=session.kind;
+          range.deleteContents();range.insertNode(block);
+          // Range extraction can leave empty coordinate wrappers at its edges.
+          // They must not win source_to_dom over the new editable island.
+          for(const span of this.surface.querySelectorAll('[data-text]'))if(!span.textContent&&+span.dataset.start<+span.dataset.end&&!span.querySelector('br,img,input'))span.remove();
+        }
       }
       if(!block){
         const owner=[...this.surface.querySelectorAll('section[data-block]')].find(node=>+node.dataset.start<=session.start&&session.start<=+node.dataset.end);
@@ -1142,7 +1280,7 @@ class MarkdownEditor extends EventTarget {
       const selection = this.dom_selection();
       if (!selection?.anchorNode || !this.surface.contains(selection.anchorNode) || !this.surface.contains(selection.focusNode)) return;
       const projected = this.projected_selection;
-      if (projected && selection.anchorNode === projected.anchorNode && selection.anchorOffset === projected.anchorOffset && selection.focusNode === projected.focusNode && selection.focusOffset === projected.focusOffset) return;
+      if (projected && projected.source===this.state.source && selection.anchorNode === projected.anchorNode && selection.anchorOffset === projected.anchorOffset && selection.focusNode === projected.focusNode && selection.focusOffset === projected.focusOffset) return;
       this.projected_selection = null;
       this.selection = { anchor: this.dom_to_source(selection.anchorNode, selection.anchorOffset), focus: this.dom_to_source(selection.focusNode, selection.focusOffset) };
     }
@@ -1153,97 +1291,10 @@ class MarkdownEditor extends EventTarget {
     if (this.options.mode==='markdown') return false;
     return node?.nodeType === 1 && (node === this.surface || node.matches('section[data-block]'));
   }
-  dom_to_source(node, offset) {
-    const element = node.nodeType === 1 ? node : node.parentElement;
-    const decoration = element.closest('.break_mark');
-    if (decoration?.nextElementSibling?.matches('br[data-break]')) return Number(decoration.nextElementSibling.dataset.start);
-    const text = element.closest('[data-text]');
-    if (text) {
-      const range = document.createRange(); range.setStart(text, 0); range.setEnd(node, offset);
-      const displayed = text.textContent, before = range.toString();
-      const start = Number(text.dataset.start), end = Number(text.dataset.end), raw = byte_slice(this.state.source, start, end);
-      if (raw === displayed) return start + byte_length(before);
-      if (raw.startsWith('\\') && raw.slice(1) === displayed) return start + 1 + byte_length(before);
-      return before.length ? end : start;
-    }
-    // Browsers may put a caret in the literal space between a task input
-    // and its coordinate wrapper instead of in the first label text node.
-    if (node.nodeType === 3 && /^[ \t]*$/u.test(node.textContent) && element.matches('li.list_item')
-        && node.previousSibling?.matches?.('input[data-task]')) {
-      const label = node.nextSibling?.querySelector?.('[data-text]');
-      if (label) return Number(label.dataset.start);
-    }
-    if (node.nodeType === 1) {
-      const after = node.childNodes[offset];
-      const target = after?.nodeType === 1 ? (after.matches('[data-text]') ? after : after.querySelector('[data-text]')) : null;
-      if (target) return Number(target.dataset.start);
-      const previous = node.childNodes[offset - 1];
-      if (previous?.nodeType === 1 && previous.matches('[data-break]')) return Number(previous.dataset.end);
-      if (after?.nodeType === 1 && after.matches('[data-break]')) return Number(after.dataset.start);
-      const spans = previous?.nodeType === 1 ? [...previous.querySelectorAll('[data-text]')] : [];
-      if (previous?.nodeType === 1 && previous.matches('[data-text]')) spans.push(previous);
-      if (spans.length) return Number(spans.at(-1).dataset.end);
-    }
-    const owner = element.closest('[data-cell],[data-block]');
-    return Number(owner?.dataset.start || 0);
-  }
-  visual_position(position) {
-    if(position===this.table_entry_caret)return position;
-    if (this.source_view || this.editing_mode() === 'markdown') return position;
-    const gap = [...this.surface.querySelectorAll('[data-gap-start]')].find(block => Number(block.dataset.gapStart) <= position && position <= Number(block.dataset.gapEnd));
-    if (!gap) return position;
-    const next = gap.querySelector('[data-text]');
-    if (next) return Number(next.dataset.start);
-    const previous = [...(gap.previousElementSibling?.querySelectorAll('[data-text]') || [])].at(-1);
-    return previous ? Number(previous.dataset.end) : position;
-  }
-  source_to_dom(position) {
-    position = this.visual_position(position);
-    const separator = [...this.surface.querySelectorAll('.paragraph_separator')].find(block => Number(block.dataset.start) <= position && position <= Number(block.dataset.separatorEnd));
-    if (separator && !separator.hasAttribute('data-gap')) return [separator.firstChild, 0];
-    const line_break = [...this.surface.querySelectorAll('br[data-break]')].find(br => Number(br.dataset.end) === position);
-    if (line_break) return [line_break.parentNode, [...line_break.parentNode.childNodes].indexOf(line_break) + 1];
-    const spans = [...this.surface.querySelectorAll('[data-text]')].filter(span=>!span.classList.contains('markdown_eol'));
-    let nearest;
-    for (const span of spans) {
-      const start = Number(span.dataset.start), end = Number(span.dataset.end);
-      if (start <= position && position <= end) {
-        const raw = byte_slice(this.state.source, start, end), displayed = span.textContent;
-        let offset = position === end ? displayed.length : 0;
-        if (raw === displayed) offset = byte_to_utf16(raw, position - start);
-        else if (raw.startsWith('\\') && raw.slice(1) === displayed) offset = byte_to_utf16(raw, Math.max(1, position - start)) - 1;
-        if (!span.firstChild) span.append(document.createTextNode(''));
-        return [span.firstChild, Math.max(0, offset)];
-      }
-      const distance = Math.min(Math.abs(position - start), Math.abs(position - end));
-      if (!nearest || distance < nearest.distance) nearest = { span, distance, end: position > end };
-    }
-    const cell = [...this.surface.querySelectorAll('[data-cell]')].find(cell => Number(cell.dataset.start) === position && Number(cell.dataset.end) === position);
-    if (cell) return [cell, 0];
-    const empty = [...this.surface.children].find(block => Number(block.dataset.start) === position && Number(block.dataset.end) === position);
-    if (empty) return [empty.firstChild || empty, 0];
-    if (nearest) {
-      if (!nearest.span.firstChild) nearest.span.append(document.createTextNode(''));
-      return [nearest.span.firstChild, nearest.end ? nearest.span.textContent.length : 0];
-    }
-    return [this.surface, 0];
-  }
-  restore_selection() {
-    if (this.html_view) return;
-    if (this.selection.anchor === this.selection.focus) {
-      const position = this.visual_position(this.selection.focus);
-      if (position !== this.selection.focus) {
-        this.selection = {anchor:position,focus:position}; this.state = this.core.request(4, '', position, position);
-      }
-    }
-    const { anchor, focus } = this.selection;
-    if (this.source_view) {
-      this.source_input.setSelectionRange(byte_to_utf16(this.state.source, Math.min(anchor, focus)), byte_to_utf16(this.state.source, Math.max(anchor, focus)), anchor > focus ? 'backward' : 'forward'); return;
-    }
-    const [a_node, a_offset] = this.source_to_dom(anchor), [f_node, f_offset] = this.source_to_dom(focus);
-    this.projected_selection = { anchorNode: a_node, anchorOffset: a_offset, focusNode: f_node, focusOffset: f_offset };
-    this.dom_selection()?.setBaseAndExtent(a_node, a_offset, f_node, f_offset);
-  }
+  dom_to_source(node,offset) { return this.source_map.dom_to_source(node,offset); }
+  visual_position(position) { return this.source_map.visual_position(position); }
+  source_to_dom(position) { return this.source_map.source_to_dom(position); }
+  restore_selection() { return this.source_map.restore_selection(); }
   sync_accessibility() {
     this.surface.setAttribute('role',this.reading?'document':'textbox');
     if(this.reading){this.surface.removeAttribute('aria-readonly');this.surface.removeAttribute('aria-multiline');}
@@ -1267,7 +1318,11 @@ class MarkdownEditor extends EventTarget {
     if(this.options.mode==='rich')return 'rich';
     const {anchor,focus}=this.selection;
     const revealed=[...this.surface.querySelectorAll('[data-revealed]')].some(node=>+node.dataset.start<=Math.min(anchor,focus)&&Math.max(anchor,focus)<=+node.dataset.end);
-    return revealed?'markdown':'rich';
+    if(revealed)return 'markdown';
+    // Plain paragraphs need no source decoration; retain literal typing policy.
+    const paragraph=[...this.surface.querySelectorAll('section[data-block] > p')].find(node=>+node.parentElement.dataset.start<=Math.min(anchor,focus)&&Math.max(anchor,focus)<=+node.parentElement.dataset.end);
+    if(paragraph&&!paragraph.querySelector('[data-kind]')&&this.should_reveal('paragraph'))return 'markdown';
+    return 'rich';
   }
   begin_source_session(start,end) {
     if(this.pending_source_exit)return;
@@ -1326,6 +1381,7 @@ class MarkdownEditor extends EventTarget {
       if (this.selection.anchor !== this.selection.focus) return this.replace('');
       const backwards = !event.inputType.includes('Forward');
       if(this.editing_mode()==='markdown')return this.source_delete(event.inputType);
+      if(this.rich_delete_guard(backwards))return;
       if (this.editing_mode() !== 'markdown') {
         const boundary = backwards ? 'end' : 'start';
         const edge = this.inline_edge(this.selection.focus, backwards);
@@ -1363,9 +1419,44 @@ class MarkdownEditor extends EventTarget {
     if (!/^(?:[ \t]*\n)+$/u.test(byte_slice(this.state.source, start, end))) return false;
     this.replace('', start, end, start); return true;
   }
+  rich_delete_guard(backwards) {
+    const at=this.selection.focus,markup=this.editing_markup();
+    for(const input of markup.querySelectorAll('[data-task]')){
+      const item=input.closest('li'),start=+item.dataset.start,raw=byte_slice(this.state.source,start,+item.dataset.end);
+      const match=raw.match(/^(?:[ \t]*)(?:[-+*]|\d+[.)])[ \t]+(\[[ xX]\])([ \t]?)/u);
+      if(!match)continue;
+      const marker=start+byte_length(match[0])-byte_length(match[1]+match[2]),end=marker+byte_length(match[1]+match[2]);
+      if(backwards&&at>=marker+3&&at<=end || !backwards&&at===marker){this.replace('',marker,end,marker);return true;}
+    }
+    const sections=[...markup.querySelectorAll('section[data-block]')];
+    const target=sections.find(section=>{
+      const block=section.firstElementChild;if(!block||block.matches('p,h1,h2,h3,h4,h5,h6'))return false;
+      const edge=+(backwards?section.dataset.end:section.dataset.start);
+      return backwards?edge<=at&&/^[ \t\n]*$/u.test(byte_slice(this.state.source,edge,at)):edge>=at&&/^[ \t\n]*$/u.test(byte_slice(this.state.source,at,edge));
+    });
+    if(!target)return false;
+    const start=+target.dataset.start,end=+target.dataset.end,source=this.state.source;
+    this.show_dialog('블록 삭제', '<p>이 블록을 삭제하시겠습니까?</p>',()=>{
+      if(this.state.source!==source){this.report(new Error('문서가 변경되었습니다. 삭제할 블록을 다시 확인해 주세요.'));return;}
+      this.replace('',start,end,start);this.focus();
+    });
+    this.dialog.querySelector('[value="apply"]').textContent='예';return true;
+  }
+  move_inline_character(key) {
+    if(this.editing_mode()!=='rich')return false;
+    const backwards=key==='ArrowLeft',at=this.selection.focus,markup=this.editing_markup();
+    const inline=[...markup.querySelectorAll('[data-kind]')].filter(node=>['bold','italic','strikethrough','highlight','subscript','superscript','inline_code','link'].includes(node.dataset.kind));
+    const edge=inline.find(node=>+(backwards?node.dataset.end:node.dataset.start)===at);
+    if(!edge)return false;
+    const spans=[...edge.querySelectorAll('[data-text]')],span=backwards?spans.at(-1):spans[0];if(!span)return false;
+    const raw=byte_slice(this.state.source,+span.dataset.start,+span.dataset.end);
+    const range=grapheme_range(raw,backwards?byte_length(raw):0,backwards);
+    this.set_selection(+span.dataset.start+range[backwards?0:1]);return true;
+  }
   delete_displayed_character(backwards) {
-    const caret = this.text_caret();
-    if (!caret) return false;
+    let caret = this.text_caret();
+    if(!caret){const [node]=this.source_to_dom(this.selection.focus),element=node.nodeType===1?node:node.parentElement,block=element?.closest('li,td,th,pre,blockquote');if(block){const spans=[...block.querySelectorAll('[data-text]')];caret={block,spans,at_start:false,at_end:false};}}
+    if (!caret) return true;
     // A rendered block edge cannot delete hidden Markdown punctuation.
     if (backwards ? caret.at_start : caret.at_end) return true;
     const position = this.selection.focus;
@@ -1627,17 +1718,40 @@ class MarkdownEditor extends EventTarget {
     this.set_selection(Number(target.dataset[key === 'ArrowRight' ? 'start' : 'end']));
     this.refresh_syntax(); return true;
   }
+  move_visual_line_edge(event) {
+    if (!['Home','End'].includes(event.key) || event.ctrlKey || event.metaKey || event.altKey || this.html_view) return false;
+    const forward=event.key==='End';
+    if(this.source_view){
+      const input=this.source_input,focus=input.selectionDirection==='backward'?input.selectionStart:input.selectionEnd;
+      const target=forward?input.value.indexOf('\n',focus):input.value.lastIndexOf('\n',focus-1)+1;
+      const end=target<0?input.value.length:target;
+      const anchor=event.shiftKey?(input.selectionDirection==='backward'?input.selectionEnd:input.selectionStart):end;
+      input.setSelectionRange(Math.min(anchor,end),Math.max(anchor,end),end<anchor?'backward':'forward');
+    }else{
+      const selection=this.dom_selection();
+      if(!selection?.focusNode||!this.surface.contains(selection.focusNode))return false;
+      if(typeof selection.modify==='function')selection.modify(event.shiftKey?'extend':'move',forward?'forward':'backward','lineboundary');
+      else{
+        const line=this.line_range(),target=forward?line.start+byte_length(line.text):line.start;
+        this.set_selection(event.shiftKey?this.selection.anchor:target,target);
+      }
+    }
+    event.preventDefault();this.capture_selection();this.refresh_syntax();return true;
+  }
   keydown(event) {
     if (/^(Arrow|Home|End|Page|Escape)/u.test(event.key)) this.typing_group=null;
     if (event.isComposing || this.composing) return;
     this.capture_selection();
+    if(this.move_visual_line_edge(event))return;
     const modifier = event.ctrlKey || event.metaKey;
     const digit=event.code?.match(/^Digit([0-9])$/u)?.[1]||(/^[0-9]$/u.test(event.key)?event.key:null);
     if(modifier&&event.altKey&&!event.shiftKey&&digit!==null){
       event.preventDefault();const target=({0:'p',7:'pre',8:'blockquote',9:'details'})[digit]||'h'+digit;
       try{this.convert_current_block(target);}catch(error){this.report(error);}return;
     }
-    const key = `${modifier ? 'mod+' : ''}${event.shiftKey ? 'shift+' : ''}${event.altKey ? 'alt+' : ''}${event.key.toLowerCase()}`;
+    // Formatting shortcuts use physical B/I keys even with a Korean input source.
+    const shortcutKey=modifier&&!event.altKey&&['KeyB','KeyI'].includes(event.code)?event.code.slice(3).toLowerCase():event.key.toLowerCase();
+    const key = `${modifier ? 'mod+' : ''}${event.shiftKey ? 'shift+' : ''}${event.altKey ? 'alt+' : ''}${shortcutKey}`;
     const bindings = { 'mod+b': 'bold', 'mod+i': 'italic', 'mod+k': 'link', 'mod+z': 'undo', 'mod+shift+z': 'redo', 'mod+y': 'redo',
       'mod+shift+c': 'copy_markdown', 'mod+s': 'save', 'mod+shift+u': 'unlink', 'mod+shift+x': 'strikethrough',
       ...Object.fromEntries(Array.from({ length: 6 }, (_, i) => [`mod+alt+${i + 1}`, `heading_${i + 1}`])),
@@ -1656,7 +1770,7 @@ class MarkdownEditor extends EventTarget {
       else if (this.active_cell()) { event.preventDefault(); this.move_cell(event.shiftKey ? -1 : 1); }
       else if (/^\s*(?:[-+*]|\d+[.)]) /u.test(this.line_range().text)) { event.preventDefault(); this.run(event.shiftKey ? 'outdent' : 'indent'); }
     }
-    if (!event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
+    if (!event.shiftKey && !modifier && !event.altKey && ['ArrowLeft','ArrowRight'].includes(event.key) && (this.move_inline_character(event.key) || this.move_line_break(event.key) || this.move_block_boundary(event.key))) { event.preventDefault(); return; }
     // Rich and hybrid share source-coordinate table navigation.
     if (!this.source_view && this.editing_mode()==='rich' && !event.shiftKey && !modifier && event.key.startsWith('Arrow')) this.cell_arrow(event);
   }
@@ -1795,6 +1909,7 @@ class MarkdownEditor extends EventTarget {
     if (this.dialog_range) this.dialog_range = { start: map(this.dialog_range.start), end: map(this.dialog_range.end) };
   }
   show_dialog(title, fields, callback) {
+    this.dialog.querySelector('[value="apply"]').textContent='적용';
     this.dialog_selection = { ...this.selection }; this.dialog_scroll = this.surface.scrollTop; this.dialog_range = null;
     this.dialog.querySelector('h2').textContent = title;
     this.dialog.querySelector('.fields').innerHTML = fields;
@@ -2203,7 +2318,7 @@ class CollaborativeReplica extends EventTarget {
   get snapshot() { return this._snapshot; }
   request(op, bytes = new Uint8Array(), start = 0, end = start) {
     if (op !== 0 && !this.handle) throw new CollaborationError('Destroyed', 'Replica is destroyed');
-    if (this.notifying && ![4, 16, 17, 18, 22, 23, 24].includes(op)) throw new CollaborationError('ReentrantCall', 'Schedule replica mutations after event delivery');
+    if (this.notifying && ![4, 16, 17, 18, 22, 23, 24, 33].includes(op)) throw new CollaborationError('ReentrantCall', 'Schedule replica mutations after event delivery');
     binary(bytes); u32(start); u32(end);
     const pointer = this.exports.collab_reserve_input(bytes.length);
     if (!pointer) throw new RangeError('Input exceeds 16 MiB');
@@ -2212,7 +2327,7 @@ class CollaborativeReplica extends EventTarget {
     const output = new Uint8Array(this.exports.memory.buffer, this.exports.collab_output_pointer(), this.exports.collab_output_length()).slice();
     if (status) { const message = decoder.decode(output); throw new CollaborationError(message.match(/^[A-Za-z]+/u)?.[0] || 'InvalidEncoding', `Collaboration core: ${message}`); }
     if (op === 1) { this.handle = 0; return; }
-    if ([4, 16, 17, 18, 22, 23, 24, 32].includes(op)) return output;
+    if ([4, 16, 17, 18, 22, 23, 24, 32, 33].includes(op)) return output;
     const view = new DataView(output.buffer), json_length = view.getUint32(0, true);
     const state = JSON.parse(decoder.decode(output.subarray(4, 4 + json_length)));
     const length = view.getUint32(4 + json_length, true), update = output.slice(8 + json_length);
@@ -2259,6 +2374,10 @@ class CollaborativeReplica extends EventTarget {
   resolve_anchor(anchor) { const bytes = this.request(17, binary(anchor)); return new DataView(bytes.buffer).getUint32(0, true); }
   merge(bytes) { return this.request(3, bytes); }
   export_state() { return this.request(4); }
+  preview_replace_markdown(start,end,text) {
+    try{return decoder.decode(this.request(33,text_bytes(text),start,end));}
+    catch(error){if(error.code==='InvalidOperation')throw new CollaborationError('UnsupportedFeature','Atomic source preview requires matching JS and WASM builds');throw error;}
+  }
   undo() { return this.request(6); }
   redo() { return this.request(7); }
   create_table(offset, rows = 2, columns = 2) { return this.request(8, concat(u32(rows), u32(columns)), offset); }
@@ -2280,7 +2399,8 @@ Object.assign(exports,{COLLABORATION_PROFILE,CollaborationError,new_identity,cre
 "collab/editor_core.js":async(load,exports)=>{
 // Adapts the shared document to the existing rich/source editor protocol.
 // The v1 core is used solely as a local parser/normalizer and DOM projection.
-const { load_core, byte_length, byte_slice }=await load("core.js");
+const { load_core, byte_length, byte_slice, byte_to_utf16 }=await load("core.js");
+const { rebase_source_range }=await load("source-map.js");
 const { CollaborativeReplica }=await load("collab/core.js");
 function diff(old_text, text) {
   let start = 0, end = old_text.length, to = text.length;
@@ -2300,7 +2420,7 @@ async function create_editor_core(replica, options = {}) {
 class SharedEditorCore extends EventTarget {
   constructor(replica, renderer) {
     super(); this.replica = replica; this.renderer = renderer; this.revision = 0n;
-    this.selection = {anchor:0,focus:0}; this.saved = replica.snapshot.markdown; this.busy = false; this.draft = null; this.composition = null; this.undo_selections=[]; this.redo_selections=[];
+    this.selection = {anchor:0,focus:0}; this.saved = replica.snapshot.markdown; this.busy = false; this.draft = null; this.draft_redo=[]; this.composition = null; this.undo_selections=[]; this.redo_selections=[];
     this.listener = event => {
       if (this.busy) return;
       if(event.detail.origin === 'local'){this.undo_selections=[];this.redo_selections=[];}
@@ -2329,7 +2449,7 @@ class SharedEditorCore extends EventTarget {
     };
     this.selection = {anchor:boundary(this.selection.anchor),focus:boundary(this.selection.focus)};
     this.snapshot = {...this.renderer.snapshot, ...this.selection, source, revision:this.revision,
-      can_undo:!!this.draft || this.replica.snapshot.can_undo, can_redo:!!this.format_redo || this.replica.snapshot.can_redo,
+      can_undo:!!this.draft || this.replica.snapshot.can_undo, can_redo:!!this.draft_redo.length || !!this.format_redo || this.replica.snapshot.can_redo,
       dirty:source !== this.saved, draft:!!this.draft, draft_conflict:!!this.draft && this.draft.version !== this.replica.snapshot.operation_count};
     return this.snapshot;
   }
@@ -2340,9 +2460,12 @@ class SharedEditorCore extends EventTarget {
   mutate(callback) { this.busy = true; try { return callback(); } finally { this.busy = false; } }
   replace(start,end,text) {
     const before_selection=this.bookmark_pair(),before_count=this.replica.snapshot.operation_count;
-    const before = this.snapshot.source;
+    const before = this.snapshot.source,before_caret={...this.selection};
+    byte_to_utf16(before,start);byte_to_utf16(before,end);if(start>end)throw new RangeError('Invalid source range');
+    const literal=this.source_mode||!!this.draft;
     const source = byte_slice(before,0,start) + text + byte_slice(before,end);
     if (source === before) return this.snapshot;
+    this.draft_redo=[];
     let caret;
     let caret_start=start;
     if(!this.source_mode&&!this.draft){
@@ -2352,24 +2475,23 @@ class SharedEditorCore extends EventTarget {
     try { caret = this.replica.projected_anchor(caret_start,'after'); } catch { /* source delimiters may be a local draft */ }
     try {
       if (this.draft?.version !== undefined && this.draft.version !== this.replica.snapshot.operation_count) throw new Error('ProjectionDraft');
-      const previous_steps=this.draft?.steps||[];
       const args = this.draft ? diff(this.draft.base,source) : [start,end,text];
+      if(literal){
+        // Normalization is a commit boundary, not a replacement for what is being
+        // typed. An inexact projection stays local until a complete source edit
+        // can be shared without rewriting the user's source or cursor.
+        if(this.replica.preview_replace_markdown(...args)!==source)throw new Error('ProjectionDraft');
+      }
       this.mutate(() => (this.source_mode||this.draft ? this.replica.replace_markdown(...args) : this.replica.replace_projected_text(...args))); this.draft = null;
       // Literal source edits place the caret after the inserted source bytes.
       // A projected anchor at EOF can resolve before a newly inserted newline.
-      const offset = this.source_mode ? Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown))
+      const offset = literal ? Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown))
         : caret ? this.replica.resolve_projected_anchor(caret) : Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown));
       this.selection = {anchor:offset,focus:offset};
-      // A valid table may normalize a deleted optional pipe straight back in.
-      // Source editing must retain the user's exact spelling as a local draft.
-      if(this.source_mode&&source!==this.replica.snapshot.markdown){
-        this.draft={base:this.replica.snapshot.markdown,source,version:this.replica.snapshot.operation_count,steps:this.replica.snapshot.operation_count===before_count?[...previous_steps,before]:[]};
-        this.selection={anchor:start+byte_length(text),focus:start+byte_length(text)};
-      }
     } catch(error) {
       if (!error.message.includes('ProjectionDraft')) throw error;
       this.draft ??= {base:this.replica.snapshot.markdown,source:before,version:this.replica.snapshot.operation_count,steps:[]};
-      this.draft.steps.push(this.draft.source); this.draft.source = source;
+      this.draft.steps.push(this.draft.source);(this.draft.carets??=[]).push(before_caret); this.draft.source = source;
       this.selection = {anchor:start+byte_length(text),focus:start+byte_length(text)};
     }
     this.refresh(); this.remember(); if(this.replica.snapshot.operation_count!==before_count)this.record_selection(before_selection); return this.snapshot;
@@ -2394,8 +2516,15 @@ class SharedEditorCore extends EventTarget {
     }
     if (op === 5 || op === 6) {
       let history;
-      if (this.draft) {
-        if (op === 5) { this.draft.source = this.draft.steps.pop() ?? this.draft.base; if (this.draft.source === this.draft.base) this.draft = null; }
+      if(op===6&&this.draft_redo.length){
+        const next=this.draft_redo.pop();this.draft=next.draft;this.selection=next.selection;
+      } else if (this.draft) {
+        if (op === 5) {
+          this.draft_redo.push({draft:{...this.draft,steps:[...this.draft.steps],carets:[...(this.draft.carets||[])]},selection:{...this.selection}});
+          this.draft.source = this.draft.steps.pop() ?? this.draft.base;
+          this.selection=this.draft.carets?.pop()||{anchor:0,focus:0};
+          if (this.draft.source === this.draft.base) this.draft = null;
+        }
       } else {
         const undo=op===5||this.format_redo;
         history=(undo?this.undo_selections:this.redo_selections).pop();
@@ -2403,12 +2532,25 @@ class SharedEditorCore extends EventTarget {
         if(history){this.restore_pair(undo?history.before:history.after);(undo?this.redo_selections:this.undo_selections).push(history);}
         this.format_redo = null;
       }
-      this.refresh(!history); this.remember(); return this.snapshot;
+      this.refresh(false); this.remember(); return this.snapshot;
     }
     throw new Error(`Unsupported shared editor request ${op}`);
   }
   refresh_selection() { this.snapshot = {...this.snapshot,...this.selection}; }
-  discard_draft() { const source = this.draft?.source; this.draft = null; this.refresh(true); this.remember(); return source; }
+  commit_draft() {
+    if(!this.draft)return false;
+    if(this.draft.version!==this.replica.snapshot.operation_count)throw new Error('원격 변경과 충돌한 초안은 자동 공유할 수 없습니다. 임시 저장한 뒤 원문을 비교해 주세요.');
+    const draft=this.draft,before=this.bookmark_pair(),selection={...this.selection},before_count=this.replica.snapshot.operation_count;
+    const args=diff(draft.base,draft.source);
+    // Explicit normalization is a single shared transaction with native undo.
+    const normalized=this.replica.preview_replace_markdown(...args);
+    this.mutate(()=>this.replica.replace_markdown(...args));
+    this.draft=null;this.draft_redo=[];
+    const map=position=>rebase_source_range(draft.source,normalized,{start:position,end:position}).end;
+    this.selection={anchor:map(selection.anchor),focus:map(selection.focus)};
+    this.refresh();this.remember();if(this.replica.snapshot.operation_count!==before_count)this.record_selection(before);return true;
+  }
+  discard_draft() { const source = this.draft?.source; this.draft = null;this.draft_redo=[]; this.refresh(true); this.remember(); return source; }
   begin_composition(start,end) {
     const before=this.bookmark_pair();
     try {

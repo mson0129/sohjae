@@ -1,0 +1,7 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>편집 안정성 실검증</title>
+<style>body{font:15px/1.5 system-ui;color:#24344c;margin:20px;background:#f6f8fb}button,select{font:inherit;padding:8px;margin:4px}main{display:grid;grid-template-columns:1fr 1fr;gap:16px}main>div{min-width:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;background:#fff;border:1px solid #ddd}h1{font-size:24px}@media(max-width:900px){main{grid-template-columns:1fr}}</style>
+<h1>편집 안정성 실검증</h1><p>키보드·마우스로 직접 편집합니다. 원문 좌표, 표시 좌표와 공유 결과를 아래에서 확인하세요. 각 예제를 선택하면 새 검증 문서를 만듭니다.</p>
+<label>예제 <select id="case"><option value="inline">인라인 서식</option><option value="unicode">한글·이모지·문자 참조</option><option value="list">체크 목록</option><option value="table">표와 빈 줄</option><option value="paragraph">문단 경계</option></select></label>
+<label>편집 방식 <select id="mode"><option value="hybrid">하이브리드</option><option value="markdown">마크다운</option><option value="rich">리치</option></select></label>
+<button id="render">같은 상태로 화면 5회 복원</button><button id="remote">상대가 맨 앞에 원격😀 삽입</button>
+<p id="status" role="status">준비 중</p><main><div><h2>사용자 1</h2><div id="editor"></div></div><div><h2>사용자 2 · 공유 원문</h2><div id="peer"></div></div></main><h2>현재 원문·선택·공유 상태</h2><pre id="diagnostics"></pre><script type="module" src="./stability.js"></script></html>

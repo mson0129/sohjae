@@ -7,6 +7,7 @@ const examples=[['sohjae_renderer',['sohjae_render.wasm']],['sohjae_editor',['so
 for(const [folder,names]of examples){
  const base=new URL(`../examples/${folder}/`,import.meta.url);
  assert.match(await readFile(new URL('index.html',base),'utf8'),/example\.js/);
+ if(folder!=='sohjae_renderer')assert.match(await readFile(new URL('source-map.js',base),'utf8'),/export class SourceMap/);
  const bundle=await readFile(new URL('example.js',base),'utf8');
  assert.doesNotMatch(bundle,/import\.meta|\bimport\(/);
  for(const name of names){
@@ -29,3 +30,8 @@ for (const name of ['sohjae.js','sohjae.d.ts','quick-start.html','editor.js','ed
   assert.deepEqual(await readFile(new URL(`../examples/sohjae_editor/${name}`,import.meta.url)),await readFile(new URL(`../web/${name}`,import.meta.url)));
 }
 console.log('Classic-script quick start and SDK example assets verified.');
+
+for(const name of ['app.js','app.css','store.js'])assert.deepEqual(await readFile(new URL('../examples/'+name,import.meta.url)),await readFile(new URL('../web/app/'+name,import.meta.url)));
+const application=await readFile(new URL('../examples/index.html',import.meta.url),'utf8');
+assert.match(application,/data-editor-base=".\/sohjae_editor\/"/);assert.match(application,/data-renderer-base=".\/sohjae_renderer\/"/);assert.match(application,/id="toc"/);assert.match(application,/id="sync-scroll"/);
+console.log('Pages workspace and relative SDK assets verified.');

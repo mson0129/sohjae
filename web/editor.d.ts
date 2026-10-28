@@ -81,6 +81,8 @@ export interface Editor extends EventTarget {
   get_pending_draft(): string | null;
   /** Returns discarded text, or null when no shared draft exists. */
   discard_pending_draft(): string | null;
+  /** Explicitly normalize and publish a non-conflicting source draft as one undoable action. */
+  commit_pending_draft(): boolean;
   focus(): void;
   /** Idempotent. All other stable methods reject after destruction (run reports error). */
   destroy(): void;

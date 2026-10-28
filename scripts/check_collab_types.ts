@@ -30,3 +30,6 @@ replica.request(2);
 // @ts-expect-error Protocol profile is immutable.
 COLLABORATION_PROFILE.protocol=4;
 void [created,snapshot,anchor];
+
+const proposedSource: string = replica.preview_replace_markdown(0,0,'한😀');
+void proposedSource;

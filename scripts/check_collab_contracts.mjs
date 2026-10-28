@@ -163,4 +163,12 @@ await test('Serverless demo uses framed replicas, merges offline edits and relea
   a.destroy();assert(connection.transports.every(t=>t.closed));
  }finally{connection?.close();a.destroy();b.destroy();globalThis.RTCPeerConnection=original;}
 });
+await test('Source preflight preserves replica state, history, counters and event delivery',async()=>{
+ const a=await replica(610);try{a.import_markdown('| A | B |\n| --- | --- |\n| 한😀 | 값 |');a.clear_local_history();const before=a.snapshot,log=a.export_state();let changes=0,updates=0;a.addEventListener('change',()=>changes++);a.addEventListener('update',()=>updates++);
+ const index=a.snapshot.markdown.indexOf('한😀'),at=new TextEncoder().encode(a.snapshot.markdown.slice(0,index)).length;
+ assert(a.preview_replace_markdown(at,at,'X').includes('X한😀'));assert.strictEqual(a.snapshot,before);assert.deepEqual(a.export_state(),log);assert.equal(changes,0);assert.equal(updates,0);
+ assert.throws(()=>a.preview_replace_markdown(at+1,at+1,'X'),CollaborationError);assert.deepEqual(a.export_state(),log);assert.equal(changes,0);assert.equal(updates,0);
+ a.replace_markdown(at,at,'X');assert(a.snapshot.markdown.includes('X한😀'));assert(a.snapshot.can_undo);a.undo();assert.equal(a.snapshot.markdown,before.markdown);
+ }finally{a.destroy();}
+});
 console.log(`Collaboration contracts: ${passed}/${passed} passed.`);

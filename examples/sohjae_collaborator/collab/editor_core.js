@@ -1,6 +1,7 @@
 // Adapts the shared document to the existing rich/source editor protocol.
 // The v1 core is used solely as a local parser/normalizer and DOM projection.
-import { load_core, byte_length, byte_slice } from '../core.js';
+import { load_core, byte_length, byte_slice, byte_to_utf16 } from '../core.js';
+import { rebase_source_range } from '../source-map.js';
 import { CollaborativeReplica } from './core.js';
 function diff(old_text, text) {
   let start = 0, end = old_text.length, to = text.length;
@@ -20,7 +21,7 @@ export async function create_editor_core(replica, options = {}) {
 class SharedEditorCore extends EventTarget {
   constructor(replica, renderer) {
     super(); this.replica = replica; this.renderer = renderer; this.revision = 0n;
-    this.selection = {anchor:0,focus:0}; this.saved = replica.snapshot.markdown; this.busy = false; this.draft = null; this.composition = null; this.undo_selections=[]; this.redo_selections=[];
+    this.selection = {anchor:0,focus:0}; this.saved = replica.snapshot.markdown; this.busy = false; this.draft = null; this.draft_redo=[]; this.composition = null; this.undo_selections=[]; this.redo_selections=[];
     this.listener = event => {
       if (this.busy) return;
       if(event.detail.origin === 'local'){this.undo_selections=[];this.redo_selections=[];}
@@ -49,7 +50,7 @@ class SharedEditorCore extends EventTarget {
     };
     this.selection = {anchor:boundary(this.selection.anchor),focus:boundary(this.selection.focus)};
     this.snapshot = {...this.renderer.snapshot, ...this.selection, source, revision:this.revision,
-      can_undo:!!this.draft || this.replica.snapshot.can_undo, can_redo:!!this.format_redo || this.replica.snapshot.can_redo,
+      can_undo:!!this.draft || this.replica.snapshot.can_undo, can_redo:!!this.draft_redo.length || !!this.format_redo || this.replica.snapshot.can_redo,
       dirty:source !== this.saved, draft:!!this.draft, draft_conflict:!!this.draft && this.draft.version !== this.replica.snapshot.operation_count};
     return this.snapshot;
   }
@@ -60,9 +61,12 @@ class SharedEditorCore extends EventTarget {
   mutate(callback) { this.busy = true; try { return callback(); } finally { this.busy = false; } }
   replace(start,end,text) {
     const before_selection=this.bookmark_pair(),before_count=this.replica.snapshot.operation_count;
-    const before = this.snapshot.source;
+    const before = this.snapshot.source,before_caret={...this.selection};
+    byte_to_utf16(before,start);byte_to_utf16(before,end);if(start>end)throw new RangeError('Invalid source range');
+    const literal=this.source_mode||!!this.draft;
     const source = byte_slice(before,0,start) + text + byte_slice(before,end);
     if (source === before) return this.snapshot;
+    this.draft_redo=[];
     let caret;
     let caret_start=start;
     if(!this.source_mode&&!this.draft){
@@ -72,24 +76,23 @@ class SharedEditorCore extends EventTarget {
     try { caret = this.replica.projected_anchor(caret_start,'after'); } catch { /* source delimiters may be a local draft */ }
     try {
       if (this.draft?.version !== undefined && this.draft.version !== this.replica.snapshot.operation_count) throw new Error('ProjectionDraft');
-      const previous_steps=this.draft?.steps||[];
       const args = this.draft ? diff(this.draft.base,source) : [start,end,text];
+      if(literal){
+        // Normalization is a commit boundary, not a replacement for what is being
+        // typed. An inexact projection stays local until a complete source edit
+        // can be shared without rewriting the user's source or cursor.
+        if(this.replica.preview_replace_markdown(...args)!==source)throw new Error('ProjectionDraft');
+      }
       this.mutate(() => (this.source_mode||this.draft ? this.replica.replace_markdown(...args) : this.replica.replace_projected_text(...args))); this.draft = null;
       // Literal source edits place the caret after the inserted source bytes.
       // A projected anchor at EOF can resolve before a newly inserted newline.
-      const offset = this.source_mode ? Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown))
+      const offset = literal ? Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown))
         : caret ? this.replica.resolve_projected_anchor(caret) : Math.min(start+byte_length(text),byte_length(this.replica.snapshot.markdown));
       this.selection = {anchor:offset,focus:offset};
-      // A valid table may normalize a deleted optional pipe straight back in.
-      // Source editing must retain the user's exact spelling as a local draft.
-      if(this.source_mode&&source!==this.replica.snapshot.markdown){
-        this.draft={base:this.replica.snapshot.markdown,source,version:this.replica.snapshot.operation_count,steps:this.replica.snapshot.operation_count===before_count?[...previous_steps,before]:[]};
-        this.selection={anchor:start+byte_length(text),focus:start+byte_length(text)};
-      }
     } catch(error) {
       if (!error.message.includes('ProjectionDraft')) throw error;
       this.draft ??= {base:this.replica.snapshot.markdown,source:before,version:this.replica.snapshot.operation_count,steps:[]};
-      this.draft.steps.push(this.draft.source); this.draft.source = source;
+      this.draft.steps.push(this.draft.source);(this.draft.carets??=[]).push(before_caret); this.draft.source = source;
       this.selection = {anchor:start+byte_length(text),focus:start+byte_length(text)};
     }
     this.refresh(); this.remember(); if(this.replica.snapshot.operation_count!==before_count)this.record_selection(before_selection); return this.snapshot;
@@ -114,8 +117,15 @@ class SharedEditorCore extends EventTarget {
     }
     if (op === 5 || op === 6) {
       let history;
-      if (this.draft) {
-        if (op === 5) { this.draft.source = this.draft.steps.pop() ?? this.draft.base; if (this.draft.source === this.draft.base) this.draft = null; }
+      if(op===6&&this.draft_redo.length){
+        const next=this.draft_redo.pop();this.draft=next.draft;this.selection=next.selection;
+      } else if (this.draft) {
+        if (op === 5) {
+          this.draft_redo.push({draft:{...this.draft,steps:[...this.draft.steps],carets:[...(this.draft.carets||[])]},selection:{...this.selection}});
+          this.draft.source = this.draft.steps.pop() ?? this.draft.base;
+          this.selection=this.draft.carets?.pop()||{anchor:0,focus:0};
+          if (this.draft.source === this.draft.base) this.draft = null;
+        }
       } else {
         const undo=op===5||this.format_redo;
         history=(undo?this.undo_selections:this.redo_selections).pop();
@@ -123,12 +133,25 @@ class SharedEditorCore extends EventTarget {
         if(history){this.restore_pair(undo?history.before:history.after);(undo?this.redo_selections:this.undo_selections).push(history);}
         this.format_redo = null;
       }
-      this.refresh(!history); this.remember(); return this.snapshot;
+      this.refresh(false); this.remember(); return this.snapshot;
     }
     throw new Error(`Unsupported shared editor request ${op}`);
   }
   refresh_selection() { this.snapshot = {...this.snapshot,...this.selection}; }
-  discard_draft() { const source = this.draft?.source; this.draft = null; this.refresh(true); this.remember(); return source; }
+  commit_draft() {
+    if(!this.draft)return false;
+    if(this.draft.version!==this.replica.snapshot.operation_count)throw new Error('원격 변경과 충돌한 초안은 자동 공유할 수 없습니다. 임시 저장한 뒤 원문을 비교해 주세요.');
+    const draft=this.draft,before=this.bookmark_pair(),selection={...this.selection},before_count=this.replica.snapshot.operation_count;
+    const args=diff(draft.base,draft.source);
+    // Explicit normalization is a single shared transaction with native undo.
+    const normalized=this.replica.preview_replace_markdown(...args);
+    this.mutate(()=>this.replica.replace_markdown(...args));
+    this.draft=null;this.draft_redo=[];
+    const map=position=>rebase_source_range(draft.source,normalized,{start:position,end:position}).end;
+    this.selection={anchor:map(selection.anchor),focus:map(selection.focus)};
+    this.refresh();this.remember();if(this.replica.snapshot.operation_count!==before_count)this.record_selection(before);return true;
+  }
+  discard_draft() { const source = this.draft?.source; this.draft = null;this.draft_redo=[]; this.refresh(true); this.remember(); return source; }
   begin_composition(start,end) {
     const before=this.bookmark_pair();
     try {

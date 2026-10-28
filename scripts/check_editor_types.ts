@@ -70,3 +70,6 @@ editor.clear_session();
 // @ts-expect-error auto_save must be boolean.
 editor.set_options({session_storage:{auto_save:'yes'}});
 void [temporaryMarkdown,restoredSession];
+
+const committedDraft: boolean = editor.commit_pending_draft();
+void committedDraft;

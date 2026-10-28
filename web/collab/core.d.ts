@@ -55,6 +55,8 @@ export interface Replica extends EventTarget {
   table_action(table: OperationId, action: TableAction, row: number, column: number, range?: readonly [number, number, number, number]): ReplicaSnapshot;
   import_markdown(source: string): ReplicaSnapshot;
   replace_markdown(start: number, end: number, text: string): ReplicaSnapshot;
+  /** Read-only preflight. Returns the proposed projection without emitting updates. */
+  preview_replace_markdown(start: number, end: number, text: string): string;
   replace_projected_text(start: number, end: number, text: string): ReplicaSnapshot;
   projected_anchor(offset: number, bias?: Bias): Uint8Array;
   resolve_projected_anchor(anchor: Uint8Array): number;

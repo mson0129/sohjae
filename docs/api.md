@@ -113,3 +113,5 @@ HTML 보기는 op13의 순수 읽기용 HTML을 내장 포매터로 들여쓰기
 `save_local()` / `load_local()`과 `local_storage: { key, auto_save }` 생성자 옵션은 [브라우저 저장](local-storage.md)을 참고한다.
 
 SessionStorage 임시 저장 옵션과 API는 [현재 탭의 임시 저장](session-storage.md)을 참고하세요.
+
+See [Editing stability](editing-stability.md) for source coordinates, collaboration draft publication and verification contracts.

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {initialWorkspace,validate,addNode,moveNode,removeNode} from '../web/app/store.js';
+const data=initialWorkspace();assert.equal(validate(data),data);
+const a=addNode(data,null,'folder'),b=addNode(data,a.id,'folder'),doc=addNode(data,b.id,'document');doc.markdown='한글😀 **기록**';
+assert.equal(moveNode(data,a.id,b.id,'inside'),false,'cycle rejected');assert.equal(moveNode(data,b.id,doc.id,'inside'),false,'document cannot contain children');assert.equal(moveNode(data,doc.id,doc.id,'inside'),false);
+assert(moveNode(data,doc.id,a.id,'before'));assert.equal(doc.parent,null);assert(data.nodes.indexOf(doc)<data.nodes.indexOf(a));assert(moveNode(data,doc.id,b.id,'inside'));assert.equal(doc.parent,b.id);assert(b.open);
+assert(moveNode(data,b.id,null,'inside'));assert.equal(b.parent,null);assert.equal(doc.parent,b.id,'moving folder retains children');
+const restored=validate(JSON.parse(JSON.stringify(data)));assert.equal(restored.nodes.find(n=>n.id===doc.id).markdown,'한글😀 **기록**');
+data.active=doc.id;removeNode(data,b.id);assert(!data.nodes.some(n=>[b.id,doc.id].includes(n.id)));assert(data.nodes.some(n=>n.id===data.active&&n.type==='document'));
+assert.throws(()=>validate({...data,nodes:[{id:'bad',name:'bad',type:'folder',parent:'bad'}]}));
+assert.throws(()=>validate({...data,nodes:[{id:'bad',name:'bad',type:'folder',parent:'missing'}]}));
+console.log('Workspace hierarchy, ordering, cycle protection, recursive deletion and persistence checks passed.');

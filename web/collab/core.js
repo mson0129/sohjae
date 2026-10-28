@@ -70,7 +70,7 @@ export class CollaborativeReplica extends EventTarget {
   get snapshot() { return this._snapshot; }
   request(op, bytes = new Uint8Array(), start = 0, end = start) {
     if (op !== 0 && !this.handle) throw new CollaborationError('Destroyed', 'Replica is destroyed');
-    if (this.notifying && ![4, 16, 17, 18, 22, 23, 24].includes(op)) throw new CollaborationError('ReentrantCall', 'Schedule replica mutations after event delivery');
+    if (this.notifying && ![4, 16, 17, 18, 22, 23, 24, 33].includes(op)) throw new CollaborationError('ReentrantCall', 'Schedule replica mutations after event delivery');
     binary(bytes); u32(start); u32(end);
     const pointer = this.exports.collab_reserve_input(bytes.length);
     if (!pointer) throw new RangeError('Input exceeds 16 MiB');
@@ -79,7 +79,7 @@ export class CollaborativeReplica extends EventTarget {
     const output = new Uint8Array(this.exports.memory.buffer, this.exports.collab_output_pointer(), this.exports.collab_output_length()).slice();
     if (status) { const message = decoder.decode(output); throw new CollaborationError(message.match(/^[A-Za-z]+/u)?.[0] || 'InvalidEncoding', `Collaboration core: ${message}`); }
     if (op === 1) { this.handle = 0; return; }
-    if ([4, 16, 17, 18, 22, 23, 24, 32].includes(op)) return output;
+    if ([4, 16, 17, 18, 22, 23, 24, 32, 33].includes(op)) return output;
     const view = new DataView(output.buffer), json_length = view.getUint32(0, true);
     const state = JSON.parse(decoder.decode(output.subarray(4, 4 + json_length)));
     const length = view.getUint32(4 + json_length, true), update = output.slice(8 + json_length);
@@ -126,6 +126,10 @@ export class CollaborativeReplica extends EventTarget {
   resolve_anchor(anchor) { const bytes = this.request(17, binary(anchor)); return new DataView(bytes.buffer).getUint32(0, true); }
   merge(bytes) { return this.request(3, bytes); }
   export_state() { return this.request(4); }
+  preview_replace_markdown(start,end,text) {
+    try{return decoder.decode(this.request(33,text_bytes(text),start,end));}
+    catch(error){if(error.code==='InvalidOperation')throw new CollaborationError('UnsupportedFeature','Atomic source preview requires matching JS and WASM builds');throw error;}
+  }
   undo() { return this.request(6); }
   redo() { return this.request(7); }
   create_table(offset, rows = 2, columns = 2) { return this.request(8, concat(u32(rows), u32(columns)), offset); }

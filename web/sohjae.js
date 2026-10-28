@@ -86,8 +86,8 @@
       listeners = new AbortController();
       const sync = () => { if (textarea && !destroyed) target.value = editor.get_markdown({ normalize: false }); };
       const original_destroy = editor.destroy.bind(editor);
-      // These host methods intentionally do not emit a change event in the core API.
-      for (const name of ['set_markdown', 'discard_pending_draft']) {
+      // Keep the host textarea synchronized after explicit source updates.
+      for (const name of ['set_markdown', 'discard_pending_draft', 'commit_pending_draft']) {
         const method = editor[name].bind(editor);
         editor[name] = (...args) => { const result = method(...args); sync(); return result; };
       }
@@ -177,6 +177,7 @@
     clear_session(...args) { return this.#active().clear_session(...args); }
     mark_saved(...args) { return this.#active().mark_saved(...args); }
     get_pending_draft(...args) { return this.#active().get_pending_draft(...args); }
+    commit_pending_draft(...args) { return this.#active().commit_pending_draft(...args); }
     discard_pending_draft(...args) { return this.#active().discard_pending_draft(...args); }
     focus(...args) { return this.#active().focus(...args); }
     async execute_command(...args) { return this.#active().execute_command(...args); }

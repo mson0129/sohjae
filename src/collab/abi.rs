@@ -241,6 +241,15 @@ fn execute(
             replica.coalesce_history();
             return Ok(());
         }
+        33 => {
+            // Preflight a raw source transaction without publishing operations,
+            // changing history or advancing the live replica's identity counter.
+            let text = std::str::from_utf8(input).map_err(|_| CollabError::InvalidEncoding)?;
+            let mut candidate = replica.clone();
+            candidate.replace_markdown(start, end, text)?;
+            runtime.output = candidate.projection().markdown.into_bytes();
+            return Ok(());
+        }
         20 => {
             let text = std::str::from_utf8(input).map_err(|_| CollabError::InvalidEncoding)?;
             update = Some(replica.import_markdown(text)?);
