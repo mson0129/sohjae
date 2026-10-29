@@ -2,7 +2,7 @@
 export type EditorMode = 'rich' | 'hybrid' | 'markdown';
 export type EditorCommand =
   | 'undo' | 'redo' | 'heading_1' | 'heading_2' | 'heading_3' | 'heading_4' | 'heading_5' | 'heading_6'
-  | 'paragraph' | 'bold' | 'italic' | 'strikethrough' | 'highlight' | 'inline_code' | 'code_block'
+  | 'subscript' | 'superscript' | 'paragraph' | 'bold' | 'italic' | 'strikethrough' | 'highlight' | 'inline_code' | 'code_block'
   | 'quote' | 'list' | 'ordered_list' | 'task' | 'indent' | 'outdent' | 'hard_break'
   | 'link' | 'unlink' | 'open_link' | 'table' | 'table_tools' | 'attachment' | 'footnote'
   | 'alert' | 'details' | 'comment' | 'line_numbers' | 'heading_levels' | 'paragraph_marks'
@@ -23,7 +23,9 @@ export interface AttachmentOptions {
 }
 export interface ImageOptions { enabled: boolean; storage: 'embedded'; }
 /** Defaults are filled in by the editor; changes to this snapshot do not update it. */
+export type ToolbarItem = Exclude<EditorCommand, 'clear_session'>;
 export interface EditorSettings {
+  show_toolbar: boolean; toolbar_items: ToolbarItem[] | null;
   local_storage: BrowserStorageOptions; session_storage: BrowserStorageOptions;
   mode: EditorMode; elements: Partial<Record<ElementKind, { reveal_markdown: boolean }>>;
   read_only: boolean; announce_changes: boolean; show_code_line_numbers: boolean;
@@ -34,6 +36,8 @@ export interface EditorSettings {
 }
 /** Settings accepted by set_options; nested groups are merged. */
 export interface EditorOptionsPatch {
+  /** Hidden by default. Null/omitted items show all commands; [] shows no icons. */
+  show_toolbar?: boolean; toolbar_items?: ToolbarItem[] | null;
   local_storage?: Partial<BrowserStorageOptions>; session_storage?: Partial<BrowserStorageOptions>;
   mode?: EditorMode; elements?: EditorSettings['elements']; read_only?: boolean;
   announce_changes?: boolean; show_code_line_numbers?: boolean;

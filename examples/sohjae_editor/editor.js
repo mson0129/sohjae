@@ -7,6 +7,7 @@ const COMMANDS = new Set(['undo', 'redo', ...Array.from({length:6}, (_,i)=>`head
 const is_record = value => value !== null && typeof value === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(value));
 const initializing = new WeakSet();
 const DEFAULTS = {
+  show_toolbar: false, toolbar_items: null,
   local_storage: { key: null, auto_save: false },
   session_storage: { key: null, auto_save: false },
   mode: 'rich', elements: {}, read_only: false, announce_changes: false, show_code_line_numbers: false, show_heading_levels: false, show_paragraph_marks: false,
@@ -40,6 +41,8 @@ function merge(base, value) {
   return result;
 }
 function validate_options(options) {
+  if (typeof options.show_toolbar !== 'boolean') throw new TypeError('show_toolbar must be boolean');
+  if (options.toolbar_items !== null && (!Array.isArray(options.toolbar_items) || options.toolbar_items.some(item => typeof item !== 'string' || !COMMANDS.has(item) || item === 'clear_session') || new Set(options.toolbar_items).size !== options.toolbar_items.length)) throw new TypeError('toolbar_items must be null or an array of unique toolbar command names');
   if (options.replica !== undefined && (!options.replica || typeof options.replica !== 'object')) throw new TypeError('A live replica is required');
   if (!['hybrid', 'rich', 'markdown'].includes(options.mode)) throw new TypeError('Unknown editing mode');
   for (const key of ['read_only', 'announce_changes', 'show_code_line_numbers', 'show_heading_levels', 'show_paragraph_marks']) if (typeof options[key] !== 'boolean') throw new TypeError(`${key} must be boolean`);
@@ -157,13 +160,13 @@ class MarkdownEditor extends EventTarget {
       button.textContent = label; button.title = title; button.setAttribute('aria-label', title); this.toolbar.append(button);
     });
     this.on(this.toolbar, 'keydown', event => {
-      const buttons=[...this.toolbar.querySelectorAll('button:not(:disabled)')];
+      const buttons=[...this.toolbar.querySelectorAll('button:not(:disabled):not([hidden])')];
       const current=buttons.indexOf(this.root.activeElement);
       const target=event.key==='Home'?0:event.key==='End'?buttons.length-1:['ArrowRight','ArrowDown'].includes(event.key)?(current+1)%buttons.length:['ArrowLeft','ArrowUp'].includes(event.key)?(current-1+buttons.length)%buttons.length:null;
       if(target!==null&&buttons.length){event.preventDefault();this.typing_group=null;buttons.forEach((button,index)=>button.tabIndex=index===target?0:-1);buttons[target].focus();}
       if(event.key==='Escape'){event.preventDefault();this.focus();}
     });
-    this.on(this.toolbar,'focusin',event=>{if(event.target.matches('button'))this.toolbar.querySelectorAll('button').forEach(button=>button.tabIndex=button===event.target?0:-1);});
+    this.on(this.toolbar,'focusin',event=>{if(event.target.matches('button:not([hidden])'))this.toolbar.querySelectorAll('button').forEach(button=>button.tabIndex=button===event.target?0:-1);});
     this.on(this.toolbar, 'pointerdown' , event => { if (event.target.closest('button')) event.preventDefault(); });
     this.on(this.toolbar, 'click', event => { const command = event.target.closest('[data-command]')?.dataset.command; if (command) this.run(command); });
     this.on(this.root.querySelector('[data-draft-commit]'),'click',()=>{try{this.commit_pending_draft();}catch(error){this.report(error);}});
@@ -569,6 +572,7 @@ class MarkdownEditor extends EventTarget {
     this.root.querySelector('.state').textContent = this.options.read_only ? '읽기 전용' : this.state.draft_conflict ? '원격 변경 도착 · 공유되지 않은 원본 초안' : this.state.draft ? '표 문법 편집 중 · 아직 공유되지 않음' : this.state.dirty ? '수정됨' : '저장됨';
     this.root.querySelector('[data-draft-discard]').hidden = !this.state.draft;
     const commit=this.root.querySelector('[data-draft-commit]');commit.hidden=!this.state.draft;commit.disabled=!!this.state.draft_conflict||this.options.read_only||this.reading||this.composing;
+    this.configure_toolbar();
     this.toolbar.querySelectorAll('button').forEach(button => {
       const command = button.dataset.command;
       button.disabled = ((this.options.read_only || this.reading || this.html_view) && !['copy_markdown', 'save', 'save_local', 'save_session', 'clear_session', 'open_link', 'open'].includes(command)) || command === 'undo' && !this.state.can_undo || command === 'redo' && !this.state.can_redo;
@@ -729,6 +733,15 @@ class MarkdownEditor extends EventTarget {
   visual_position(position) { return this.source_map.visual_position(position); }
   source_to_dom(position) { return this.source_map.source_to_dom(position); }
   restore_selection() { return this.source_map.restore_selection(); }
+  configure_toolbar() {
+    this.toolbar.hidden = !this.options.show_toolbar;
+    const buttons = [...this.toolbar.querySelectorAll('button')];
+    if (!this.toolbar_order) this.toolbar_order = buttons.map(button => button.dataset.command);
+    const order = this.options.toolbar_items ?? this.toolbar_order;
+    for (const button of buttons) button.hidden = !order.includes(button.dataset.command);
+    const by_command = new Map(buttons.map(button => [button.dataset.command, button]));
+    for (const command of order) this.toolbar.append(by_command.get(command));
+  }
   sync_accessibility() {
     this.surface.setAttribute('role',this.reading?'document':'textbox');
     if(this.reading){this.surface.removeAttribute('aria-readonly');this.surface.removeAttribute('aria-multiline');}
@@ -736,7 +749,8 @@ class MarkdownEditor extends EventTarget {
     this.surface.tabIndex=0;
     this.source_input.setAttribute('aria-readonly',String(this.options.read_only));
     const buttons=[...this.toolbar.querySelectorAll('button')];
-    const active=buttons.find(button=>!button.disabled&&button.tabIndex===0)||buttons.find(button=>!button.disabled);
+    const visible=buttons.filter(button=>!button.hidden&&!this.toolbar.hidden);
+    const active=visible.find(button=>!button.disabled&&button.tabIndex===0)||visible.find(button=>!button.disabled);
     buttons.forEach(button=>button.tabIndex=button===active?0:-1);
     const kinds=new Set([...this.surface.querySelectorAll('[data-kind]')].filter(element=>+element.dataset.start<=this.selection.focus&&+element.dataset.end>=this.selection.focus).map(element=>element.dataset.kind));
     const formats={bold:'bold',italic:'italic',strikethrough:'strikethrough',highlight:'highlight',subscript:'subscript',superscript:'superscript',inline_code:'inline_code'};

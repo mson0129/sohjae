@@ -106,3 +106,9 @@ collab_quick.write_text(collab_quick.read_text().replace("new Sohjae({ selector:
 # Pages now hosts only the SDK demo index and retires the former app cache.
 for name in ['index.html','sw.js']:
     shutil.copyfile(root/'scripts'/'pages'/name,root/'examples'/name)
+
+# Interactive constructor playground uses the same shipped SDK modules.
+for name in ['options.html','options.css','options.js']:
+    content=(web/name).read_text()
+    if name=='options.html':content=content.replace('src="./sohjae.js"','src="./sohjae_collaborator/sohjae.js"')
+    (root/'examples'/name).write_text(content)

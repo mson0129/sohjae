@@ -79,3 +79,34 @@ Shadow DOM 안의 `.markdown_editor`와 CSS 변수를 사용한다. 예: `--body
 설정 파일의 최상위 값도 일반 객체여야 한다. `replica` 인스턴스는 JSON 파일에서 지정할 수 없고 생성 함수의 객체 옵션으로만 제공한다. 잘못된 설정은 편집기를 만들기 전에 거절한다. 같은 컨테이너에 생성 요청이 진행 중이면 두 번째 요청을 거절하며, 첫 요청이 실패하면 재시도할 수 있다.
 
 생성 시 옵션과 `get_options()`의 알려진 설정 객체는 복사한다. 원래 객체나 반환 사본을 바꿔도 설정이 바뀌지 않는다. IME 조합 중 `set_options()`를 여러 번 호출하면 변경을 누적하고, 같은 키는 마지막 값이 우선한다. 조합이 끝날 때 한 번 적용하며 `get_options()`는 적용 전까지 기존 설정을 반환한다. 잘못된 요청은 앞서 대기 중인 유효한 변경도 취소하지 않는다.
+
+## 툴바 표시와 아이콘 순서
+
+툴바 기본값은 `show_toolbar: false`다. 편집 모드·원본/HTML/읽기 전환 바는 별도로 유지한다.
+
+```javascript
+const editor = new Sohjae({
+  selector: '#editor',
+  show_toolbar: true,
+  toolbar_items: ['undo', 'redo', 'bold', 'italic', 'highlight', 'table', 'save']
+});
+```
+
+`show_toolbar: true`일 때 `toolbar_items`를 생략하거나 `null`로 설정하면 전체 아이콘을 기본 순서로 표시한다. 배열을 지정하면 해당 명령의 아이콘만 배열 순서대로 표시하고, 빈 배열 `[]`은 아이콘을 표시하지 않는다. 중복 ID나 알 수 없는 ID는 오류로 거절한다. 단일 사용자·협업 생성자와 `set_options()`에서 동일하게 적용된다. 숨겨진 명령도 API·단축키·명령 팔레트(Ctrl/Cmd+Shift+P)로 실행할 수 있다.
+
+사용 가능한 ID(기본 순서):
+
+```
+undo redo heading_1 heading_2 heading_3 heading_4 heading_5 heading_6
+paragraph bold italic strikethrough highlight subscript superscript
+inline_code code_block quote list ordered_list task indent outdent hard_break
+link unlink open_link table table_tools attachment footnote alert details comment
+line_numbers heading_levels paragraph_marks copy_markdown open save
+save_local load_local save_session load_session
+```
+
+`toolbar_items: null`로 변경하면 전체 기본 순서로 복원한다. 아이콘은 기존 명령별 표시와 접근성 이름을 사용한다.
+
+## 생성자 옵션 체험 페이지
+
+[GitHub Pages 생성자 옵션 체험](https://mson0129.github.io/sohjae/options.html)에서 모드·읽기 전용·자동 닫기·표시 옵션·협업 플러그인·툴바 표시와 아이콘 순서를 선택하고 실제 생성자를 실행할 수 있다. ‘에디터 생성’은 초기 Markdown으로 새 인스턴스를 만들며, 기존 미리보기에서 편집한 내용은 초기화한다. 고급 JSON은 UI 옵션을 덮어쓰며 대상 selector와 초기 Markdown은 페이지 입력으로 고정한다. 생성 코드 복사와 기본값 복원을 제공한다. 협업 플러그인 선택은 모듈 로드만 수행하며 네트워크 연결은 만들지 않는다.

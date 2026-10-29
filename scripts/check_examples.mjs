@@ -35,3 +35,8 @@ const landing=await readFile(new URL('../examples/index.html',import.meta.url),'
 for(const [folder] of examples)assert(landing.includes('./'+folder+'/'));
 assert(!landing.includes('id="workspace"'));
 console.log('SDK demo index verified.');
+
+for(const name of ['options.js','options.css'])assert.deepEqual(await readFile(new URL('../examples/'+name,import.meta.url)),await readFile(new URL('../web/'+name,import.meta.url)));
+const playground=await readFile(new URL('../examples/options.html',import.meta.url),'utf8');
+assert(playground.includes('./sohjae_collaborator/sohjae.js'));assert(landing.includes('./options.html'));
+console.log('Constructor playground and SDK path verified.');
